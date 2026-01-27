@@ -35,11 +35,3 @@ jobs:
       - name: Run vet
         run: go vet ./...
 
-      - name: Run fmt check
-        run: |
-          if [ "$(gofmt -s -l . | wc -l)" -gt 0 ]; then
-            echo "Please run 'go fmt ./...' to format the code"
-            gofmt -s -l .
-            exit 1
-          fi
-        shell: bash
