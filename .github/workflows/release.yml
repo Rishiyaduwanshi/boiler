@@ -54,8 +54,11 @@ jobs:
       - name: Package binary
         run: |
           if [ "${{ matrix.os }}" = "windows" ]; then
+            cp scripts/boiler.cmd boiler.cmd
             zip boiler-${{ matrix.os }}-${{ matrix.arch }}.zip bl${{ matrix.ext }} boiler.cmd
           else
+            cp scripts/boiler boiler
+            chmod +x boiler
             tar -czf boiler-${{ matrix.os }}-${{ matrix.arch }}.tar.gz bl${{ matrix.ext }} boiler
           fi
 
