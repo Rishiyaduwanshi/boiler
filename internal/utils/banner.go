@@ -9,22 +9,22 @@ import (
 
 var (
 	primaryStyle = lipgloss.NewStyle().
-		Foreground(lipgloss.Color("86")).
-		Bold(true)
+			Foreground(lipgloss.Color("86")).
+			Bold(true)
 
 	secondaryStyle = lipgloss.NewStyle().
-		Foreground(lipgloss.Color("42"))
+			Foreground(lipgloss.Color("42"))
 
 	subtitleStyle = lipgloss.NewStyle().
-		Foreground(lipgloss.Color("240"))
+			Foreground(lipgloss.Color("240"))
 
 	authorStyle = lipgloss.NewStyle().
-		Foreground(lipgloss.Color("238")).
-		Italic(true)
+			Foreground(lipgloss.Color("238")).
+			Italic(true)
 
 	versionStyle = lipgloss.NewStyle().
-		Foreground(lipgloss.Color("226")).
-		Bold(true)
+			Foreground(lipgloss.Color("226")).
+			Bold(true)
 )
 
 func ShowBanner() {

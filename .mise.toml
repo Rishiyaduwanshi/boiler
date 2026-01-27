@@ -1,0 +1,60 @@
+[tools]
+go = "1.25.5"
+
+[env]
+GO111MODULE = "on"
+CGO_ENABLED = "0"
+
+[tasks.build]
+description = "Build the boiler binary"
+run = "go build -o build/bl.exe ."
+
+[tasks.dev]
+description = "Build for development (without optimization)"
+run = "go build -o bl.exe ."
+
+[tasks.bin]
+description = "Install the binary to $GOPATH/bin"
+run = "go install ."
+
+[tasks.fmt]
+description = "Format Go code"
+run = "go fmt ./..."
+
+[tasks.vet]
+description = "Run go vet"
+run = "go vet ./..."
+
+[tasks.lint]
+description = "Format and vet code"
+depends = ["fmt", "vet"]
+
+[tasks.deps]
+description = "Download dependencies"
+run = "go mod download && go mod tidy"
+
+[tasks.run-version]
+description = "Build and show version"
+run = """
+go build -o bl.exe .
+.\\bl.exe version
+"""
+
+[tasks.update-deps]
+description = "Update all dependencies"
+run = "go get -u ./... && go mod tidy"
+
+[tasks.release]
+description = "Build optimized release binary"
+run = "go build -o bl.exe ."
+
+[tasks.dev-setup]
+description = "Setup development environment"
+run = """
+go mod download
+go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+"""
+
+[tasks.check]
+description = "Run all checks (fmt, vet, test)"
+depends = ["fmt", "vet", "test"]

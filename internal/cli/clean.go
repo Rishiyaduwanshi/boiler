@@ -31,9 +31,7 @@ var (
 
 func init() {
 	cleanCmd.Flags().BoolVarP(&cleanAll, "all", "a", false, "Clean everything")
-	cleanCmd.Flags().BoolVar(&cleanSnippets, "snippets", false, "Clean all snippets")
-	cleanCmd.Flags().BoolVar(&cleanSnippets, "sn", false, "Clean all snippets")
-	cleanCmd.Flags().BoolVar(&cleanStacks, "stacks", false, "Clean all stacks")
-	cleanCmd.Flags().BoolVar(&cleanStacks, "st", false, "Clean all stacks")
+	cleanCmd.Flags().BoolVarP(&cleanSnippets, "snippets", "n", false, "Clean all snippets")
+	cleanCmd.Flags().BoolVarP(&cleanStacks, "stacks", "k", false, "Clean all stacks")
 	cleanCmd.Flags().BoolVarP(&cleanStore, "store", "s", false, "Clean entire store")
 }

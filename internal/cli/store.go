@@ -15,7 +15,6 @@ var storeCmd = &cobra.Command{
 		if len(args) > 0 {
 			path = args[0]
 		}
-		
 		logger.Info(fmt.Sprintf("Storing: %s", path))
 		fmt.Printf("Storing %s (implementation in progress)\n", path)
 	},

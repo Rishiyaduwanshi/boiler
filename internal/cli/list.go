@@ -19,8 +19,8 @@ var listCmd = &cobra.Command{
 		}
 
 		showAll := !listSnippets && !listStacks
-		
-		if listSnippets || listAll || showAll {
+
+		if listSnippets || showAll {
 			fmt.Println("\n📄 Snippets:")
 			snippets := st.ListSnippets()
 			if len(snippets) == 0 {
@@ -32,7 +32,7 @@ var listCmd = &cobra.Command{
 			}
 		}
 
-		if listStacks || listAll || showAll {
+		if listStacks || showAll {
 			fmt.Println("\n📦 Stacks:")
 			stacks := st.ListStacks()
 			if len(stacks) == 0 {
@@ -51,13 +51,9 @@ var listCmd = &cobra.Command{
 var (
 	listSnippets bool
 	listStacks   bool
-	listAll      bool
 )
 
 func init() {
-	listCmd.Flags().BoolVar(&listSnippets, "snippets", false, "List snippets")
-	listCmd.Flags().BoolVar(&listSnippets, "sn", false, "List snippets (shorthand)")
-	listCmd.Flags().BoolVar(&listStacks, "stacks", false, "List stacks")
-	listCmd.Flags().BoolVar(&listStacks, "st", false, "List stacks (shorthand)")
-	listCmd.Flags().BoolVarP(&listAll, "all", "a", false, "List all resources")
+	listCmd.Flags().BoolVarP(&listSnippets, "snippets", "n", false, "List snippets")
+	listCmd.Flags().BoolVarP(&listStacks, "stacks", "k", false, "List stacks")
 }

@@ -24,9 +24,7 @@ var (
 )
 
 func init() {
-	searchCmd.Flags().BoolVar(&searchSnippets, "snippets", false, "Search only snippets")
-	searchCmd.Flags().BoolVar(&searchSnippets, "sn", false, "Search only snippets")
-	searchCmd.Flags().BoolVar(&searchStacks, "stacks", false, "Search only stacks")
-	searchCmd.Flags().BoolVar(&searchStacks, "st", false, "Search only stacks")
+	searchCmd.Flags().BoolVarP(&searchSnippets, "snippets", "n", false, "Search only snippets")
+	searchCmd.Flags().BoolVarP(&searchStacks, "stacks", "k", false, "Search only stacks")
 	searchCmd.Flags().BoolVarP(&searchRemote, "remote", "r", false, "Search remote registry")
 }

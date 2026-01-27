@@ -33,7 +33,6 @@ func Execute(config *config.Config, log *utils.Logger) error {
 func init() {
 	// Add version flag
 	rootCmd.Flags().BoolP("version", "v", false, "Show version information")
-	
 	// Add subcommands
 	rootCmd.AddCommand(versionCmd)
 	rootCmd.AddCommand(confCmd)

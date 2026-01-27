@@ -8,7 +8,12 @@ logs
 .trae
 .vscode
 dist
-boiler
-commands.md
-README.md
+bl.exe
+build/
+coverage.out
+*.test
+.mise.local.toml
 Architecture.md
+readme.md
+commands.md
+contributing.md

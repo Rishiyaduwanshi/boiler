@@ -137,7 +137,7 @@ func (s *Store) ListStacks() []string {
 func ParseResourceName(resource string) (name, version, extension string) {
 	parts := strings.SplitN(resource, "@", 2)
 	nameWithExt := parts[0]
-	
+
 	if len(parts) == 2 {
 		versionWithExt := parts[1]
 		// Check if version has extension

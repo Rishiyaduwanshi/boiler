@@ -28,7 +28,7 @@ func init() {
 	confCmd.Flags().BoolVarP(&confEdit, "edit", "e", false, "Edit configuration")
 	confCmd.Flags().BoolVarP(&confReset, "reset", "r", false, "Reset configuration to defaults")
 	confCmd.Flags().BoolVarP(&confShow, "show", "s", false, "Show configuration")
-	
+
 	// Set PreRunE to handle edit and reset flags
 	confCmd.PreRunE = func(cmd *cobra.Command, args []string) error {
 		if confEdit {
@@ -80,7 +80,7 @@ func editConfig() error {
 	cmd.Stderr = os.Stderr
 
 	logger.Info(fmt.Sprintf("Opening config in %s", editor))
-	
+
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("failed to open editor: %w", err)
 	}
@@ -90,7 +90,7 @@ func editConfig() error {
 
 func resetConfig() error {
 	logger.Info("Resetting configuration to defaults")
-	
+
 	if err := config.Reset(); err != nil {
 		return fmt.Errorf("failed to reset config: %w", err)
 	}
