@@ -1,8 +1,8 @@
 package version
 
 var (
-	Version   = "0.0.1"
-	GitCommit = "dev"
+	Version   = "dev"
+	GitCommit = "unknown"
 	BuildDate = "unknown"
 	GoVersion = "unknown"
 )

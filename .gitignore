@@ -1,18 +1,47 @@
-.github
-node_modules
-demo
-.env
-.env.dev
-logs
-.next
-.trae
-.vscode
-dist
+# Build artifacts
 bl.exe
+bl
+*.exe
 build/
+
+# Config and data
+boiler.conf.json
+.mise.local.toml
+
+# Dependencies
+node_modules/
+vendor/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log
+
+# Test
 coverage.out
 *.test
-.mise.local.toml
+
+# Env
+.env
+.env.*
+!.env.example
+
+# Demo/temp files
+demo/
+temp/
+tmp/
+
+Documentation 
 Architecture.md
 readme.md
 commands.md

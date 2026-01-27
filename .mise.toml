@@ -7,7 +7,7 @@ CGO_ENABLED = "0"
 
 [tasks.build]
 description = "Build the boiler binary"
-run = "go build -o build/bl.exe ."
+run = "go build -o bl.exe ."
 
 [tasks.dev]
 description = "Build for development (without optimization)"
@@ -33,20 +33,17 @@ depends = ["fmt", "vet"]
 description = "Download dependencies"
 run = "go mod download && go mod tidy"
 
-[tasks.run-version]
-description = "Build and show version"
-run = """
-go build -o bl.exe .
-.\\bl.exe version
-"""
 
 [tasks.update-deps]
 description = "Update all dependencies"
 run = "go get -u ./... && go mod tidy"
 
 [tasks.release]
-description = "Build optimized release binary"
-run = "go build -o bl.exe ."
+description = "Build optimized release binary with version"
+run = """
+VERSION=$(git describe --tags --always --dirty 2>/dev/null || echo "dev")
+go build -o bl.exe -ldflags="-s -w -X github.com/rishiyaduwanshi/boiler/pkg/version.Version=$VERSION" .
+"""
 
 [tasks.dev-setup]
 description = "Setup development environment"
