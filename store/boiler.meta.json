@@ -1,9 +1,8 @@
 {
     "stacks": {
-        "express@1": "/home/user/boiler/store/stacks/express@1",
-        "django@1": "/home/user/boiler/store/stacks/django@1"
+        "express@1": "s:/Users/Documents/Abhinav/Practice/personal/boiler/store/stacks/express"
     },
     "snippets": {
-        "errorHandler@1.js": "/home/user/.boiler/store/snippets/js/errorHandler@1.js.bl"
+        "errorHandler@1.js": "s:/Users/Documents/Abhinav/Practice/personal/boiler/store/snippets/js/errorHandler.js"
     }
 }
