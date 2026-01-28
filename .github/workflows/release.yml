@@ -5,6 +5,11 @@ on:
     tags:
       - 'v*'
   workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag version (e.g., v0.1.0)'
+        required: true
+        type: string
 
 permissions:
   contents: write
@@ -47,7 +52,7 @@ jobs:
           GOARCH: ${{ matrix.arch }}
           CGO_ENABLED: 0
         run: |
-          VERSION=${GITHUB_REF#refs/tags/}
+          VERSION=${{ github.event.inputs.tag || github.ref_name }}
           go build -o bl${{ matrix.ext }} \
             -ldflags="-s -w -X github.com/rishiyaduwanshi/boiler/pkg/version.Version=$VERSION" \
             .
@@ -86,6 +91,7 @@ jobs:
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
+          tag_name: ${{ github.event.inputs.tag || github.ref_name }}
           files: |
             dist/**/*.zip
             dist/**/*.tar.gz
