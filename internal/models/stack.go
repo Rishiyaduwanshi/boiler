@@ -24,7 +24,7 @@ type StackConfig struct {
 func ParseStackConfig(dirPath string) (*StackConfig, error) {
 	configPath := filepath.Join(dirPath, "boiler.stack.json")
 	if !utils.FileExists(configPath) {
-		return nil, fmt.Errorf("boiler.stack.json not found. Run 'bl init' first to create config")
+		return nil, fmt.Errorf("Cannot find 'boiler.stack.json' in the current stack. Make sure you have initialized this stack by running 'bl init' inside the project folder")
 	}
 
 	data, err := os.ReadFile(configPath)

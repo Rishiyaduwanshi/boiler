@@ -93,8 +93,15 @@ func initBoilerConfig() error {
 }
 
 func createStackConfig(path string) error {
+	// Get current directory name as default
+	cwd, err := os.Getwd()
+	if err != nil {
+		return fmt.Errorf("failed to get current directory: %w", err)
+	}
+	defaultName := filepath.Base(cwd)
+	
 	// Prompt for common metadata
-	commonMeta, err := utils.PromptCommonMetadata("my-stack", initYes)
+	commonMeta, err := utils.PromptCommonMetadata(defaultName, initYes)
 	if err != nil {
 		return err
 	}

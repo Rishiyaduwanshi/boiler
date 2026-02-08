@@ -55,7 +55,6 @@ Downloads and installs the latest release from GitHub.`,
 }
 
 func runSelfUninstall() error {
-	fmt.Println("Starting Boiler uninstallation...")
 	
 	var cmd *exec.Cmd
 	scriptURL := "https://raw.githubusercontent.com/rishiyaduwanshi/boiler/main/scripts/uninstall"

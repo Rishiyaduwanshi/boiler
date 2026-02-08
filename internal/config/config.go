@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
+	"github.com/rishiyaduwanshi/boiler/pkg/version"
 )
 
 type Config struct {
@@ -30,22 +30,38 @@ type Paths struct {
 	Bin      string `json:"bin"`
 }
 
+// getRootPath returns the default root directory for boiler
+func getRootPath() string {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return ".boiler"
+	}
+	return filepath.Join(home, ".boiler")
+}
+
 func DefaultConfig() *Config {
+	rootPath := getRootPath()
+
+	ver := version.Version
+	if ver == "" || ver == "dev" {
+		ver = "0.0.12"
+	}
+
 	return &Config{
 		Name:          "Boiler",
-		Version:       "0.0.1",
+		Version:       ver,
 		Author:        "Abhinav Prakash",
 		Github:        "github.com/rishiyaduwanshi/boiler",
 		Description:   "A CLI tool to manage reusable code snippets and stacks",
 		DefaultEditor: "vim",
 		Registry:      "https://github.com/rishiyaduwanshi/boiler/store",
 		Paths: Paths{
-			Root:     "~/.boiler",
-			Store:    "~/.boiler/store",
-			Snippets: "~/.boiler/store/snippets",
-			Stacks:   "~/.boiler/store/stacks",
-			Logs:     "~/.boiler/logs",
-			Bin:      "~/.boiler/bin",
+			Root:     rootPath,
+			Store:    filepath.Join(rootPath, "store"),
+			Snippets: filepath.Join(rootPath, "store", "snippets"),
+			Stacks:   filepath.Join(rootPath, "store", "stacks"),
+			Logs:     filepath.Join(rootPath, "logs"),
+			Bin:      filepath.Join(rootPath, "bin"),
 		},
 		Artifacts: map[string]string{
 			"default":    "//  ",
@@ -85,38 +101,13 @@ func DefaultConfig() *Config {
 
 // ConfigPath returns the path to the config file
 func ConfigPath() (string, error) {
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return "", fmt.Errorf("failed to get home directory: %w", err)
-	}
-	return filepath.Join(home, ".boiler", "boiler.conf.json"), nil
+	rootPath := getRootPath()
+	return filepath.Join(rootPath, "boiler.conf.json"), nil
 }
 
 func BackupPath() (string, error) {
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return "", fmt.Errorf("failed to get home directory: %w", err)
-	}
-	return filepath.Join(home, ".boiler", "boiler.conf.json.bk"), nil
-}
-
-func ExpandPath(path string) string {
-	if strings.HasPrefix(path, "~/") {
-		home, err := os.UserHomeDir()
-		if err == nil {
-			path = filepath.Join(home, path[2:])
-		}
-	}
-	return os.ExpandEnv(path)
-}
-
-func (p *Paths) ExpandPaths() {
-	p.Root = ExpandPath(p.Root)
-	p.Store = ExpandPath(p.Store)
-	p.Snippets = ExpandPath(p.Snippets)
-	p.Stacks = ExpandPath(p.Stacks)
-	p.Logs = ExpandPath(p.Logs)
-	p.Bin = ExpandPath(p.Bin)
+	rootPath := getRootPath()
+	return filepath.Join(rootPath, "boiler.conf.json.bk"), nil
 }
 
 func Load() (*Config, error) {
@@ -141,8 +132,6 @@ func Load() (*Config, error) {
 	if err := json.Unmarshal(data, &cfg); err != nil {
 		return nil, fmt.Errorf("failed to parse config: %w", err)
 	}
-
-	cfg.Paths.ExpandPaths()
 
 	return &cfg, nil
 }
