@@ -22,6 +22,26 @@ Template Variables:
 
 Stacks are also versioned and can be added by name or with explicit version.
 
+Remote Resources:
+  Use -r flag to fetch from remote registry or directly from GitHub/URLs:
+    1. From registry: bl add express@1 -r
+       (Uses registry configured in config or --registry flag)
+    
+    2. Direct from GitHub: bl add owner/repo -r
+       (Fetches entire repo as stack)
+    
+    3. Direct snippet: bl add owner/repo:path/to/file.js -r
+       (Fetches single file)
+    
+    4. Direct URL: bl add https://yourdomain.com/path/file.js -r
+       (Downloads from any URL)
+    
+    5. Custom domain: bl add yourdomain.com:path/file.js -r
+       (Assumes HTTPS)
+    
+    6. Custom registry: bl add express@1 -r --registry https://github.com/other/boiler
+       (One-time registry override)
+
 ```
 bl add [resource] [flags]
 ```
@@ -49,16 +69,35 @@ bl add [resource] [flags]
 
   # Force overwrite
   bl add middleware --force
+
+  # Remote: From registry
+  bl add express@1 -r
+
+  # Remote: Direct from GitHub (entire repo)
+  bl add rishiyaduwanshi/boiler-express -r
+
+  # Remote: Direct snippet from GitHub
+  bl add rishiyaduwanshi/boiler-snippets:js/errorHandler.js -r
+
+  # Remote: From custom website (direct URL)
+  bl add https://iamabhinav.dev/snippets/helper.js -r
+
+  # Remote: From custom domain
+  bl add iamabhinav.dev:snippets/validator.js -r
+
+  # Remote: Custom registry
+  bl add express@1 -r --registry https://github.com/myorg/boiler
 ```
 
 ### Options
 
 ```
-  -b, --both        Add to both local and global
-  -f, --force       Force operation without confirmation
-  -g, --global      Add to global store
-  -h, --help        help for add
-  -r, --remote      Fetch from remote registry
-  -t, --to string   Destination path (default ".")
+  -b, --both              Add to both local and global
+  -f, --force             Force operation without confirmation
+  -g, --global            Add to global store
+  -h, --help              help for add
+      --registry string   Custom registry URL (overrides config)
+  -r, --remote            Fetch from remote registry
+  -t, --to string         Destination path (default ".")
 ```
 

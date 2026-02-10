@@ -13,6 +13,7 @@ You can:
   - View current configuration (default)
   - Edit config in default editor (use -e or --edit)
   - Reset to defaults (use -r or --reset)
+  - Set registry URL (use --set-registry)
 
 Configuration includes paths, preferences, and behavior settings.
 
@@ -31,14 +32,21 @@ bl conf [flags]
 
   # Reset to defaults
   bl conf --reset
+
+  # Set custom registry
+  bl conf --set-registry https://github.com/myorg/boiler
+
+  # Set to default registry
+  bl conf --set-registry https://github.com/rishiyaduwanshi/boiler
 ```
 
 ### Options
 
 ```
-  -e, --edit    Edit configuration
-  -h, --help    help for conf
-  -r, --reset   Reset configuration to defaults
-  -s, --show    Show configuration
+  -e, --edit                  Edit configuration
+  -h, --help                  help for conf
+  -r, --reset                 Reset configuration to defaults
+      --set-registry string   Set custom registry URL
+  -s, --show                  Show configuration
 ```
 

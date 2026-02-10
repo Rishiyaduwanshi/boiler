@@ -15,6 +15,11 @@ Searches both snippets and stacks by default. Use flags to filter:
 
 Search is case-insensitive and matches partial names.
 
+Remote Search:
+  Use -r flag to search remote registry:
+    - Default registry from config
+    - Or specify custom: --registry https://github.com/other/boiler
+
 ```
 bl search [query] [flags]
 ```
@@ -30,14 +35,21 @@ bl search [query] [flags]
 
   # Search only stacks
   bl search express --stacks
+
+  # Search remote registry
+  bl search express -r
+
+  # Search custom registry
+  bl search express -r --registry https://github.com/myorg/boiler
 ```
 
 ### Options
 
 ```
-  -h, --help       help for search
-  -r, --remote     Search remote registry
-  -n, --snippets   Search only snippets
-  -k, --stacks     Search only stacks
+  -h, --help              help for search
+      --registry string   Custom registry URL (overrides config)
+  -r, --remote            Search remote registry
+  -n, --snippets          Search only snippets
+  -k, --stacks            Search only stacks
 ```
 
