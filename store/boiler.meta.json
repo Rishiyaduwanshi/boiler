@@ -1,6 +1,6 @@
 {
     "stacks": {
-        "express@1": "rishiyaduwanshi/boiler-express"
+        "express@1": "rishiyaduwanshi/boiler-express-js"
     },
     "snippets": {
         "errorHandler@1.js": "rishiyaduwanshi/boiler-snippets:js/errorHandler.js"
