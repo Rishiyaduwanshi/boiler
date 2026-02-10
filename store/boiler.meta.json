@@ -1,8 +1,8 @@
 {
     "stacks": {
-        "express@1": "https://github.com/rishiyaduwanshi/boiler-express-js"
+        "express@1": "rishiyaduwanshi/boiler-express"
     },
     "snippets": {
-        "errorHandler@1.js": "github.com/rishiyaduwanshi/boiler-snippets:js/errorHandler.js"
+        "errorHandler@1.js": "rishiyaduwanshi/boiler-snippets:js/errorHandler.js"
     }
 }

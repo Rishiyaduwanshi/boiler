@@ -5,6 +5,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/rishiyaduwanshi/boiler/internal/remote"
 	"github.com/rishiyaduwanshi/boiler/internal/utils"
 	"github.com/spf13/cobra"
 )
@@ -18,7 +19,12 @@ Searches both snippets and stacks by default. Use flags to filter:
   - Use -s or --snippets to search only snippets
   - Use -k or --stacks to search only stacks
 
-Search is case-insensitive and matches partial names.`,
+Search is case-insensitive and matches partial names.
+
+Remote Search:
+  Use -r flag to search remote registry:
+    - Default registry from config
+    - Or specify custom: --registry https://github.com/other/boiler`,
 	Example: `  # Search for anything with 'error'
   bl search error
 
@@ -26,7 +32,13 @@ Search is case-insensitive and matches partial names.`,
   bl search logger --snippets
 
   # Search only stacks
-  bl search express --stacks`,
+  bl search express --stacks
+
+  # Search remote registry
+  bl search express -r
+
+  # Search custom registry
+  bl search express -r --registry https://github.com/myorg/boiler`,
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		query := args[0]
@@ -40,6 +52,11 @@ Search is case-insensitive and matches partial names.`,
 }
 
 func searchResources(query string) error {
+	// Handle remote search
+	if searchRemote {
+		return searchRemoteResources(query)
+	}
+
 	st, err := utils.LoadStore(cfg.Paths.Store)
 	if err != nil {
 		return err
@@ -95,14 +112,72 @@ func searchResources(query string) error {
 	return nil
 }
 
+// searchRemoteResources searches for resources in remote registry
+func searchRemoteResources(query string) error {
+	// Use custom registry if provided, otherwise use config
+	registryURL := cfg.Registry
+	if searchRegistry != "" {
+		registryURL = searchRegistry
+	}
+
+	// Initialize remote store
+	remoteStoreHandler, err := remote.NewRemoteStore(registryURL)
+	if err != nil {
+		return fmt.Errorf("failed to initialize remote store: %w", err)
+	}
+	
+	// Load remote metadata
+	fmt.Println("🔄 Fetching remote registry...")
+	remoteStore, err := remoteStoreHandler.LoadFromURL()
+	if err != nil {
+		return fmt.Errorf("failed to load remote registry: %w", err)
+	}
+
+	// Determine what to search
+	searchSnips := !searchStacks  // Search snippets by default
+	searchStks := !searchSnippets // Search stacks by default
+
+	results := remoteStoreHandler.Search(remoteStore, query, searchSnips, searchStks)
+	
+	foundAny := false
+
+	// Display snippets
+	if snippets, ok := results["snippets"]; ok && len(snippets) > 0 {
+		foundAny = true
+		fmt.Println("\n📄 Remote Snippets:")
+		for _, name := range snippets {
+			fmt.Printf("  • %s\n", name)
+		}
+	}
+
+	// Display stacks
+	if stacks, ok := results["stacks"]; ok && len(stacks) > 0 {
+		foundAny = true
+		fmt.Println("\n📦 Remote Stacks:")
+		for _, name := range stacks {
+			fmt.Printf("  • %s\n", name)
+		}
+	}
+
+	if !foundAny {
+		fmt.Printf("No remote results found for '%s'\n", query)
+	} else {
+		fmt.Println()
+	}
+
+	return nil
+}
+
 var (
 	searchSnippets bool
 	searchStacks   bool
 	searchRemote   bool
+	searchRegistry string
 )
 
 func init() {
 	searchCmd.Flags().BoolVarP(&searchSnippets, "snippets", "n", false, "Search only snippets")
 	searchCmd.Flags().BoolVarP(&searchStacks, "stacks", "k", false, "Search only stacks")
 	searchCmd.Flags().BoolVarP(&searchRemote, "remote", "r", false, "Search remote registry")
+	searchCmd.Flags().StringVar(&searchRegistry, "registry", "", "Custom registry URL (overrides config)")
 }

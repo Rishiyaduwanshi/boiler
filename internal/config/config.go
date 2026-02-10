@@ -54,7 +54,7 @@ func DefaultConfig() *Config {
 		Github:        "github.com/rishiyaduwanshi/boiler",
 		Description:   "A CLI tool to manage reusable code snippets and stacks",
 		DefaultEditor: "vim",
-		Registry:      "https://github.com/rishiyaduwanshi/boiler/store",
+		Registry:      "https://github.com/rishiyaduwanshi/boiler",
 		Paths: Paths{
 			Root:     rootPath,
 			Store:    filepath.Join(rootPath, "store"),

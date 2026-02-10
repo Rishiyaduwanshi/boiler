@@ -88,6 +88,14 @@ func (s *Store) Save() error {
 	return nil
 }
 
+func (s *Store) SetMeta(meta *Meta) {
+	s.meta = meta
+}
+
+func (s *Store) GetMeta() *Meta {
+	return s.meta
+}
+
 func (s *Store) AddSnippet(name, path string) error {
 	s.meta.Snippets[name] = path
 	return s.Save()
@@ -236,4 +244,70 @@ func IsStack(resource string) bool {
 
 func IsSnippet(resource string) bool {
 	return !IsStack(resource)
+}
+
+// IsRemotePath checks if a path is a remote GitHub location or URL
+// Formats: "owner/repo:path", "owner/repo", "https://domain.com/path", "domain.com:path"
+func IsRemotePath(path string) bool {
+	// Check if it's a full URL
+	if strings.HasPrefix(path, "http://") || strings.HasPrefix(path, "https://") {
+		return true
+	}
+	
+	// Remote paths contain / for GitHub owner/repo
+	// and don't start with drive letters or / (absolute paths)
+	if strings.Contains(path, ":") {
+		// Check if it's like "owner/repo:path" or "domain.com:path" not "C:/path"
+		parts := strings.SplitN(path, ":", 2)
+		if strings.Contains(parts[0], "/") && !strings.HasPrefix(path, "/") {
+			return true
+		}
+		// Check for domain:path format (e.g., "iamabhinav.dev:snippets/file.js")
+		if strings.Contains(parts[0], ".") && !strings.HasPrefix(path, "/") {
+			return true
+		}
+	}
+	// Check if it's just "owner/repo" format
+	if strings.Count(path, "/") == 1 && !strings.HasPrefix(path, "/") && !strings.Contains(path, ":") {
+		return true
+	}
+	return false
+}
+
+// ParseRemotePath parses a remote path into owner, repo, and path components
+// Format: "owner/repo:path" -> ("owner", "repo", "path")
+// Format: "owner/repo" -> ("owner", "repo", ".")
+// Format: "https://domain.com/path" -> ("", "https://domain.com/path", "")
+// Format: "domain.com:path" -> ("", "domain.com", "path")
+func ParseRemotePath(remotePath string) (owner, repo, path string) {
+	// Check if it's a full URL
+	if strings.HasPrefix(remotePath, "http://") || strings.HasPrefix(remotePath, "https://") {
+		// Return the full URL as "repo" (it's actually a direct URL)
+		return "", remotePath, ""
+	}
+	
+	// Check for domain:path format (e.g., "iamabhinav.dev:snippets/file.js")
+	if strings.Contains(remotePath, ":") {
+		parts := strings.SplitN(remotePath, ":", 2)
+		domain := parts[0]
+		filePath := parts[1]
+		
+		// If it contains a dot, it's likely a domain
+		if strings.Contains(domain, ".") {
+			return "", domain, filePath
+		}
+		
+		// Otherwise, it's owner/repo:path format
+		repoparts := strings.SplitN(domain, "/", 2)
+		if len(repoparts) == 2 {
+			return repoparts[0], repoparts[1], filePath
+		}
+	} else {
+		// Check for simple owner/repo format
+		parts := strings.SplitN(remotePath, "/", 2)
+		if len(parts) == 2 {
+			return parts[0], parts[1], "."
+		}
+	}
+	return "", "", ""
 }
