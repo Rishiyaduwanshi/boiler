@@ -2,6 +2,7 @@
 import { defineConfig } from 'astro/config';
 import starlight from '@astrojs/starlight';
 import starlightThemeGalaxy from 'starlight-theme-galaxy'
+import mermaid from 'astro-mermaid';
 
 // https://astro.build/config
 export default defineConfig({
@@ -9,6 +10,10 @@ export default defineConfig({
 		smartypants: false,
 	},
 	integrations: [
+		mermaid({
+			theme: 'forest',
+			autoTheme : true
+		}),
 		starlight({
 			plugins: [starlightThemeGalaxy()],
 			title: 'Boiler',
@@ -38,17 +43,27 @@ export default defineConfig({
 					label: 'Guides',
 					items: [
 						{ label: 'Boiler Syntax', slug: 'guides/syntax' },
+						{
+							label: 'Remote Fetching',
+							badge: { text: 'New', variant: 'tip' },
+							collapsed: false,
+							items: [
+								{ label: 'Overview', slug: 'guides/remote-fetching' },
+								{ label: 'Formats', link: '/guides/remote-fetching#understanding-formats' },
+								{ label: 'GitHub Fetch', link: '/guides/remote-fetching#fetching-from-github' },
+								{ label: 'Registry Fetch', link: '/guides/remote-fetching#using-a-registry' },
+								{ label: 'Custom Domain', link: '/guides/remote-fetching#fetching-from-custom-websites' },
+								{ label: 'Direct URL', link: '/guides/remote-fetching#fetching-from-direct-urls' },
+							],
+						},
 					],
 				},
 				{
 					label: 'Commands',
 					autogenerate: { directory: 'commands' },
+					collapsed :  false
 				},
-				{
-					label: 'CLI Reference',
-					collapsed: true,
-					autogenerate: { directory: 'reference' },
-				},
+
 			],
 		}),
 	],

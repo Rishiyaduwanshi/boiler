@@ -210,7 +210,7 @@ Add to the `artifacts` section:
 // __var bl__some var = value                // Spaces not allowed
 ```
 
-## Real-World Examples
+##  Examples
 
 ### 1. Error Handler with Custom Logger
 
