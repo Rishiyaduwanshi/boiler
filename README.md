@@ -67,10 +67,15 @@ bl store ./middleware/auth.js
 bl add auth
 # → Copied to current directory
 
+# Fetch from remote
+bl search express -r
+bl add express@1 -r
+# → Downloaded and initialized
+
 # List all resources
 bl ls
 
-# Search
+# Search locally
 bl search auth
 ```
 
@@ -104,6 +109,7 @@ bl add errorHandler
 
 - ✅ **Automatic Versioning** - `@1`, `@2`, etc.
 - ✅ **Template Variables** - `bl__VAR_NAME` syntax with prompts
+- ✅ **Remote Fetching** - Pull snippets from GitHub or custom registries
 - ✅ **Language Agnostic** - JS, Python, Go, Java, TS, Rust, C++, etc.
 - ✅ **Stack Templates** - Store entire project folders
 - ✅ **Zero Config** - Works immediately after install
@@ -112,16 +118,41 @@ bl add errorHandler
 
 ---
 
+## Remote Fetching
+
+Pull snippets from GitHub repositories or custom registries:
+
+```bash
+# Set default registry
+bl conf --set-registry https://github.com/rishiyaduwanshi/boiler
+
+# Search remote resources
+bl search express -r
+
+# Add from registry
+bl add express@1 -r
+
+# Direct GitHub repo
+bl add username/repo -r
+bl add username/repo:path/to/file.js -r
+```
+
+---
+
 ## Commands
 
 ```bash
 bl init              # Initialize Boiler
 bl store [path]      # Store file/folder
-bl add <name>        # Add snippet/stack
+bl add <name>        # Add snippet/stack (use -r for remote)
 bl ls                # List all resources
-bl search <query>    # Search by name
+bl search <query>    # Search by name (use -r for remote)
 bl info <name>       # Show resource details
-bl clean             # Remove unused
+bl clean             # Remove unused versions
+bl path              # Show installation paths
+bl conf              # View/edit configuration
+bl self update       # Update Boiler to latest
+bl self uninstall    # Uninstall Boiler
 bl version           # Show version
 bl --help            # Full command list
 ```
