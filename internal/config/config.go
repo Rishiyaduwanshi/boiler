@@ -43,8 +43,8 @@ func DefaultConfig() *Config {
 	rootPath := getRootPath()
 
 	ver := version.Version
-	if ver == "" || ver == "dev" {
-		ver = "0.0.12"
+	if ver == "" {
+		ver = "dev"
 	}
 
 	return &Config{
