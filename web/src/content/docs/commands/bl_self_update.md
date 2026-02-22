@@ -9,7 +9,8 @@ Update Boiler to latest version
 
 Update Boiler CLI to the latest version.
 
-Downloads and installs the latest release from GitHub.
+Downloads the latest release from GitHub, verifies its SHA256 checksum,
+and replaces the current binary. No scripts are piped to shell.
 
 ```
 bl self update [flags]
