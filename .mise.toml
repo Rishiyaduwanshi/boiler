@@ -58,7 +58,7 @@ lefthook install
 
 [tasks.test]
 description = "Run all tests"
-run = "go test ./internal/... -count=1 -timeout 120s"
+run = "go test ./internal/... -timeout 120s"
 
 [tasks.setup]
 description = "First-time dev setup: installs git hooks"

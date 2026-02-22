@@ -16,4 +16,4 @@ pre-commit:
 pre-push:
   commands:
     test:
-      run: go test ./internal/... -count=1 -timeout 120s
+      run: go test ./internal/... -timeout 120s
