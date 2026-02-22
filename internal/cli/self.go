@@ -178,6 +178,11 @@ func runSelfUpdate() error {
 	if err != nil {
 		return fmt.Errorf("failed to locate current binary: %w", err)
 	}
+	// Evaluate symlinks so we operate on the real file path
+	exePath, err = filepath.EvalSymlinks(exePath)
+	if err != nil {
+		return fmt.Errorf("failed to resolve binary path: %w", err)
+	}
 
 	// Extract binary and atomically replace
 	if err := extractAndReplaceBinary(tmpArchive, exePath); err != nil {
@@ -288,10 +293,26 @@ func extractAndReplaceBinary(archivePath, exePath string) error {
 		return fmt.Errorf("failed to set permissions: %w", err)
 	}
 
-	// Atomic rename
+	if runtime.GOOS == "windows" {
+		// Windows does not allow overwriting a running executable.
+		// Rename the current binary to .old (allowed), then rename new into place.
+		oldPath := exePath + ".old"
+		os.Remove(oldPath) // remove stale .old if present
+		if err := os.Rename(exePath, oldPath); err != nil {
+			return fmt.Errorf("failed to move current binary: %w", err)
+		}
+		if err := os.Rename(tmpBinPath, exePath); err != nil {
+			// Restore old binary so the tool still works
+			_ = os.Rename(oldPath, exePath)
+			return fmt.Errorf("failed to place new binary: %w", err)
+		}
+		// .old is left on disk; cleaned up on next update or startup
+		return nil
+	}
+
+	// Unix: atomic rename (same filesystem guaranteed by temp dir)
 	if err := os.Rename(tmpBinPath, exePath); err != nil {
-		// Fallback for cross-device or Windows locked-file scenarios
-		return copyFile(tmpBinPath, exePath)
+		return fmt.Errorf("failed to replace binary: %w", err)
 	}
 	return nil
 }
