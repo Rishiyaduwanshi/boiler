@@ -12,6 +12,9 @@ pre-commit:
       run: go vet ./...
     build:
       run: go build ./...
+    gendocs:
+      glob: internal/cli/*.go
+      run: go run gendocs.go && git add web/src/content/docs/commands/*.md
 
 pre-push:
   commands:
