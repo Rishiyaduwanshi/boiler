@@ -27,8 +27,8 @@ func TestParseResourceName(t *testing.T) {
 		{"express-api", "express-api", "", ""},
 		// extensionless file like Dockerfile
 		{"Dockerfile", "Dockerfile", "", ""},
-		// multi-dot extension
-		{"config@1.test.js", "config@1.test", "", ".js"},
+		// version containing a dot (e.g., "1.test") is treated as version, last ext wins
+		{"config@1.test.js", "config", "1.test", ".js"},
 	}
 
 	for _, tt := range tests {
