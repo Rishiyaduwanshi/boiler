@@ -79,26 +79,25 @@ func storeResource(path string) error {
 		return fmt.Errorf("path '%s' does not exist", path)
 	}
 
-	// Auto-detect type if not provided
+	// Auto-detect type if not specified via flags
 	isDir := utils.IsDirectory(path)
 	autoDetectedType := "snippet"
 	if isDir {
 		autoDetectedType = "stack"
 	}
 
-	// Use flags to override auto-detection
 	if storeAsSnippet {
 		autoDetectedType = "snippet"
 	} else if storeAsStack {
 		autoDetectedType = "stack"
 	}
 
-	// Get base name if not provided
-	if storeName == "" {
-		storeName = filepath.Base(path)
-		// Remove extension for snippets to get clean name
+	// Derive a local name from the flag; don't mutate the package-level var
+	name := storeName
+	if name == "" {
+		name = filepath.Base(path)
 		if !isDir {
-			storeName = strings.TrimSuffix(storeName, filepath.Ext(storeName))
+			name = strings.TrimSuffix(name, filepath.Ext(name))
 		}
 	}
 
@@ -108,66 +107,58 @@ func storeResource(path string) error {
 	}
 
 	if autoDetectedType == "snippet" {
-		return storeSnippet(st, path)
+		return storeSnippet(st, path, name)
 	}
-	return storeStack(st, path)
+	return storeStack(st, path, name)
 }
 
-func storeSnippet(st *store.Store, path string) error {
+func storeSnippet(st *store.Store, path, name string) error {
 	// Must be a file
 	if utils.IsDirectory(path) {
 		return fmt.Errorf("snippet must be a file, not a directory")
 	}
 
-	// Get extension
 	ext := filepath.Ext(path)
 	if ext == "" {
 		return fmt.Errorf("snippet file must have an extension")
 	}
 
-	// Parse metadata from file comments
 	meta, err := utils.ParseSnippetMetadata(path)
 	if err != nil {
 		return fmt.Errorf("failed to parse snippet metadata: %w", err)
 	}
 
-	// Validate required fields (only author needed)
 	if err := utils.ValidateSnippetMetadata(meta); err != nil {
 		return fmt.Errorf("invalid snippet metadata: %w\n\nAdd required metadata comment:\n  // __author Your Name", err)
 	}
 
-	// Use metadata name if no custom name provided
-	if storeName == "" || storeName == strings.TrimSuffix(filepath.Base(path), ext) {
+	// Prefer metadata name, then fall back to the passed-in name
+	if name == "" || name == strings.TrimSuffix(filepath.Base(path), ext) {
 		if meta.Name != "" {
-			storeName = meta.Name
-		} else {
-			storeName = strings.TrimSuffix(filepath.Base(path), ext)
+			name = meta.Name
 		}
 	}
 
 	// Check if any version of this snippet exists
-	existingVersions := st.GetAllVersions(storeName, ext)
+	existingVersions := st.GetAllVersions(name, ext)
 	var version int
 	var fullName string
-	
+
 	if len(existingVersions) > 0 {
-		// Snippet already exists
 		latestVersion := existingVersions[len(existingVersions)-1]
-		
+
 		choice, err := utils.Prompt(fmt.Sprintf(
 			"Snippet '%s' already exists (%d version(s)). Options:\n  (o) Overwrite latest version (%d)\n  (n) Create new version (%d)\n  (c) Cancel\nChoice: ",
-			storeName+ext, len(existingVersions), latestVersion, latestVersion+1))
+			name+ext, len(existingVersions), latestVersion, latestVersion+1))
 		if err != nil {
 			return fmt.Errorf("failed to read input: %w", err)
 		}
-		
+
 		choice = strings.ToLower(strings.TrimSpace(choice))
 		switch choice {
 		case "o", "overwrite":
-			// Overwrite latest version
 			version = latestVersion
 		case "n", "new":
-			// Create new version
 			version = latestVersion + 1
 		case "c", "cancel":
 			return fmt.Errorf("cancelled by user")
@@ -175,19 +166,16 @@ func storeSnippet(st *store.Store, path string) error {
 			return fmt.Errorf("invalid choice '%s'. Use 'o' for overwrite, 'n' for new version, or 'c' to cancel", choice)
 		}
 	} else {
-		// First version
 		version = 1
 	}
 
-	// Determine the language directory based on extension
 	langDir := strings.TrimPrefix(ext, ".")
 	snippetDir := filepath.Join(cfg.Paths.Snippets, langDir)
 	if err := utils.EnsureDir(snippetDir); err != nil {
 		return fmt.Errorf("failed to create snippet directory: %w", err)
 	}
 
-	// Build full name with version
-	fullName = fmt.Sprintf("%s@%d%s", storeName, version, ext)
+	fullName = fmt.Sprintf("%s@%d%s", name, version, ext)
 	destPath := filepath.Join(snippetDir, filepath.Base(fullName))
 
 	// If overwriting, remove old version
@@ -217,7 +205,7 @@ func storeSnippet(st *store.Store, path string) error {
 	return nil
 }
 
-func storeStack(st *store.Store, path string) error {
+func storeStack(st *store.Store, path, name string) error {
 	// Must be a directory
 	if !utils.IsDirectory(path) {
 		return fmt.Errorf("stack must be a directory, not a file")
@@ -237,8 +225,8 @@ func storeStack(st *store.Store, path string) error {
 		return fmt.Errorf("'version' field is required in boiler.stack.json")
 	}
 
-	// Use config ID as stack name
-	storeName = stackConfig.ID
+	// Use config ID as stack name (ignores passed-in name for stacks — ID in boiler.stack.json is canonical)
+	stackName := stackConfig.ID
 
 	// Parse version
 	version, err := strconv.Atoi(stackConfig.Version)
@@ -246,8 +234,7 @@ func storeStack(st *store.Store, path string) error {
 		return fmt.Errorf("invalid version in boiler.stack.json: %s", stackConfig.Version)
 	}
 
-	// Build paths
-	fullName := fmt.Sprintf("%s@%d", storeName, version)
+	fullName := fmt.Sprintf("%s@%d", stackName, version)
 	stackDir := filepath.Join(cfg.Paths.Stacks, fullName)
 
 	// Check if this version already exists
