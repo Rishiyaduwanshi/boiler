@@ -1,5 +1,6 @@
 [tools]
 go = "1.25.5"
+lefthook = "latest"
 
 [env]
 GO111MODULE = "on"
@@ -46,11 +47,19 @@ go build -o bl.exe -ldflags="-s -w -X github.com/rishiyaduwanshi/boiler/pkg/vers
 """
 
 [tasks.dev-setup]
-description = "Setup development environment"
+description = "Setup development environment (deps + git hooks)"
 run = """
 go mod download
-go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+lefthook install
 """
+
+[tasks.test]
+description = "Run all tests"
+run = "go test ./internal/... -count=1 -timeout 120s"
+
+[tasks.setup]
+description = "First-time dev setup: installs git hooks"
+run = "lefthook install"
 
 [tasks.check]
 description = "Run all checks (fmt, vet, test)"
