@@ -46,23 +46,3 @@ func PromptYesNo(message string) (bool, error) {
 	input = strings.ToLower(input)
 	return input == "y" || input == "yes", nil
 }
-
-func PromptSelect(message string, options []string) (string, error) {
-	fmt.Println(message)
-	for i, option := range options {
-		fmt.Printf("  %d. %s\n", i+1, option)
-	}
-
-	input, err := Prompt("Enter selection: ")
-	if err != nil {
-		return "", err
-	}
-
-	var selection int
-	_, err = fmt.Sscanf(input, "%d", &selection)
-	if err != nil || selection < 1 || selection > len(options) {
-		return "", fmt.Errorf("invalid selection")
-	}
-
-	return options[selection-1], nil
-}

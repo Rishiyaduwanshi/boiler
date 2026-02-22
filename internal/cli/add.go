@@ -99,7 +99,6 @@ Remote Resources:
 }
 
 func addResource(resource string) error {
-	// Handle remote fetch
 	if addRemote {
 		return addResourceFromRemote(resource)
 	}
@@ -114,116 +113,39 @@ func addResource(resource string) error {
 		destPath = "."
 	}
 
-	// Parse resource name to extract parts
 	baseName, version, ext := store.ParseResourceName(resource)
 
-	// If it's a snippet (has extension)
+	// Snippet (has file extension)
 	if ext != "" {
-		// If version is explicitly provided, use it directly
 		if version != "" {
-			fullName := baseName + "@" + version + ext
-			return addSnippet(st, fullName, destPath)
+			return addSnippet(st, baseName+"@"+version+ext, destPath)
 		}
-
-		// No version specified - find matching snippets by name and extension
-		matchingSnippets := findMatchingSnippetsByNameAndExt(st, baseName, ext)
-		
-		if len(matchingSnippets) == 0 {
+		matches := utils.FindMatchingResources(st.ListSnippets(), baseName, ext)
+		if len(matches) == 0 {
 			return fmt.Errorf(utils.ErrResourceNotFound, "snippet", resource)
 		}
-
-		// If only one version exists, use it automatically
-		if len(matchingSnippets) == 1 {
-			return addSnippet(st, matchingSnippets[0], destPath)
-		}
-
-		// Multiple versions - prompt user to choose
-		fmt.Printf("Multiple versions found for '%s%s':\n", baseName, ext)
-		for i, name := range matchingSnippets {
-			fmt.Printf("  %d. %s\n", i+1, name)
-		}
-
-		choice, err := utils.Prompt(fmt.Sprintf("Enter version number (1-%d): ", len(matchingSnippets)))
+		selected, err := utils.PickFromList(baseName+ext, matches)
 		if err != nil {
-			return fmt.Errorf("failed to read input: %w", err)
+			return err
 		}
-
-		var selectedIdx int
-		fmt.Sscanf(choice, "%d", &selectedIdx)
-		if selectedIdx < 1 || selectedIdx > len(matchingSnippets) {
-			return fmt.Errorf("invalid choice")
-		}
-
-		return addSnippet(st, matchingSnippets[selectedIdx-1], destPath)
+		return addSnippet(st, selected, destPath)
 	}
 
-	// No extension - could be stack or snippet name without version/extension
-	// First check if it exists as a stack
-	_, stackExists := st.GetStack(resource)
-	if stackExists {
+	// No extension — try as stack first
+	if _, ok := st.GetStack(resource); ok {
 		return addStack(st, resource, destPath)
 	}
 
-	// Not a stack, try to find matching snippets by base name only
-	matchingSnippets := findMatchingSnippets(st, baseName)
-	if len(matchingSnippets) == 0 {
+	// Fall back to snippet lookup (name without version/ext)
+	matches := utils.FindMatchingResources(st.ListSnippets(), baseName, "")
+	if len(matches) == 0 {
 		return fmt.Errorf(utils.ErrResourceNotFound, "stack or snippet", resource)
 	}
-
-	// If only one version exists, use it automatically
-	if len(matchingSnippets) == 1 {
-		return addSnippet(st, matchingSnippets[0], destPath)
-	}
-
-	// Multiple versions - prompt user to choose
-	fmt.Printf("Multiple versions found for '%s':\n", baseName)
-	for i, name := range matchingSnippets {
-		fmt.Printf("  %d. %s\n", i+1, name)
-	}
-
-	choice, err := utils.Prompt(fmt.Sprintf("Enter version number (1-%d): ", len(matchingSnippets)))
+	selected, err := utils.PickFromList(baseName, matches)
 	if err != nil {
-		return fmt.Errorf("failed to read input: %w", err)
+		return err
 	}
-
-	// Parse choice
-	var selectedIdx int
-	fmt.Sscanf(choice, "%d", &selectedIdx)
-	if selectedIdx < 1 || selectedIdx > len(matchingSnippets) {
-		return fmt.Errorf("invalid choice")
-	}
-
-	return addSnippet(st, matchingSnippets[selectedIdx-1], destPath)
-}
-
-// findMatchingSnippets finds all snippets that match the given name (without version/extension)
-func findMatchingSnippets(st *store.Store, name string) []string {
-	allSnippets := st.ListSnippets()
-	var matches []string
-
-	for _, snippet := range allSnippets {
-		snippetName, _, _ := store.ParseResourceName(snippet)
-		if snippetName == name {
-			matches = append(matches, snippet)
-		}
-	}
-
-	return matches
-}
-
-// findMatchingSnippetsByNameAndExt finds all snippets matching both name and extension
-func findMatchingSnippetsByNameAndExt(st *store.Store, name, ext string) []string {
-	allSnippets := st.ListSnippets()
-	var matches []string
-
-	for _, snippet := range allSnippets {
-		snippetName, _, snippetExt := store.ParseResourceName(snippet)
-		if snippetName == name && snippetExt == ext {
-			matches = append(matches, snippet)
-		}
-	}
-
-	return matches
+	return addSnippet(st, selected, destPath)
 }
 
 func addSnippet(st *store.Store, name, destPath string) error {
@@ -289,7 +211,7 @@ func addStack(st *store.Store, name, destPath string) error {
 			return fmt.Errorf(utils.ErrDestAlreadyExists, destPath)
 	}
 
-	ignorePatterns := []string{"node_modules", ".git", ".DS_Store", "Thumbs.db"}
+	ignorePatterns := utils.DefaultIgnorePatterns
 	if err := utils.CopyDir(stackPath, destPath, ignorePatterns); err != nil {
 		return fmt.Errorf("failed to copy stack: %w", err)
 	}
@@ -337,37 +259,16 @@ func addResourceFromRemote(resource string) error {
 	if ext != "" {
 		remotePath, exists := remoteStore.GetSnippet(resource)
 		if !exists {
-			// Try finding matching snippets by base name
-			matches := findMatchingRemoteSnippets(remoteStore, baseName, ext)
+			matches := utils.FindMatchingResources(remoteStore.ListSnippets(), baseName, ext)
 			if len(matches) == 0 {
 				return fmt.Errorf("snippet '%s' not found in remote registry", resource)
 			}
-
-			// Auto-select if only one match
-			if len(matches) == 1 {
-				resource = matches[0]
-				remotePath, exists = remoteStore.GetSnippet(resource)
-			} else {
-				// Multiple versions - prompt user
-				fmt.Printf("Multiple versions found for '%s':\n", baseName)
-				for i, name := range matches {
-					fmt.Printf("  %d. %s\n", i+1, name)
-				}
-
-				choice, err := utils.Prompt(fmt.Sprintf("Enter version number (1-%d): ", len(matches)))
-				if err != nil {
-					return fmt.Errorf("failed to read input: %w", err)
-				}
-
-				var selectedIdx int
-				fmt.Sscanf(choice, "%d", &selectedIdx)
-				if selectedIdx < 1 || selectedIdx > len(matches) {
-					return fmt.Errorf("invalid choice")
-				}
-
-				resource = matches[selectedIdx-1]
-				remotePath, exists = remoteStore.GetSnippet(resource)
+			selected, err := utils.PickFromList(baseName+ext, matches)
+			if err != nil {
+				return err
 			}
+			resource = selected
+			remotePath, exists = remoteStore.GetSnippet(resource)
 		}
 
 		// Check if it's a remote path
@@ -414,37 +315,16 @@ func addResourceFromRemote(resource string) error {
 	// Try as stack
 	remotePath, exists := remoteStore.GetStack(resource)
 	if !exists {
-		// Try finding matching stacks by base name
-		matches := findMatchingRemoteStacks(remoteStore, baseName)
+		matches := utils.FindMatchingResources(remoteStore.ListStacks(), baseName, "")
 		if len(matches) == 0 {
 			return fmt.Errorf("resource '%s' not found in remote registry", resource)
 		}
-
-		// Auto-select if only one match
-		if len(matches) == 1 {
-			resource = matches[0]
-			remotePath, exists = remoteStore.GetStack(resource)
-		} else {
-			// Multiple versions - prompt user
-			fmt.Printf("Multiple versions found for '%s':\n", baseName)
-			for i, name := range matches {
-				fmt.Printf("  %d. %s\n", i+1, name)
-			}
-
-			choice, err := utils.Prompt(fmt.Sprintf("Enter version number (1-%d): ", len(matches)))
-			if err != nil {
-				return fmt.Errorf("failed to read input: %w", err)
-			}
-
-			var selectedIdx int
-			fmt.Sscanf(choice, "%d", &selectedIdx)
-			if selectedIdx < 1 || selectedIdx > len(matches) {
-				return fmt.Errorf("invalid choice")
-			}
-
-			resource = matches[selectedIdx-1]
-			remotePath, exists = remoteStore.GetStack(resource)
+		selected, err := utils.PickFromList(baseName, matches)
+		if err != nil {
+			return err
 		}
+		resource = selected
+		remotePath, exists = remoteStore.GetStack(resource)
 	}
 
 	// Check if it's a remote path
@@ -470,8 +350,7 @@ func addResourceFromRemote(resource string) error {
 	}
 
 	// Copy to destination
-	ignorePatterns := []string{"node_modules", ".git", ".DS_Store", "Thumbs.db"}
-	if err := utils.CopyDir(localStackPath, destPath, ignorePatterns); err != nil {
+	if err := utils.CopyDir(localStackPath, destPath, utils.DefaultIgnorePatterns); err != nil {
 		return fmt.Errorf("failed to copy stack: %w", err)
 	}
 
@@ -557,8 +436,7 @@ func addDirectRemoteResource(remotePath string) error {
 	}
 
 	// Copy to destination
-	ignorePatterns := []string{"node_modules", ".git", ".DS_Store", "Thumbs.db"}
-	if err := utils.CopyDir(localStackPath, destPath, ignorePatterns); err != nil {
+	if err := utils.CopyDir(localStackPath, destPath, utils.DefaultIgnorePatterns); err != nil {
 		return fmt.Errorf("failed to copy stack: %w", err)
 	}
 
@@ -567,35 +445,6 @@ func addDirectRemoteResource(remotePath string) error {
 	return nil
 }
 
-// findMatchingRemoteStacks finds all stacks matching the base name in remote store
-func findMatchingRemoteStacks(remoteStore *store.Store, baseName string) []string {
-	allStacks := remoteStore.ListStacks()
-	var matches []string
-
-	for _, stackName := range allStacks {
-		stackBase, _, _ := store.ParseResourceName(stackName)
-		if stackBase == baseName {
-			matches = append(matches, stackName)
-		}
-	}
-
-	return matches
-}
-
-// findMatchingRemoteSnippets finds all snippets matching base name and extension in remote store
-func findMatchingRemoteSnippets(remoteStore *store.Store, baseName, ext string) []string {
-	allSnippets := remoteStore.ListSnippets()
-	var matches []string
-
-	for _, snippetName := range allSnippets {
-		snippetBase, _, snippetExt := store.ParseResourceName(snippetName)
-		if snippetBase == baseName && snippetExt == ext {
-			matches = append(matches, snippetName)
-		}
-	}
-
-	return matches
-}
 
 var (
 	addRemote   bool
