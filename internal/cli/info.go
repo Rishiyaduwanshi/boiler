@@ -97,17 +97,19 @@ func showStackInfo(st *store.Store, name string) error {
 	// Count files
 	fileCount := 0
 	dirCount := 0
-	filepath.Walk(path, func(p string, info os.FileInfo, err error) error {
+	if walkErr := filepath.Walk(path, func(p string, fi os.FileInfo, err error) error {
 		if err != nil {
-			return nil
+			return err
 		}
-		if info.IsDir() {
+		if fi.IsDir() {
 			dirCount++
 		} else {
 			fileCount++
 		}
 		return nil
-	})
+	}); walkErr != nil {
+		return fmt.Errorf("failed to read stack contents: %w", walkErr)
+	}
 
 	fmt.Printf("📦 Stack: %s\n", name)
 	fmt.Printf("   Path:        %s\n", path)
