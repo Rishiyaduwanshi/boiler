@@ -57,10 +57,9 @@ bl store [path] [flags]
 ### Options
 
 ```
-  -d, --description string   Description
-  -h, --help                 help for store
-      --name string          Name for the resource (auto-detected from path if not provided)
-  -n, --snippet              Force store as snippet
-  -k, --stack                Force store as stack
+  -h, --help          help for store
+      --name string   Name for the resource (auto-detected from path if not provided)
+  -n, --snippet       Force store as snippet
+  -k, --stack         Force store as stack
 ```
 

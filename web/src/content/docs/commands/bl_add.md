@@ -92,9 +92,7 @@ bl add [resource] [flags]
 ### Options
 
 ```
-  -b, --both              Add to both local and global
   -f, --force             Force operation without confirmation
-  -g, --global            Add to global store
   -h, --help              help for add
       --registry string   Custom registry URL (overrides config)
   -r, --remote            Fetch from remote registry
