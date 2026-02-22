@@ -221,6 +221,12 @@ func extractTarGz(tarPath, destPath string) error {
 
 		target := filepath.Join(destPath, header.Name)
 
+		// Zip Slip protection: ensure extracted path stays within destPath
+		cleanDest := filepath.Clean(destPath) + string(os.PathSeparator)
+		if !strings.HasPrefix(filepath.Clean(target)+string(os.PathSeparator), cleanDest) {
+			return fmt.Errorf("invalid file path in archive (path traversal attempt): %s", header.Name)
+		}
+
 		switch header.Typeflag {
 		case tar.TypeDir:
 			if err := os.MkdirAll(target, 0755); err != nil {

@@ -36,7 +36,27 @@ Configuration includes paths, preferences, and behavior settings.`,
   # Set to default registry
   bl conf --set-registry https://github.com/rishiyaduwanshi/boiler`,
 	Run: func(cmd *cobra.Command, args []string) {
-		// Default behavior: show config
+		if confSetRegistry != "" {
+			if err := setRegistry(confSetRegistry); err != nil {
+				fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+				os.Exit(1)
+			}
+			return
+		}
+		if confEdit {
+			if err := editConfig(); err != nil {
+				fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+				os.Exit(1)
+			}
+			return
+		}
+		if confReset {
+			if err := resetConfig(); err != nil {
+				fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+				os.Exit(1)
+			}
+			return
+		}
 		showConfig()
 	},
 }
@@ -53,29 +73,6 @@ func init() {
 	confCmd.Flags().BoolVarP(&confReset, "reset", "r", false, "Reset configuration to defaults")
 	confCmd.Flags().BoolVarP(&confShow, "show", "s", false, "Show configuration")
 	confCmd.Flags().StringVar(&confSetRegistry, "set-registry", "", "Set custom registry URL")
-
-	// Set PreRunE to handle edit and reset flags
-	confCmd.PreRunE = func(cmd *cobra.Command, args []string) error {
-		if confSetRegistry != "" {
-			if err := setRegistry(confSetRegistry); err != nil {
-				return err
-			}
-			os.Exit(0)
-		}
-		if confEdit {
-			if err := editConfig(); err != nil {
-				return err
-			}
-			os.Exit(0) // Exit after editing
-		}
-		if confReset {
-			if err := resetConfig(); err != nil {
-				return err
-			}
-			os.Exit(0) // Exit after reset
-		}
-		return nil
-	}
 }
 
 func showConfig() {

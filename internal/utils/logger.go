@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 )
 
@@ -26,6 +27,9 @@ func NewLogger(logDir string, verbose bool) (*Logger, error) {
 		return nil, fmt.Errorf("failed to create log directory: %w", err)
 	}
 
+	// Clean up log files older than 7 days
+	cleanOldLogs(logDir, 7)
+
 	timestamp := time.Now().Format("2006-01-02")
 	logPath := filepath.Join(logDir, fmt.Sprintf("boiler-%s.log", timestamp))
 
@@ -33,6 +37,28 @@ func NewLogger(logDir string, verbose bool) (*Logger, error) {
 		logPath: logPath,
 		verbose: verbose,
 	}, nil
+}
+
+// cleanOldLogs removes boiler log files older than maxAgeDays.
+func cleanOldLogs(logDir string, maxAgeDays int) {
+	entries, err := os.ReadDir(logDir)
+	if err != nil {
+		return
+	}
+	cutoff := time.Now().AddDate(0, 0, -maxAgeDays)
+	for _, entry := range entries {
+		name := entry.Name()
+		if !strings.HasPrefix(name, "boiler-") || !strings.HasSuffix(name, ".log") {
+			continue
+		}
+		info, err := entry.Info()
+		if err != nil {
+			continue
+		}
+		if info.ModTime().Before(cutoff) {
+			_ = os.Remove(filepath.Join(logDir, name))
+		}
+	}
 }
 
 func (l *Logger) Log(level LogLevel, message string) error {

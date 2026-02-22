@@ -133,7 +133,55 @@ func Load() (*Config, error) {
 		return nil, fmt.Errorf("failed to parse config: %w", err)
 	}
 
+	// Fill in any missing fields with defaults (handles config upgrades)
+	mergeWithDefaults(&cfg)
+
 	return &cfg, nil
+}
+
+// mergeWithDefaults fills zero-value fields in cfg with values from DefaultConfig.
+// This ensures existing users get new fields after a Boiler upgrade.
+func mergeWithDefaults(cfg *Config) {
+	defaults := DefaultConfig()
+
+	if cfg.DefaultEditor == "" {
+		cfg.DefaultEditor = defaults.DefaultEditor
+	}
+	if cfg.Registry == "" {
+		cfg.Registry = defaults.Registry
+	}
+	if cfg.Name == "" {
+		cfg.Name = defaults.Name
+	}
+	if cfg.Author == "" {
+		cfg.Author = defaults.Author
+	}
+	if cfg.Github == "" {
+		cfg.Github = defaults.Github
+	}
+	if cfg.Version == "" {
+		cfg.Version = defaults.Version
+	}
+
+	// Ensure paths are populated (in case root changed)
+	if cfg.Paths.Root == "" {
+		cfg.Paths = defaults.Paths
+	}
+
+	// Add any missing artifact comment styles
+	if cfg.Artifacts == nil {
+		cfg.Artifacts = defaults.Artifacts
+	} else {
+		for k, v := range defaults.Artifacts {
+			if _, ok := cfg.Artifacts[k]; !ok {
+				cfg.Artifacts[k] = v
+			}
+		}
+	}
+
+	if cfg.Aliases == nil {
+		cfg.Aliases = make(map[string]string)
+	}
 }
 
 func Save(cfg *Config) error {
