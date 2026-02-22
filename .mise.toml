@@ -2,6 +2,9 @@
 go = "1.25.5"
 lefthook = "latest"
 
+[hooks]
+postinstall = "lefthook install"
+
 [env]
 GO111MODULE = "on"
 CGO_ENABLED = "0"
