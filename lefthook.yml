@@ -16,4 +16,9 @@ pre-commit:
 pre-push:
   commands:
     test:
-      run: go test ./internal/... -timeout 120s
+      run: go test ./internal/... -timeout=120s -v
+
+commit-msg:
+  commands:
+    conventional:
+      run: "grep -Eq '^(feat|fix|docs|style|refactor|test|chore|perf|ci|build|revert)(\\(.+\\))?: .+' {1}"
