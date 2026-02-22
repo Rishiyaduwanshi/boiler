@@ -3,7 +3,6 @@ package cli
 import (
 	"fmt"
 	"os"
-	"strings"
 
 	"github.com/rishiyaduwanshi/boiler/internal/store"
 	"github.com/rishiyaduwanshi/boiler/internal/utils"
@@ -166,18 +165,26 @@ func cleanAllResources() error {
 	for _, name := range snippets {
 		path, _ := st.GetSnippet(name)
 		if utils.FileExists(path) {
-			os.Remove(path)
+			if err := os.Remove(path); err != nil {
+				logger.Warn(fmt.Sprintf("failed to remove snippet file %s: %v", path, err))
+			}
 		}
-		st.RemoveSnippet(name)
+		if err := st.RemoveSnippet(name); err != nil {
+			logger.Warn(fmt.Sprintf("failed to remove snippet metadata %s: %v", name, err))
+		}
 	}
 
 	stacks := st.ListStacks()
 	for _, name := range stacks {
 		path, _ := st.GetStack(name)
 		if utils.IsDirectory(path) {
-			os.RemoveAll(path)
+			if err := os.RemoveAll(path); err != nil {
+				logger.Warn(fmt.Sprintf("failed to remove stack directory %s: %v", path, err))
+			}
 		}
-		st.RemoveStack(name)
+		if err := st.RemoveStack(name); err != nil {
+			logger.Warn(fmt.Sprintf("failed to remove stack metadata %s: %v", name, err))
+		}
 	}
 
 	fmt.Printf("✓ Removed %d snippets and %d stacks\n", len(snippets), len(stacks))
@@ -205,9 +212,13 @@ func cleanAllSnippets() error {
 	for _, name := range snippets {
 		path, _ := st.GetSnippet(name)
 		if utils.FileExists(path) {
-			os.Remove(path)
+			if err := os.Remove(path); err != nil {
+				logger.Warn(fmt.Sprintf("failed to remove snippet file %s: %v", path, err))
+			}
 		}
-		st.RemoveSnippet(name)
+		if err := st.RemoveSnippet(name); err != nil {
+			logger.Warn(fmt.Sprintf("failed to remove snippet metadata %s: %v", name, err))
+		}
 	}
 
 	fmt.Printf("✓ Removed %d snippets\n", len(snippets))
@@ -235,9 +246,13 @@ func cleanAllStacks() error {
 	for _, name := range stacks {
 		path, _ := st.GetStack(name)
 		if utils.IsDirectory(path) {
-			os.RemoveAll(path)
+			if err := os.RemoveAll(path); err != nil {
+				logger.Warn(fmt.Sprintf("failed to remove stack directory %s: %v", path, err))
+			}
 		}
-		st.RemoveStack(name)
+		if err := st.RemoveStack(name); err != nil {
+			logger.Warn(fmt.Sprintf("failed to remove stack metadata %s: %v", name, err))
+		}
 	}
 
 	fmt.Printf("✓ Removed %d stacks\n", len(stacks))
@@ -251,20 +266,20 @@ func interactiveClean() error {
 	fmt.Println("  n - clean all snippets")
 	fmt.Println("  a - clean all resources")
 	fmt.Println("  q - quit")
-	fmt.Print("\nChoice: ")
 
-	var choice string
-	fmt.Scanln(&choice)
-	choice = strings.ToLower(strings.TrimSpace(choice))
+	choice, err := utils.Prompt("\nChoice: ")
+	if err != nil {
+		return fmt.Errorf("failed to read input: %w", err)
+	}
 
 	switch choice {
-	case "k":
+	case "k", "K":
 		return cleanAllStacks()
-	case "n":
+	case "n", "N":
 		return cleanAllSnippets()
-	case "a":
+	case "a", "A":
 		return cleanAllResources()
-	case "q":
+	case "q", "Q":
 		fmt.Println(utils.MsgCancelled)
 		return nil
 	default:
