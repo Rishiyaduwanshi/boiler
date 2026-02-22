@@ -17,10 +17,11 @@ func LoadStore(storePath string) (*store.Store, error) {
 
 // ConfirmAction prompts user for yes/no confirmation
 func ConfirmAction(message string) bool {
-	fmt.Print(message)
-	var response string
-	fmt.Scanln(&response)
-	return response == "y" || response == "Y"
+	input, err := Prompt(message)
+	if err != nil {
+		return false
+	}
+	return input == "y" || input == "Y"
 }
 
 // ParseResourceName parses resource and returns full name with version and extension

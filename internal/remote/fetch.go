@@ -3,6 +3,7 @@ package remote
 import (
 	"archive/tar"
 	"compress/gzip"
+	"context"
 	"fmt"
 	"io"
 	"net/http"
@@ -146,11 +147,15 @@ func FetchStack(remotePath string, destPath string) error {
 
 // downloadFile downloads a file from URL and returns its content
 func downloadFile(url string) ([]byte, error) {
-	client := &http.Client{
-		Timeout: 30 * time.Second,
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 
-	resp, err := client.Get(url)
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("HTTP request failed: %w", err)
 	}
@@ -170,11 +175,15 @@ func downloadFile(url string) ([]byte, error) {
 
 // downloadToFile downloads a file from URL and saves to path
 func downloadToFile(url, path string) error {
-	client := &http.Client{
-		Timeout: 60 * time.Second,
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return fmt.Errorf("failed to create request: %w", err)
 	}
 
-	resp, err := client.Get(url)
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return fmt.Errorf("HTTP request failed: %w", err)
 	}

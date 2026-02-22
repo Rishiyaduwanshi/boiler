@@ -84,6 +84,10 @@ func shouldIgnore(name string, patterns []string) bool {
 		if name == pattern {
 			return true
 		}
+		// Support glob patterns like *.log, *.tmp
+		if matched, _ := filepath.Match(pattern, name); matched {
+			return true
+		}
 	}
 	return false
 }
