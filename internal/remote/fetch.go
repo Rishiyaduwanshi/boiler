@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/rishiyaduwanshi/boiler/internal/store"
+	"github.com/rishiyaduwanshi/boiler/internal/utils"
 )
 
 // FetchSnippet downloads a snippet from remote registry to local store
@@ -133,7 +134,7 @@ func FetchStack(remotePath string, destPath string) error {
 	}
 	
 	// Copy to destination
-	if err := copyDir(sourceDir, destPath); err != nil {
+	if err := utils.CopyDir(sourceDir, destPath, nil); err != nil {
 		return fmt.Errorf("failed to copy stack: %w", err)
 	}
 
@@ -244,69 +245,3 @@ func extractTarGz(tarPath, destPath string) error {
 	return nil
 }
 
-// copyDir recursively copies a directory
-func copyDir(src, dst string) error {
-	src = filepath.Clean(src)
-	dst = filepath.Clean(dst)
-
-	si, err := os.Stat(src)
-	if err != nil {
-		return err
-	}
-	if !si.IsDir() {
-		return fmt.Errorf("source is not a directory")
-	}
-
-	_, err = os.Stat(dst)
-	if err != nil && !os.IsNotExist(err) {
-		return err
-	}
-
-	if err := os.MkdirAll(dst, si.Mode()); err != nil {
-		return err
-	}
-
-	entries, err := os.ReadDir(src)
-	if err != nil {
-		return err
-	}
-
-	for _, entry := range entries {
-		srcPath := filepath.Join(src, entry.Name())
-		dstPath := filepath.Join(dst, entry.Name())
-
-		if entry.IsDir() {
-			if err := copyDir(srcPath, dstPath); err != nil {
-				return err
-			}
-		} else {
-			if err := copyFile(srcPath, dstPath); err != nil {
-				return err
-			}
-		}
-	}
-
-	return nil
-}
-
-// copyFile copies a single file
-func copyFile(src, dst string) error {
-	in, err := os.Open(src)
-	if err != nil {
-		return err
-	}
-	defer in.Close()
-
-	out, err := os.Create(dst)
-	if err != nil {
-		return err
-	}
-	defer out.Close()
-
-	_, err = io.Copy(out, in)
-	if err != nil {
-		return err
-	}
-
-	return out.Close()
-}

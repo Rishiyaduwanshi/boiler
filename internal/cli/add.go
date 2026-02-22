@@ -600,8 +600,6 @@ func findMatchingRemoteSnippets(remoteStore *store.Store, baseName, ext string) 
 var (
 	addRemote   bool
 	addTo       string
-	addGlobal   bool
-	addBoth     bool
 	addForce    bool
 	addRegistry string
 )
@@ -609,8 +607,6 @@ var (
 func init() {
 	addCmd.Flags().BoolVarP(&addRemote, "remote", "r", false, "Fetch from remote registry")
 	addCmd.Flags().StringVarP(&addTo, "to", "t", ".", "Destination path")
-	addCmd.Flags().BoolVarP(&addGlobal, "global", "g", false, "Add to global store")
-	addCmd.Flags().BoolVarP(&addBoth, "both", "b", false, "Add to both local and global")
 	addCmd.Flags().BoolVarP(&addForce, FlagForce, FlagForceShort, false, DescForce)
 	addCmd.Flags().StringVar(&addRegistry, "registry", "", "Custom registry URL (overrides config)")
 }

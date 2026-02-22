@@ -5,32 +5,14 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
+	"strconv"
 	"strings"
-	"time"
 )
 
 type Meta struct {
 	Stacks   map[string]string `json:"stacks"`
 	Snippets map[string]string `json:"snippets"`
-}
-
-type SnippetEntry struct {
-	Name        string
-	Version     string
-	Extension   string
-	Path        string
-	Author      string
-	Description string
-}
-
-type StackEntry struct {
-	Name        string
-	Version     string
-	Path        string
-	Author      string
-	Description string
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
 }
 
 type Store struct {
@@ -152,31 +134,6 @@ func (s *Store) ListStacks() []string {
 	return stacks
 }
 
-// GetNextVersion returns the next version number for a snippet
-// It finds all existing versions of the snippet and returns max + 1
-func (s *Store) GetNextVersion(baseName, extension string) int {
-	maxVersion := 0
-	
-	for snippetName := range s.meta.Snippets {
-		name, versionStr, ext := ParseResourceName(snippetName)
-		
-		// Match by base name and extension
-		if name == baseName && ext == extension {
-			if versionStr != "" {
-				// Parse version number
-				var version int
-				if _, err := fmt.Sscanf(versionStr, "%d", &version); err == nil {
-					if version > maxVersion {
-						maxVersion = version
-					}
-				}
-			}
-		}
-	}
-	
-	return maxVersion + 1
-}
-
 // GetAllVersions returns all existing version numbers for a snippet, sorted in ascending order.
 // This is used to check if a snippet already exists and provide options to overwrite or create new version.
 // Example: For snippets "logger@1.js", "logger@3.js", "logger@5.js", returns []int{1, 3, 5}
@@ -190,24 +147,14 @@ func (s *Store) GetAllVersions(baseName, extension string) []int {
 		// Match by base name and extension
 		if name == baseName && ext == extension {
 			if versionStr != "" {
-				// Parse version number
-				var version int
-				if _, err := fmt.Sscanf(versionStr, "%d", &version); err == nil {
+				if version, err := strconv.Atoi(versionStr); err == nil {
 					versions = append(versions, version)
 				}
 			}
 		}
 	}
 	
-	// Sort versions
-	for i := 0; i < len(versions)-1; i++ {
-		for j := i + 1; j < len(versions); j++ {
-			if versions[i] > versions[j] {
-				versions[i], versions[j] = versions[j], versions[i]
-			}
-		}
-	}
-	
+	sort.Ints(versions)
 	return versions
 }
 

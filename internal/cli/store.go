@@ -286,15 +286,13 @@ func storeStack(st *store.Store, path string) error {
 }
 
 var (
-	storeName        string
-	storeAsSnippet   bool
-	storeAsStack     bool
-	storeDescription string
+	storeName      string
+	storeAsSnippet bool
+	storeAsStack   bool
 )
 
 func init() {
 	storeCmd.Flags().StringVarP(&storeName, "name", "", "", "Name for the resource (auto-detected from path if not provided)")
 	storeCmd.Flags().BoolVarP(&storeAsSnippet, "snippet", "n", false, "Force store as snippet")
 	storeCmd.Flags().BoolVarP(&storeAsStack, "stack", "k", false, "Force store as stack")
-	storeCmd.Flags().StringVarP(&storeDescription, "description", "d", "", "Description")
 }

@@ -48,7 +48,7 @@ func ShowQuickHelp() {
 	fmt.Println("\nQuick Commands:")
 	fmt.Println("  bl add <resource>        Add snippet or stack")
 	fmt.Println("  bl store <path>          Store as snippet/stack")
-	fmt.Println("  bl ls --all              List all resources")
+	fmt.Println("  bl ls                   List all resources")
 	fmt.Println("  bl --help                Show full help")
 	fmt.Println()
 }
