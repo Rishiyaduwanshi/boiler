@@ -56,27 +56,25 @@ bl version
 ## Quick Start
 
 ```bash
-# Initialize
-bl init
-
-# Store a file
+# 1. Store a file as snippet
 bl store ./middleware/auth.js
-# → Saved as auth@1.js
+# ✓ Stored snippet 'auth@1.js' at ~/.boiler/store/...
 
-# Add to any project
+# 2. Add to any project
 bl add auth
-# → Copied to current directory
+# ✓ Added snippet 'auth' to ./auth.js
 
-# Fetch from remote
-bl search express -r
-bl add express@1 -r
-# → Downloaded and initialized
+# 3. Store a directory as stack (bl init required first)
+cd ./my-template
+bl init        # creates boiler.stack.json
+bl store       # stores it
 
-# List all resources
+# 4. Add a stack
+bl add my-template
+# ✓ Added stack 'my-template' to .
+
+# 5. List everything
 bl ls
-
-# Search locally
-bl search auth
 ```
 
 ---
@@ -100,7 +98,8 @@ function handleError(err) {
 bl add errorHandler
 #   bl__LOG_LEVEL [error]: warn
 #   bl__EMAIL [admin@example.com]: dev@app.com
-# ✓ Created (metadata stripped, variables replaced)
+# ✓ Added snippet 'errorHandler' to ./errorHandler.js
+# (metadata stripped, variables replaced)
 ```
 
 ---
@@ -109,7 +108,7 @@ bl add errorHandler
 
 - ✅ **Automatic Versioning** - `@1`, `@2`, etc.
 - ✅ **Template Variables** - `bl__VAR_NAME` syntax with prompts
-- ✅ **Remote Fetching** - Pull snippets from GitHub or custom registries
+- ✅ **Remote Fetching** - GitHub, GitLab, Bitbucket, custom registries, direct URLs
 - ✅ **Language Agnostic** - JS, Python, Go, Java, TS, Rust, C++, etc.
 - ✅ **Stack Templates** - Store entire project folders
 - ✅ **Zero Config** - Works immediately after install
@@ -120,21 +119,37 @@ bl add errorHandler
 
 ## Remote Fetching
 
-Pull snippets from GitHub repositories or custom registries:
+Pull snippets and stacks from anywhere — provider is auto-detected from the URL:
 
 ```bash
-# Set default registry
-bl conf --set-registry https://github.com/rishiyaduwanshi/boiler
+# GitHub (short format)
+bl add rishiyaduwanshi/boiler-express -r
 
-# Search remote resources
-bl search express -r
+# GitHub (full URL)
+bl add https://github.com/alice/my-stack -r
 
-# Add from registry
+# GitLab
+bl add https://gitlab.com/alice/my-stack -r
+
+# Bitbucket
+bl add https://bitbucket.org/alice/my-stack -r
+
+# File from GitHub repo (snippet)
+bl add alice/snippets:js/errorHandler.js -r
+
+# Direct archive URL
+bl add https://mysite.com/template.zip -r
+
+# From configured registry
+bl conf --set-registry https://github.com/myteam/boiler
 bl add express@1 -r
+```
 
-# Direct GitHub repo
-bl add username/repo -r
-bl add username/repo:path/to/file.js -r
+**One-shot fetch (no local store):**
+```bash
+bl use alice/my-stack
+bl use https://gitlab.com/alice/my-stack
+bl use https://mysite.com/template.zip
 ```
 
 ---
@@ -142,13 +157,14 @@ bl add username/repo:path/to/file.js -r
 ## Commands
 
 ```bash
-bl init              # Initialize Boiler
+bl init              # Initialize stack/snippet config
 bl store [path]      # Store file/folder
-bl add <name>        # Add snippet/stack (use -r for remote)
+bl add <name>        # Add snippet/stack (-r to fetch from remote)
+bl use <resource>    # One-shot remote fetch (no local store saved)
 bl ls                # List all resources
-bl search <query>    # Search by name (use -r for remote)
+bl search <query>    # Search by name (-r to search remote)
 bl info <name>       # Show resource details
-bl clean             # Remove unused versions
+bl clean             # Remove resources
 bl path              # Show installation paths
 bl conf              # View/edit configuration
 bl self update       # Update Boiler to latest
