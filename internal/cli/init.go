@@ -38,8 +38,12 @@ Similar to 'npm init', this helps you prepare projects for storing.`,
   # Quick init with defaults (stack)
   bl init -y
 
-  # Initialize snippet
-  bl init --snippet
+  # Initialize as stack explicitly
+  bl init -k
+  bl init -k -y
+
+  # Initialize as snippet
+  bl init -n
   bl init -n -y
 
   # After init, customize and store
@@ -60,6 +64,9 @@ func initBoilerConfig() error {
 	if initAsSnippet {
 		// Explicitly requested snippet with -n flag
 		isSnippet = true
+	} else if initAsStack {
+		// Explicitly requested stack with -k flag
+		isSnippet = false
 	} else if initYes {
 		// -y defaults to stack
 		isSnippet = false
@@ -201,9 +208,11 @@ func createSnippetConfig(path string) error {
 var (
 	initYes       bool
 	initAsSnippet bool
+	initAsStack   bool
 )
 
 func init() {
 	initCmd.Flags().BoolVarP(&initYes, "yes", "y", false, "Skip prompts and use defaults")
 	initCmd.Flags().BoolVarP(&initAsSnippet, "snippet", "n", false, "Initialize as snippet")
+	initCmd.Flags().BoolVarP(&initAsStack, "stack", "k", false, "Initialize as stack")
 }

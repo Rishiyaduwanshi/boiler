@@ -35,7 +35,6 @@ func main() {
 	// Execute CLI
 	if err := cli.Execute(cfg, logger); err != nil {
 		logger.Error(fmt.Sprintf("Execution error: %v", err))
-		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)
 	}
 }

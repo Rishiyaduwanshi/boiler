@@ -50,6 +50,7 @@ variations of the same snippet or stack.`,
 func Execute(config *config.Config, log *utils.Logger) error {
 	cfg = config
 	logger = log
+	rootCmd.SilenceErrors = true
 	return rootCmd.Execute()
 }
 

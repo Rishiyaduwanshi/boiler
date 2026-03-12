@@ -38,8 +38,12 @@ bl init [flags]
   # Quick init with defaults (stack)
   bl init -y
 
-  # Initialize snippet
-  bl init --snippet
+  # Initialize as stack explicitly
+  bl init -k
+  bl init -k -y
+
+  # Initialize as snippet
+  bl init -n
   bl init -n -y
 
   # After init, customize and store
@@ -51,6 +55,7 @@ bl init [flags]
 ```
   -h, --help      help for init
   -n, --snippet   Initialize as snippet
+  -k, --stack     Initialize as stack
   -y, --yes       Skip prompts and use defaults
 ```
 
