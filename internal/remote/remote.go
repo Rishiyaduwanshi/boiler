@@ -23,9 +23,9 @@ func NewRemoteStore(registryURL string) (*RemoteStore, error) {
 
 // LoadFromURL fetches and loads the remote boiler.meta.json
 func (r *RemoteStore) LoadFromURL() (*store.Store, error) {
-	// Construct URL to boiler.meta.json in remote registry
-	// Example: https://raw.githubusercontent.com/rishiyaduwanshi/boiler/main/store/boiler.meta.json
-	metaURL := buildRawURL(r.registryURL, "store/boiler.meta.json")
+	p := Detect(r.registryURL)
+	owner, repo := parseOwnerRepo(r.registryURL)
+	metaURL := p.RawFileURL(owner, repo, "main", "store/boiler.meta.json")
 
 	// Download metadata
 	data, err := downloadFile(metaURL)
@@ -82,19 +82,4 @@ func (r *RemoteStore) Search(st *store.Store, query string, searchSnippets, sear
 	}
 
 	return results
-}
-
-// Helper functions
-
-// buildRawURL constructs GitHub raw content URL from registry URL
-// Input: "https://github.com/owner/repo", "store/boiler.meta.json"
-// Output: "https://raw.githubusercontent.com/owner/repo/main/store/boiler.meta.json"
-func buildRawURL(registryURL, path string) string {
-	// Extract owner and repo from registry URL
-	// https://github.com/rishiyaduwanshi/boiler -> rishiyaduwanshi/boiler
-	registryURL = strings.TrimPrefix(registryURL, "https://github.com/")
-	registryURL = strings.TrimPrefix(registryURL, "http://github.com/")
-	registryURL = strings.TrimSuffix(registryURL, "/")
-	
-	return fmt.Sprintf("https://raw.githubusercontent.com/%s/main/%s", registryURL, path)
 }

@@ -1,129 +1,59 @@
-﻿---
+---
 title: Remote Fetching
-description: Learn how Boiler fetches snippets and stacks from GitHub, registries, custom domains, and direct URLs.
+description: Learn how Boiler fetches snippets and stacks from GitHub, GitLab, Bitbucket, custom registries, and direct URLs.
 ---
 
 import { Icon } from '@astrojs/starlight/components';
 
-Alright, let's talk about one of the coolest features in Boiler - **fetching resources from literally anywhere**!
-
-Whether you want to grab code from GitHub repos, set up your own registry, pull from your personal website, or just download from any public URL - Boiler's got your back. No limitations, complete flexibility.
+Boiler can fetch resources from **anywhere** — GitHub, GitLab, Bitbucket, your own website, or a direct URL. No lock-in, complete flexibility.
 
 ---
 
-## Quick Overview
+## Two Commands for Remote Fetching
 
-Boiler gives you **four different ways** to fetch remote resources. Pick what works best for you:
+| Command | Saves to local store? | Use case |
+|---|---|---|
+| `bl add ... -r` | ✅ Yes — reusable later with `bl add <name>` | Team/personal registry, frequently reused resources |
+| `bl use ...` | ❌ No — one-shot fetch | Grab something once, no clutter |
 
-| Method | Example Command | Use Case |
-|--------|----------------|----------|
-| **Registry** | `bl add express@1 -r` | Perfect for teams sharing resources |
-| **Direct GitHub** | `bl add user/repo -r` | Grab from any public repo |
-| **Custom Domain** | `bl add mysite.com:path/file.js -r` | Host on your own website |
-| **Direct URL** | `bl add https://example.com/file.js -r` | Maximum flexibility |
+---
 
-```mermaid
-graph LR
-  A[Boiler CLI] --> B{Choose Method}
-  B --> C[Registry]
-  B --> D[GitHub]
-  B --> E[Custom Domain]
-  B --> F[Direct URL]
+## Supported Platforms
 
-  C --> G[Fetch from Registry]
-  D --> H[Fetch from GitHub]
-  E --> I[Fetch from Domain]
-  F --> J[Fetch from URL]
+Boiler auto-detects the right provider from the URL:
 
-  G --> K[Local Store]
-  H --> K
-  I --> K
-  J --> K
-
-  K --> L[Your Project]
-````
+| Platform | Format | Archive |
+|---|---|---|
+| **GitHub** | `owner/repo` or `https://github.com/owner/repo` | tar.gz |
+| **GitLab** | `https://gitlab.com/owner/repo` | tar.gz |
+| **Bitbucket** | `https://bitbucket.org/owner/repo` | zip |
+| **Custom registry** | `https://yoursite.com/boiler-store` | zip |
+| **Direct archive** | `https://anysite.com/stack.zip` or `.tar.gz` | auto-detected |
 
 ---
 
 ## Understanding Formats
 
-Before we dive deeper, let’s clear up how Boiler interprets different paths.
-
-### When to Use `:` (Colon)
-
 The colon (`:`) separates the **source** from the **path inside it**.
 
-**For GitHub repos:**
-
-```bash
-owner/repo:path/to/file.js
-# : colon separates repo from internal file path
-
-Example:
-rishiyaduwanshi/snippets:js/errorHandler.js
-```
-
-**For custom domains:**
-
-```bash
-domain.com:path/to/file.js
-# : colon separates domain from internal file path
-
-Example:
-iamabhinav.dev:snippets/helper.js
-```
-
-### When NOT to Use `:` (Colon)
-
-**Entire repos (stacks):**
-
-```bash
-owner/repo   # No colon - fetches the whole repo
-```
-
-**Direct URLs:**
-
-```bash
-https://domain.com/path/file.js   # No extra colon - URL already contains ://
-```
-
-### Quick Format Reference
-
-| What You Want      | Format                 | Example                      |
-| ------------------ | ---------------------- | ---------------------------- |
-| Whole GitHub repo  | `owner/repo`           | `vercel/next.js`             |
-| GitHub file        | `owner/repo:path/file` | `user/repo:src/app.js`       |
-| Custom domain file | `domain:path/file`     | `mysite.com:code/util.js`    |
-| Direct URL         | `https://full-url`     | `https://mysite.com/file.js` |
-
-```mermaid
-graph TD
-  Start["What do you have?"] --> Q1{"Has extension?"}
-
-  Q1 -->|Yes - file| Q2{"Source type?"}
-  Q1 -->|No - repo/folder| Q3{"Source type?"}
-
-  Q2 -->|GitHub| F1["owner/repo:path/file.js"]
-  Q2 -->|Custom Domain| F2["domain.com:path/file.js"]
-  Q2 -->|Direct URL| F3["https://domain.com/file.js"]
-
-  Q3 -->|GitHub| F4["owner/repo"]
-  Q3 -->|Direct URL| F5["https://domain.com/repo.zip"]
-```
+| What You Want | Format | Example |
+|---|---|---|
+| Whole GitHub/GitLab/Bitbucket repo | `owner/repo` or full URL | `alice/my-stack` |
+| File inside a GitHub repo | `owner/repo:path/to/file.js` | `alice/snippets:js/logger.js` |
+| Custom domain file | `domain.com:path/file` | `mysite.com:snippets/util.js` |
+| Direct file URL | `https://full-url` | `https://mysite.com/file.js` |
+| Direct archive URL | `https://full-url.zip` | `https://mysite.com/stack.zip` |
 
 ---
 
+## `bl add -r` — Fetch and Save
 
-When you use `-r`, Boiler **downloads once and caches locally**:
+When you use `-r`, Boiler **downloads and caches locally** so you can reuse without re-downloading:
 
-1. **Downloads from internet**
-2. **Saves to** `~/.boiler/store/`
-3. **Updates** `boiler.meta.json`
-4. **Copies to your project**
-5. **Reuses locally next time**
-
-### Example Flow
-
+1. Downloads from internet
+2. Saves to `~/.boiler/store/`
+3. Updates `boiler.meta.json`
+4. Copies to your project
 
 ```mermaid
 sequenceDiagram
@@ -151,62 +81,81 @@ sequenceDiagram
   CLI-->>User: ✓ Added (super fast!)
 ```
 
-
-## Four Ways to Fetch
+### Examples
 
 ```bash
-# Method 1: Registry
-bl conf --set-registry https://github.com/rishiyaduwanshi/boiler
-bl add express -r
+# From configured registry
+bl add express@1 -r
 
-# Method 2: GitHub
+# GitHub (short format)
 bl add rishiyaduwanshi/boiler-express -r
+
+# GitHub (full URL)
+bl add https://github.com/alice/my-stack -r
+
+# GitLab
+bl add https://gitlab.com/alice/my-stack -r
+
+# Bitbucket
+bl add https://bitbucket.org/alice/my-stack -r
+
+# GitHub subfolder as stack
 bl add vercel/next.js:examples/blog -r
 
-# Method 3: Custom Domain
-bl add iamabhinav.dev:snippets/helper.js -r
+# GitHub single file (snippet)
+bl add rishiyaduwanshi/boiler-snippets:js/errorHandler.js -r
 
-# Method 4: Direct URL
-bl add https://iamabhinav.dev/snippets/helper.js -r
+# Direct URL
+bl add https://mysite.com/snippets/helper.js -r
+
+# Custom registry (one-time override)
+bl add express@1 -r --registry https://github.com/myteam/boiler
 ```
 
 ---
 
-## Fetching from GitHub
+## `bl use` — One-Shot Fetch (No Store)
 
-### Entire Repo
-
-```bash
-bl add rishiyaduwanshi/boiler-express -r
-```
-
-### Specific Folder
+No `-r` flag, no local caching. Just fetch and use directly.
 
 ```bash
-bl add vercel/next.js:examples/blog -r
-```
+# GitHub repo
+bl use alice/my-stack
 
-### Single File
+# GitLab
+bl use https://gitlab.com/alice/stack
 
-```bash
-bl add rishiyaduwanshi/boiler-snippets:js/errorHandler.js -r
+# Bitbucket
+bl use https://bitbucket.org/alice/stack
+
+# Direct zip or tar.gz (any site)
+bl use https://mysite.com/templates/express.zip
+bl use https://mysite.com/stack.tar.gz
+
+# Single file
+bl use alice/snippets:js/errorHandler.js
+bl use https://mysite.com/snippets/logger.js
+
+# Into a specific folder
+bl use alice/my-stack --to ./new-project
 ```
 
 ---
 
 ## Using a Registry
 
+Set once, use forever:
+
 ```bash
-bl conf
 bl conf --set-registry https://github.com/rishiyaduwanshi/boiler
 bl search express -r
 bl add express@1 -r
 ```
 
-### One-time Override
+One-time override:
 
 ```bash
-bl search auth -r --registry https://github.com/myteam/boiler
+bl add express@1 -r --registry https://github.com/myteam/boiler
 ```
 
 ```mermaid
@@ -218,82 +167,76 @@ sequenceDiagram
   participant Store as Local Store
 
   User->>CLI: bl add express@1 -r
-  CLI->>Registry: GET /store/boiler.meta.json
-  Registry-->>CLI: {"stacks":{"express@1":"user/repo"}}
-
-  CLI->>Source: Download from user/repo
+  CLI->>Registry: GET store/boiler.meta.json
+  Registry-->>CLI: {"stacks":{"express@1":"owner/repo"}}
+  CLI->>Source: Download archive
   Source-->>CLI: Return files
-
-  CLI->>Store: Save to ~/.boiler/store/
-  CLI->>Store: Update local boiler.meta.json
+  CLI->>Store: Save + update boiler.meta.json
   Store-->>User: ✓ Resource ready
 ```
 
 ---
 
-## Fetching from Custom Websites
+## Setting Up Your Own Registry
 
-### Format
-
-```bash
-bl add iamabhinav.dev:snippets/helper.js -r
-```
-
-### Website structure example
+Any static file server works (GitHub Pages, Netlify, S3, your own VPS). Required structure:
 
 ```
-https://iamabhinav.dev/
-├── snippets/
-│   ├── helper.js
-│   ├── validator.js
-│   └── errorHandler.js
-└── stacks/
-    └── express/
+<your-registry-url>/
+└── store/
+    ├── boiler.meta.json       ← resource index
+    ├── stacks/
+    │   ├── express.zip
+    │   └── nextjs.zip
+    └── snippets/
+        ├── errorHandler@1.js
+        └── logger@1.js
 ```
 
-### Make files accessible at:
+This is the **same structure** as the official Boiler registry on GitHub — consistent everywhere.
 
-`https://yourdomain.com/snippets/helper.js`
+### boiler.meta.json for GitHub/GitLab/Bitbucket registry
 
----
-
-## Fetching from Direct URLs
-
-Examples:
-
-```bash
-bl add https://cdn.jsdelivr.net/gh/user/repo/file.js -r
-bl add https://raw.githubusercontent.com/user/repo/main/file.js -r
-```
-
----
-
-## boiler.meta.json Reference
-
-**Location:**
-
-```
-store/boiler.meta.json
-```
-
-Example:
+Values are `owner/repo` paths (provider is auto-detected from the configured registry URL):
 
 ```json
 {
   "stacks": {
-    "express@1": "rishiyaduwanshi/boiler-express"
+    "express@1": "alice/boiler-express"
   },
   "snippets": {
-    "errorHandler@1.js": "rishiyaduwanshi/snippets:js/errorHandler.js"
+    "errorHandler@1.js": "alice/boiler-snippets:js/errorHandler@1.js"
   }
 }
 ```
 
+### boiler.meta.json for a custom/generic website
+
+Values must be **full download URLs** since the tool cannot infer paths from a custom server:
+
+```json
+{
+  "stacks": {
+    "express@1": "https://mysite.com/store/stacks/express.zip"
+  },
+  "snippets": {
+    "errorHandler@1.js": "https://mysite.com/store/snippets/errorHandler@1.js"
+  }
+}
+```
+
+Then use it:
+
+```bash
+bl conf --set-registry https://mysite.com/store
+bl add express@1 -r
+```
+
 ---
+
 **Explore more**
 
-* [Commands Reference](../commands/bl.md)
+* [bl use command](../commands/bl_use.md)
+* [bl add command](../commands/bl_add.md)
 * [Quick Start Guide](./quickstart.md)
 * [Installation](./installation.mdx)
-
-

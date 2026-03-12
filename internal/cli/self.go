@@ -166,7 +166,7 @@ func runSelfUpdate() error {
 			return fmt.Errorf("failed to compute checksum: %w", err)
 		}
 		if actual != expectedHash {
-			return fmt.Errorf("checksum mismatch (expected %s, got %s) — aborting update", expectedHash, actual)
+			return fmt.Errorf("checksum mismatch (expected %s, got %s) - aborting update", expectedHash, actual)
 		}
 		fmt.Println("✓ Checksum verified")
 	} else {
@@ -189,7 +189,7 @@ func runSelfUpdate() error {
 		return fmt.Errorf("failed to replace binary: %w", err)
 	}
 
-	fmt.Printf("✓ Updated to %s — restart your terminal if needed\n", rel.TagName)
+	fmt.Printf("✓ Updated to %s - restart your terminal if needed\n", rel.TagName)
 	return nil
 }
 

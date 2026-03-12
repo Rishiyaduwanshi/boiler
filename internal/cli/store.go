@@ -225,7 +225,7 @@ func storeStack(st *store.Store, path, name string) error {
 		return fmt.Errorf("'version' field is required in boiler.stack.json")
 	}
 
-	// Use config ID as stack name (ignores passed-in name for stacks — ID in boiler.stack.json is canonical)
+	// Use config ID as stack name (ignores passed-in name for stacks - ID in boiler.stack.json is canonical)
 	stackName := stackConfig.ID
 
 	// Parse version

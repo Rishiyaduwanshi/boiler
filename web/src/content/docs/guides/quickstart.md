@@ -54,8 +54,13 @@ The snippet is copied to your current directory!
 Store an entire project directory as a stack:
 
 ```bash
-# Store your Express.js project
-bl store ./my-express-app --stack --name express-starter
+# First, initialize stack config (required before storing a directory)
+cd my-express-app
+bl init
+# Prompts for stack name, description, author, and files to ignore
+
+# Then store it
+bl store
 ```
 
 Output: `✓ Stored stack 'express-starter@1' at /path/to/store/stacks/express-starter@1`
@@ -87,6 +92,8 @@ bl store <folder> --stack    # Store a stack
 bl add <name>                # Add snippet/stack (auto-detects version)
 bl add <name@version.ext>    # Add specific version
 bl add <name> --to ./path    # Add to specific path
+bl add <name> -r             # Fetch from remote registry and save locally
+bl use <url-or-repo>         # One-shot fetch from anywhere (no local store)
 ```
 
 ### List Resources

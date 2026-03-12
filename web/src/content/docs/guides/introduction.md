@@ -12,7 +12,7 @@ Boiler allows you to:
 - **Store** code snippets and entire project stacks
 - **Version** your resources automatically
 - **Reuse** code across multiple projects effortlessly
-- **Share** snippets and stacks with your team
+- **Share** snippets and stacks with your team via a shared registry (GitHub, GitLab, Bitbucket, or your own server)
 
 ## Key Features
 

@@ -114,7 +114,7 @@ func TestLoadCreatesDefaultOnMissing(t *testing.T) {
 func TestMergeWithDefaults(t *testing.T) {
 	redirectHome(t)
 
-	// Partial config — missing several fields
+	// Partial config - missing several fields
 	partial := &Config{
 		DefaultEditor: "emacs",
 		// Registry, Name, Paths, Artifacts, Aliases all zero
@@ -144,7 +144,7 @@ func TestMergeWithDefaults(t *testing.T) {
 func TestMergeWithDefaults_ArtifactsPartial(t *testing.T) {
 	redirectHome(t)
 
-	// Config with some artifacts — merge should add missing ones without removing existing
+	// Config with some artifacts - merge should add missing ones without removing existing
 	cfg := &Config{
 		Artifacts: map[string]string{
 			"custom": "## ",
@@ -208,7 +208,7 @@ func TestCreateBackupAndResetFromBackup(t *testing.T) {
 func TestResetWithNoBackup(t *testing.T) {
 	redirectHome(t)
 
-	// No backup file — Reset should write default config
+	// No backup file - Reset should write default config
 	if err := Reset(); err != nil {
 		t.Fatalf("Reset with no backup: %v", err)
 	}
@@ -227,7 +227,7 @@ func TestResetWithNoBackup(t *testing.T) {
 
 func TestCreateBackup_NoConfigFile(t *testing.T) {
 	redirectHome(t)
-	// Should not error when source doesn't exist — just a no-op
+	// Should not error when source doesn't exist - just a no-op
 	if err := CreateBackup(); err != nil {
 		t.Errorf("CreateBackup with no config should not error: %v", err)
 	}
