@@ -3,8 +3,16 @@ name: Build & Test
 on:
   push:
     branches: [ main ]
+    paths-ignore:
+      - 'web/**'
+      - '**.md'
+      - '**.mdx'
   pull_request:
     branches: [ main ]
+    paths-ignore:
+      - 'web/**'
+      - '**.md'
+      - '**.mdx'
 
 jobs:
   build:

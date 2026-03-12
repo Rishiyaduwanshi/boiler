@@ -4,37 +4,37 @@ import { LinkButton } from "@astrojs/starlight/components";
 ---
 
 <LinkButton
-	class="use-cases-btn"
-	href="/guides/usecases/"
-	variant="primary"
-	icon="open-book"
+  class="use-cases-btn"
+  href="/guides/usecases/"
+  variant="primary"
+  icon="open-book"
 >
-	Use Cases
+  Use Cases
 </LinkButton>
 <Default><slot /></Default>
 
 <style>
-	.use-cases-btn {
-		font-weight: 600;
-		font-size: 0.9rem;
-		transition: all 0.2s ease;
-		padding-inline: 0.8rem;
-		padding-block: 0.5rem;
-		display: inline-flex !important;
-		align-items: center;
-		gap: 0.4rem;
-	}
+  .use-cases-btn {
+    font-weight: 600;
+    font-size: 0.9rem;
+    transition: all 0.2s ease;
+    padding-inline: 0.8rem;
+    padding-block: 0.5rem;
+    display: inline-flex !important;
+    align-items: center;
+    gap: 0.4rem;
+  }
 
-	.use-cases-btn:hover {
-		transform: translateY(-1px);
-	}
+  .use-cases-btn:hover {
+    transform: translateY(-1px);
+  }
 
-	/* Ensure visible on mobile */
-	@media (max-width: 50rem) {
-		.use-cases-btn {
-			font-size: 0.85rem;
-			padding-inline: 0.6rem;
-			padding-block: 0.4rem;
-		}
-	}
+  /* Ensure visible on mobile */
+  @media (max-width: 50rem) {
+    .use-cases-btn {
+      font-size: 0.85rem;
+      padding-inline: 0.6rem;
+      padding-block: 0.4rem;
+    }
+  }
 </style>

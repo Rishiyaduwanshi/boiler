@@ -5,7 +5,7 @@ description: Learn how Boiler fetches snippets and stacks from GitHub, GitLab, B
 
 import { Icon } from '@astrojs/starlight/components';
 
-Boiler can fetch resources from **anywhere** — GitHub, GitLab, Bitbucket, your own website, or a direct URL. No lock-in, complete flexibility.
+Boiler can fetch resources from **anywhere** - GitHub, GitLab, Bitbucket, your own website, or a direct URL. No lock-in, complete flexibility.
 
 ---
 
@@ -13,8 +13,8 @@ Boiler can fetch resources from **anywhere** — GitHub, GitLab, Bitbucket, your
 
 | Command | Saves to local store? | Use case |
 |---|---|---|
-| `bl add ... -r` | ✅ Yes — reusable later with `bl add <name>` | Team/personal registry, frequently reused resources |
-| `bl use ...` | ❌ No — one-shot fetch | Grab something once, no clutter |
+| `bl add ... -r` | ✅ Yes - reusable later with `bl add <name>` | Team/personal registry, frequently reused resources |
+| `bl use ...` | ❌ No - one-shot fetch | Grab something once, no clutter |
 
 ---
 
@@ -46,7 +46,7 @@ The colon (`:`) separates the **source** from the **path inside it**.
 
 ---
 
-## `bl add -r` — Fetch and Save
+## `bl add -r` - Fetch and Save
 
 When you use `-r`, Boiler **downloads and caches locally** so you can reuse without re-downloading:
 
@@ -114,7 +114,7 @@ bl add express@1 -r --registry https://github.com/myteam/boiler
 
 ---
 
-## `bl use` — One-Shot Fetch (No Store)
+## `bl use` - One-Shot Fetch (No Store)
 
 No `-r` flag, no local caching. Just fetch and use directly.
 
@@ -193,7 +193,7 @@ Any static file server works (GitHub Pages, Netlify, S3, your own VPS). Required
         └── logger@1.js
 ```
 
-This is the **same structure** as the official Boiler registry on GitHub — consistent everywhere.
+This is the **same structure** as the official Boiler registry on GitHub - consistent everywhere.
 
 ### boiler.meta.json for GitHub/GitLab/Bitbucket registry
 

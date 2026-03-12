@@ -159,7 +159,7 @@ bl add rateLimiter -r
 bl use https://github.com/myteam/boiler-snippets:js/jwtHelper.js
 ```
 
-**Benefit:** Code consistency across the entire team, across machines — no manual file sharing needed.
+**Benefit:** Code consistency across the entire team, across machines - no manual file sharing needed.
 
 ---
 
