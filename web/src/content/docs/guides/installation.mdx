@@ -4,6 +4,7 @@ description: How to install Boiler on your system
 ---
 
 import { Tabs, TabItem, Code } from '@astrojs/starlight/components';
+import InstallTabs from '../../../components/InstallTabs.astro';
 
 Get Boiler up and running on your system in minutes.
 
@@ -11,24 +12,7 @@ Get Boiler up and running on your system in minutes.
 
 The fastest way to install Boiler is using our installation script:
 
-<Tabs>
-<TabItem label="Windows (PowerShell)">
-
-```bash
-# Run the installation script
-iwr -useb https://boiler.iamabhinav.dev/install | iex
-```
-
-</TabItem>
-<TabItem label="Linux/macOS">
-
-```bash
-# Run the installation script
-curl -fsSL https://boiler.iamabhinav.dev/install | sh
-```
-
-</TabItem>
-</Tabs>
+<InstallTabs />
 
 ## Package Managers
 

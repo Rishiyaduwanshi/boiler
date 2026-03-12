@@ -3,7 +3,7 @@ title: Welcome to Boiler
 description: A modern CLI for managing code snippets and project templates with automatic versioning
 template: splash
 hero:
-  title: <span style="background:linear-gradient(135deg,#ff6b6b,#4ecdc4,#45b7d1,#96ceb4,#ffeaa7,#fd79a8);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;font-weight:900;text-shadow:0 0 40px rgba(255,107,107,0.3);">Code Once. Reuse Forever.</span>
+  title: <span class="hero-gradient-title">Code Once. Reuse Forever.</span>
   tagline: Store, version, and reuse code snippets across all your projects. Stop copy-pasting, start organizing.
   image:
     file: ../../../public/hero-illustration.svg
@@ -20,6 +20,11 @@ hero:
 ---
 
 import { Card, CardGrid } from '@astrojs/starlight/components';
+import InstallTabs from '../../components/InstallTabs.astro';
+
+## Install
+
+<InstallTabs />
 
 ## Why Boiler?
 
@@ -78,7 +83,7 @@ bl add errorHandler
 # Template variables found:
 #   bl__LOG_LEVEL [error]: warn
 #   bl__NOTIFY_EMAIL [admin@example.com]: dev@myapp.com
-# ✓ Snippet added: errorHandler@1.js → ./errorHandler.js
+# ✓ Added snippet 'errorHandler' to ./errorHandler.js
 ```
 
 **Result:** Clean code with your custom values, no metadata comments!
@@ -86,13 +91,15 @@ bl add errorHandler
 ### Store Entire Projects
 
 ```bash
-# Store your Express API template
-bl store ./express-api --stack
+# Prepare your project template
+cd ./express-api
+bl init          # creates boiler.stack.json (fills in name, version, ignore)
+bl store         # stores it
 
 # Use it for new projects
 mkdir my-new-api && cd my-new-api
 bl add express-api
-# ✓ Stack added: express-api@1 → .
+# ✓ Added stack 'express-api' to .
 ```
 
 ## Built for Developers
@@ -108,17 +115,3 @@ bl add express-api
 		Store useful patterns and examples. Build your reference collection.
 	</Card>
 </CardGrid>
-
-## Ready to Boost Productivity?
-
-Get Boiler installed in under a minute:
-
-```bash
-# Windows (PowerShell)
-iwr -useb https://boiler.iamabhinav.dev/install | iex
-
-# Linux/macOS
-curl -fsSL https://boiler.iamabhinav.dev/install | sh
-```
-
-👉 [Full Installation Guide](/guides/installation/) | [Quick Start Tutorial](/guides/quickstart/)

@@ -1,152 +1,142 @@
-<svg width="600" height="500" viewBox="0 0 600 500" fill="none" xmlns="http://www.w3.org/2000/svg">
+<svg width="720" height="500" viewBox="0 0 720 500" overflow="visible" fill="none"
+  xmlns="http://www.w3.org/2000/svg">
   <defs>
     <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" style="stop-color:rgb(138,43,226);stop-opacity:0.8">
-        <animate attributeName="stop-color" values="rgb(138,43,226);rgb(75,0,130);rgb(138,43,226)" dur="4s" repeatCount="indefinite"/>
+        <animate attributeName="stop-color" values="rgb(138,43,226);rgb(75,0,130);rgb(138,43,226)"
+          dur="4s" repeatCount="indefinite" />
       </stop>
       <stop offset="100%" style="stop-color:rgb(0,191,255);stop-opacity:0.8">
-        <animate attributeName="stop-color" values="rgb(0,191,255);rgb(138,43,226);rgb(0,191,255)" dur="4s" repeatCount="indefinite"/>
+        <animate attributeName="stop-color" values="rgb(0,191,255);rgb(138,43,226);rgb(0,191,255)"
+          dur="4s" repeatCount="indefinite" />
       </stop>
     </linearGradient>
-    
+
     <linearGradient id="grad2" x1="0%" y1="0%" x2="100%" y2="0%">
       <stop offset="0%" style="stop-color:rgb(255,20,147);stop-opacity:0.6">
-        <animate attributeName="stop-color" values="rgb(255,20,147);rgb(255,105,180);rgb(255,20,147)" dur="3s" repeatCount="indefinite"/>
+        <animate attributeName="stop-color"
+          values="rgb(255,20,147);rgb(255,105,180);rgb(255,20,147)" dur="3s"
+          repeatCount="indefinite" />
       </stop>
       <stop offset="100%" style="stop-color:rgb(138,43,226);stop-opacity:0.6">
-        <animate attributeName="stop-color" values="rgb(138,43,226);rgb(147,51,234);rgb(138,43,226)" dur="3s" repeatCount="indefinite"/>
+        <animate attributeName="stop-color" values="rgb(138,43,226);rgb(147,51,234);rgb(138,43,226)"
+          dur="3s" repeatCount="indefinite" />
       </stop>
     </linearGradient>
-    
+
     <filter id="glow">
-      <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
+      <feGaussianBlur stdDeviation="4" result="coloredBlur" />
       <feMerge>
-        <feMergeNode in="coloredBlur"/>
-        <feMergeNode in="SourceGraphic"/>
+        <feMergeNode in="coloredBlur" />
+        <feMergeNode in="SourceGraphic" />
       </feMerge>
     </filter>
   </defs>
-  
+
   <!-- Background circles -->
   <circle cx="450" cy="250" r="200" fill="url(#grad1)" opacity="0.1">
-    <animate attributeName="r" values="200;220;200" dur="4s" repeatCount="indefinite"/>
+    <animate attributeName="r" values="200;220;200" dur="4s" repeatCount="indefinite" />
   </circle>
   <circle cx="150" cy="100" r="80" fill="url(#grad2)" opacity="0.1">
-    <animate attributeName="r" values="80;100;80" dur="3s" repeatCount="indefinite"/>
+    <animate attributeName="r" values="80;100;80" dur="3s" repeatCount="indefinite" />
   </circle>
-  
+
   <!-- Terminal window -->
   <g filter="url(#glow)">
-    <rect x="100" y="80" width="400" height="340" rx="12" fill="#1a1a2e" stroke="url(#grad1)" stroke-width="2"/>
-    
+    <rect x="100" y="80" width="400" height="340" rx="12" fill="#1a1a2e" stroke="url(#grad1)"
+      stroke-width="2" />
+
     <!-- Terminal header -->
-    <rect x="100" y="80" width="400" height="40" rx="12" fill="#16213e"/>
-    <circle cx="120" cy="100" r="6" fill="#ff5f56"/>
-    <circle cx="140" cy="100" r="6" fill="#ffbd2e"/>
-    <circle cx="160" cy="100" r="6" fill="#27c93f"/>
-    
+    <rect x="100" y="80" width="400" height="40" rx="12" fill="#16213e" />
+    <circle cx="120" cy="100" r="6" fill="#ff5f56" />
+    <circle cx="140" cy="100" r="6" fill="#ffbd2e" />
+    <circle cx="160" cy="100" r="6" fill="#27c93f" />
+
     <!-- Code lines with animations -->
     <g font-family="'JetBrains Mono', monospace" font-size="14">
       <!-- Line 1: $ bl store -->
       <text x="120" y="155" fill="#00d9ff" opacity="0">
-        <tspan fill="#ff5f56">$</tspan> bl store errorHandler.js
-        <animate attributeName="opacity" values="0;1" dur="0.5s" begin="0s" fill="freeze"/>
+        <tspan fill="#ff5f56">$</tspan> bl store errorHandler.js <animate attributeName="opacity"
+          values="0;1" dur="0.5s" begin="0s" fill="freeze" />
       </text>
-      
+
       <!-- Line 2: Success message -->
-      <text x="120" y="180" fill="#27c93f" opacity="0">
-        ✓ Stored snippet 'errorHandler@1.js'
-        <animate attributeName="opacity" values="0;1" dur="0.5s" begin="0.8s" fill="freeze"/>
+      <text x="120" y="180" fill="#27c93f" opacity="0"> ✓ Stored snippet 'errorHandler@1.js' <animate
+          attributeName="opacity" values="0;1" dur="0.5s" begin="0.8s" fill="freeze" />
       </text>
-      
+
       <!-- Line 3: Empty -->
       <text x="120" y="205" opacity="0">
-        <animate attributeName="opacity" values="0;1" dur="0.1s" begin="1.3s" fill="freeze"/>
+        <animate attributeName="opacity" values="0;1" dur="0.1s" begin="1.3s" fill="freeze" />
       </text>
-      
+
       <!-- Line 4: $ bl add -->
       <text x="120" y="230" fill="#00d9ff" opacity="0">
-        <tspan fill="#ff5f56">$</tspan> bl add errorHandler
-        <animate attributeName="opacity" values="0;1" dur="0.5s" begin="1.5s" fill="freeze"/>
+        <tspan fill="#ff5f56">$</tspan> bl add errorHandler <animate attributeName="opacity"
+          values="0;1" dur="0.5s" begin="1.5s" fill="freeze" />
       </text>
-      
+
       <!-- Line 5: Template prompt -->
-      <text x="120" y="255" fill="#ffbd2e" opacity="0">
-        Template variables found:
-        <animate attributeName="opacity" values="0;1" dur="0.5s" begin="2s" fill="freeze"/>
+      <text x="120" y="255" fill="#ffbd2e" opacity="0"> Template variables found: <animate
+          attributeName="opacity" values="0;1" dur="0.5s" begin="2s" fill="freeze" />
       </text>
-      
+
       <!-- Line 6: Variable 1 -->
-      <text x="130" y="280" fill="#a0a0a0" opacity="0">
-        bl__LOG_LEVEL [error]: 
-        <animate attributeName="opacity" values="0;1" dur="0.5s" begin="2.3s" fill="freeze"/>
+      <text x="130" y="280" fill="#a0a0a0" opacity="0"> bl__LOG_LEVEL [error]: <animate
+          attributeName="opacity" values="0;1" dur="0.5s" begin="2.3s" fill="freeze" />
       </text>
-      <text x="340" y="280" fill="#00d9ff" opacity="0">
-        warn
-        <animate attributeName="opacity" values="0;1" dur="0.3s" begin="2.8s" fill="freeze"/>
+      <text x="340" y="280" fill="#00d9ff" opacity="0"> warn <animate attributeName="opacity"
+          values="0;1" dur="0.3s" begin="2.8s" fill="freeze" />
       </text>
-      
+
       <!-- Line 7: Variable 2 -->
-      <text x="130" y="305" fill="#a0a0a0" opacity="0">
-        bl__NOTIFY [admin@ex...]: 
-        <animate attributeName="opacity" values="0;1" dur="0.5s" begin="3.2s" fill="freeze"/>
+      <text x="130" y="305" fill="#a0a0a0" opacity="0"> bl__NOTIFY [admin@ex...]: <animate
+          attributeName="opacity" values="0;1" dur="0.5s" begin="3.2s" fill="freeze" />
       </text>
-      <text x="360" y="305" fill="#00d9ff" opacity="0">
-        me@app.com
-        <animate attributeName="opacity" values="0;1" dur="0.3s" begin="3.7s" fill="freeze"/>
+      <text x="360" y="305" fill="#00d9ff" opacity="0"> me@app.com <animate attributeName="opacity"
+          values="0;1" dur="0.3s" begin="3.7s" fill="freeze" />
       </text>
-      
+
       <!-- Line 8: Success -->
-      <text x="120" y="340" fill="#27c93f" opacity="0">
-        ✓ Snippet added: errorHandler.js
-        <animate attributeName="opacity" values="0;1" dur="0.5s" begin="4.2s" fill="freeze"/>
+      <text x="120" y="340" fill="#27c93f" opacity="0"> ✓ Snippet added: errorHandler.js <animate
+          attributeName="opacity" values="0;1" dur="0.5s" begin="4.2s" fill="freeze" />
       </text>
-      
+
       <!-- Line 9: Cursor -->
       <text x="120" y="375" fill="#00d9ff" opacity="0">
         <tspan fill="#ff5f56">$</tspan>
-        <animate attributeName="opacity" values="0;1" dur="0.2s" begin="4.7s" fill="freeze"/>
+        <animate attributeName="opacity" values="0;1" dur="0.2s" begin="4.7s" fill="freeze" />
       </text>
       <rect x="138" y="362" width="10" height="18" fill="#00d9ff" opacity="0">
-        <animate attributeName="opacity" values="0;1;0;1" dur="1s" begin="4.7s" repeatCount="indefinite"/>
+        <animate attributeName="opacity" values="0;1;0;1" dur="1s" begin="4.7s"
+          repeatCount="indefinite" />
       </rect>
     </g>
   </g>
-  
+
   <!-- Floating icons -->
   <g opacity="0.6">
     <path d="M 480 120 L 490 120 L 490 130 L 480 130 Z" fill="url(#grad1)">
-      <animateTransform attributeName="transform" type="translate" values="0,0; 0,-10; 0,0" dur="3s" repeatCount="indefinite"/>
+      <animateTransform attributeName="transform" type="translate" values="0,0; 0,-10; 0,0" dur="3s"
+        repeatCount="indefinite" />
     </path>
     <circle cx="520" cy="360" r="5" fill="url(#grad2)">
-      <animateTransform attributeName="transform" type="translate" values="0,0; 0,10; 0,0" dur="4s" repeatCount="indefinite"/>
+      <animateTransform attributeName="transform" type="translate" values="0,0; 0,10; 0,0" dur="4s"
+        repeatCount="indefinite" />
     </circle>
     <path d="M 70 300 L 80 300 L 75 310 Z" fill="url(#grad1)">
-      <animateTransform attributeName="transform" type="translate" values="0,0; 0,-8; 0,0" dur="3.5s" repeatCount="indefinite"/>
+      <animateTransform attributeName="transform" type="translate" values="0,0; 0,-8; 0,0"
+        dur="3.5s" repeatCount="indefinite" />
     </path>
   </g>
-  
+
   <!-- Version badge with dynamic class -->
   <g transform="translate(440, 440)" id="version-badge">
-    <rect x="0" y="0" width="100" height="30" rx="15" fill="url(#grad1)" opacity="0.8"/>
-    <text x="50" y="20" text-anchor="middle" fill="white" font-family="'JetBrains Mono', monospace" font-size="12" font-weight="600" class="version-text">
-      v0.0.9
+    <rect x="0" y="0" width="100" height="30" rx="15" fill="url(#grad1)" opacity="0.8" />
+    <text x="50" y="20" text-anchor="middle" fill="white" font-family="'JetBrains Mono', monospace"
+      font-size="12" font-weight="600" class="version-text">
+      v0.1.0
     </text>
   </g>
-  
-  <script type="text/javascript">
-    <![CDATA[
-    (function() {
-      fetch('https://api.github.com/repos/rishiyaduwanshi/boiler/releases/latest')
-        .then(res => res.json())
-        .then(data => {
-          const versionText = document.querySelector('.version-text');
-          if (versionText && data.tag_name) {
-            versionText.textContent = data.tag_name;
-          }
-        })
-        .catch(() => console.log('Using fallback version'));
-    })();
-    ]]>
-  </script>
+
 </svg>
