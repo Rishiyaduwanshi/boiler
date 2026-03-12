@@ -23,24 +23,26 @@ Template Variables:
 Stacks are also versioned and can be added by name or with explicit version.
 
 Remote Resources:
-  Use -r flag to fetch from remote registry or directly from GitHub/URLs:
-    1. From registry: bl add express@1 -r
-       (Uses registry configured in config or --registry flag)
-    
-    2. Direct from GitHub: bl add owner/repo -r
-       (Fetches entire repo as stack)
-    
-    3. Direct snippet: bl add owner/repo:path/to/file.js -r
-       (Fetches single file)
-    
-    4. Direct URL: bl add https://yourdomain.com/path/file.js -r
-       (Downloads from any URL)
-    
-    5. Custom domain: bl add yourdomain.com:path/file.js -r
-       (Assumes HTTPS)
-    
-    6. Custom registry: bl add express@1 -r --registry https://github.com/other/boiler
-       (One-time registry override)
+  Use -r flag to fetch from remote source and save to local store.
+  Provider is auto-detected from the URL (GitHub, GitLab, Bitbucket, generic).
+  Resource is cached locally — subsequent uses don't need -r.
+
+  For one-shot fetch without saving to local store, use 'bl use' instead.
+
+    1. Registry:           bl add express@1 -r
+       (registry set via: bl conf --set-registry <url>)
+
+    2. GitHub short:       bl add owner/repo -r
+    3. GitHub full URL:    bl add https://github.com/owner/repo -r
+    4. GitLab:             bl add https://gitlab.com/owner/repo -r
+    5. Bitbucket:          bl add https://bitbucket.org/owner/repo -r
+
+    6. File from repo:     bl add owner/repo:path/to/file.js -r
+    7. Direct file URL:    bl add https://site.com/file.js -r
+    8. Direct archive:     bl add https://site.com/stack.zip -r
+    9. Custom domain file: bl add site.com:path/file.js -r
+
+   10. One-time registry:  bl add express@1 -r --registry https://github.com/other/boiler
 
 ```
 bl add [resource] [flags]
@@ -70,23 +72,32 @@ bl add [resource] [flags]
   # Force overwrite
   bl add middleware --force
 
-  # Remote: From registry
+  # Remote: from configured registry
   bl add express@1 -r
 
-  # Remote: Direct from GitHub (entire repo)
+  # Remote: GitHub short format
   bl add rishiyaduwanshi/boiler-express -r
 
-  # Remote: Direct snippet from GitHub
+  # Remote: GitLab
+  bl add https://gitlab.com/alice/my-stack -r
+
+  # Remote: Bitbucket
+  bl add https://bitbucket.org/alice/my-stack -r
+
+  # Remote: file inside GitHub repo
   bl add rishiyaduwanshi/boiler-snippets:js/errorHandler.js -r
 
-  # Remote: From custom website (direct URL)
-  bl add https://iamabhinav.dev/snippets/helper.js -r
+  # Remote: direct file URL
+  bl add https://mysite.com/snippets/helper.js -r
 
-  # Remote: From custom domain
-  bl add iamabhinav.dev:snippets/validator.js -r
+  # Remote: direct archive URL
+  bl add https://mysite.com/stack.zip -r
 
-  # Remote: Custom registry
+  # Remote: one-time registry override
   bl add express@1 -r --registry https://github.com/myorg/boiler
+
+  # One-shot fetch without saving to store (no -r needed)
+  bl use alice/my-stack
 ```
 
 ### Options

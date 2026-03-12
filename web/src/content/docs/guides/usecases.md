@@ -141,21 +141,25 @@ npm install
 
 ## 6. Team Snippet Library
 
-**Scenario:** Your team needs standardized code patterns.
+**Scenario:** Your team needs standardized code patterns shared across machines.
 
 ```bash
-# Store team-approved patterns
-bl store utils/jwtHelper.js
-bl store utils/validation.js
-bl store middleware/rateLimiter.js
+# Store team-approved patterns in a shared GitHub/GitLab repo
+# Then any team member can fetch them:
 
-# Team members can pull them
-bl add jwtHelper
-bl add validation
-bl add rateLimiter
+# One-time registry setup per machine
+bl conf --set-registry https://github.com/myteam/boiler-snippets
+
+# Fetch and save to local store (reusable offline after)
+bl add jwtHelper -r
+bl add validation -r
+bl add rateLimiter -r
+
+# Or one-shot without saving to local store
+bl use https://github.com/myteam/boiler-snippets:js/jwtHelper.js
 ```
 
-**Benefit:** Code consistency across the entire team.
+**Benefit:** Code consistency across the entire team, across machines — no manual file sharing needed.
 
 ---
 

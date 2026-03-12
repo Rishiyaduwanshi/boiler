@@ -2,6 +2,7 @@ package remote
 
 import (
 	"archive/tar"
+	"archive/zip"
 	"compress/gzip"
 	"context"
 	"fmt"
@@ -16,46 +17,42 @@ import (
 	"github.com/rishiyaduwanshi/boiler/internal/utils"
 )
 
-// FetchSnippet downloads a snippet from remote registry to local store
+// FetchSnippet downloads a snippet file to destPath.
+//
 // remotePath formats:
-//   - "owner/repo:path/to/file.js" (GitHub)
-//   - "https://domain.com/path/to/file.js" (Direct URL)
-//   - "domain.com:path/to/file.js" (Custom domain, assumes HTTPS)
+//   - "owner/repo:path/to/file.js"          → GitHub (default)
+//   - "https://any.host/path/to/file.js"    → direct URL (used by generic/registry servers)
+//   - "domain.com:path/to/file.js"          → custom domain, resolves to https://domain.com/path
 func FetchSnippet(remotePath string, destPath string) error {
-	owner, repo, path := store.ParseRemotePath(remotePath)
-	
+	owner, repo, filePath := store.ParseRemotePath(remotePath)
+
 	var fileURL string
-	var displaySource string
-	
-	// Check if it's a direct URL
-	if strings.HasPrefix(repo, "http://") || strings.HasPrefix(repo, "https://") {
-		fileURL = repo
-		displaySource = repo
-	} else if owner == "" && repo != "" {
-		// Custom domain format (domain.com:path)
-		fileURL = fmt.Sprintf("https://%s/%s", repo, path)
-		displaySource = fmt.Sprintf("%s/%s", repo, path)
-	} else if owner != "" && repo != "" {
-		// GitHub format (owner/repo:path)
-		fileURL = fmt.Sprintf("https://raw.githubusercontent.com/%s/%s/main/%s", owner, repo, path)
-		displaySource = fmt.Sprintf("%s/%s", owner, repo)
-	} else {
+	switch {
+	case strings.HasPrefix(remotePath, "http://") || strings.HasPrefix(remotePath, "https://"):
+		// Direct URL — generic/registry server passes full URL in meta.json
+		fileURL = remotePath
+	case owner != "" && repo != "":
+		// owner/repo:path — use provider (defaults to GitHub for short format)
+		p := Detect(remotePath)
+		fileURL = p.RawFileURL(owner, repo, "main", filePath)
+	case repo != "" && filePath != "":
+		// domain.com:path — build HTTPS URL
+		fileURL = fmt.Sprintf("https://%s/%s", repo, filePath)
+	default:
 		return fmt.Errorf("invalid remote path format: %s", remotePath)
 	}
-	
-	fmt.Printf("📥 Downloading from %s...\n", displaySource)
-	
+
+	fmt.Printf("📥 Downloading snippet...\n")
+
 	data, err := downloadFile(fileURL)
 	if err != nil {
 		return fmt.Errorf("failed to download snippet: %w", err)
 	}
 
-	// Ensure destination directory exists
 	if err := os.MkdirAll(filepath.Dir(destPath), 0755); err != nil {
 		return fmt.Errorf("failed to create destination directory: %w", err)
 	}
 
-	// Write to destination
 	if err := os.WriteFile(destPath, data, 0644); err != nil {
 		return fmt.Errorf("failed to write snippet: %w", err)
 	}
@@ -64,82 +61,111 @@ func FetchSnippet(remotePath string, destPath string) error {
 	return nil
 }
 
-// FetchStack downloads a complete stack from remote registry to local store
-// remotePath formats:
-//   - "owner/repo" (GitHub short format)
-//   - "owner/repo:path/within/repo" (GitHub with subpath)
-//   - "https://github.com/owner/repo" (GitHub full URL)
+// FetchStack downloads a complete stack from remote registry to local store.
+//
+// The right Provider is detected automatically from the remotePath:
+//   - "owner/repo"                                   → GitHub (default short format)
+//   - "owner/repo:path/within/repo"                  → GitHub with subpath
+//   - "https://github.com/owner/repo"                → GitHub
+//   - "https://gitlab.com/owner/repo"                → GitLab
+//   - "https://bitbucket.org/owner/repo"             → Bitbucket
+//   - "https://mysite.com/store/stacks/<name>.zip"   → Generic (direct archive URL)
 func FetchStack(remotePath string, destPath string) error {
+	// Detect provider: full URLs carry host info; short "owner/repo" defaults to GitHub.
+	var p Provider
+	if strings.HasPrefix(remotePath, "http://") || strings.HasPrefix(remotePath, "https://") {
+		p = Detect(remotePath)
+	} else {
+		p = githubProvider{} // backward-compatible default
+	}
+
 	owner, repo, subPath := store.ParseRemotePath(remotePath)
-	
-	// Handle full GitHub URLs
-	if strings.HasPrefix(remotePath, "https://github.com/") || strings.HasPrefix(remotePath, "http://github.com/") {
-		// Extract owner/repo from URL
-		// https://github.com/owner/repo -> owner/repo
-		cleanPath := strings.TrimPrefix(remotePath, "https://github.com/")
-		cleanPath = strings.TrimPrefix(cleanPath, "http://github.com/")
-		cleanPath = strings.TrimSuffix(cleanPath, "/")
-		
-		parts := strings.SplitN(cleanPath, "/", 2)
-		if len(parts) == 2 {
-			owner = parts[0]
-			repo = parts[1]
-			// Remove any trailing .git
-			repo = strings.TrimSuffix(repo, ".git")
-		}
+
+	// For full URLs, extract owner/repo from the URL itself
+	if strings.HasPrefix(remotePath, "http://") || strings.HasPrefix(remotePath, "https://") {
+		owner, repo = parseOwnerRepo(remotePath)
 	}
-	
+	repo = strings.TrimSuffix(repo, ".git")
+
+	// archiveURL is either constructed by the provider (GitHub/GitLab/Bitbucket)
+	// or the remotePath itself when it is a direct archive URL (any host, one-off fetch).
+	var archiveURL string
+	var archiveExt string
 	if owner == "" || repo == "" {
-		return fmt.Errorf("invalid remote path format: %s (expected: owner/repo or https://github.com/owner/repo)", remotePath)
+		// Direct archive URL — user passed something like:
+		//   https://anysite.com/mystack.zip
+		//   https://anysite.com/mystack.tar.gz
+		if !strings.HasPrefix(remotePath, "http://") && !strings.HasPrefix(remotePath, "https://") {
+			return fmt.Errorf("invalid remote path: %s (expected owner/repo or a full archive URL)", remotePath)
+		}
+		archiveURL = remotePath
+		// Detect format from URL extension so both .zip and .tar.gz work.
+		archiveExt = archiveFormatFromURL(archiveURL)
+		fmt.Printf("📥 Downloading stack...\n")
+	} else {
+		archiveURL = p.ArchiveURL(owner, repo, "main", subPath)
+		archiveExt = p.ArchiveFormat()
+		fmt.Printf("📥 Downloading stack from %s (%s/%s)...\n", p.Name(), owner, repo)
 	}
 
-	fmt.Printf("📥 Downloading stack from %s/%s...\n", owner, repo)
-
-	// Download tarball from GitHub
-	tarballURL := fmt.Sprintf("https://api.github.com/repos/%s/%s/tarball/main", owner, repo)
-	
 	// Create temp directory
-	tempDir, err := os.MkdirTemp("", "boiler-*")
+	tempDir, err := os.MkdirTemp("", "boiler-stack-*")
 	if err != nil {
 		return fmt.Errorf("failed to create temp directory: %w", err)
 	}
 	defer os.RemoveAll(tempDir)
 
-	// Download tarball
-	tarPath := filepath.Join(tempDir, "stack.tar.gz")
-	if err := downloadToFile(tarballURL, tarPath); err != nil {
-		return fmt.Errorf("failed to download stack: %w", err)
+	archivePath := filepath.Join(tempDir, "stack."+archiveExt)
+	if err := downloadToFile(archiveURL, archivePath); err != nil {
+		return fmt.Errorf("failed to download stack archive: %w", err)
 	}
 
-	// Extract tarball
 	extractDir := filepath.Join(tempDir, "extracted")
-	if err := extractTarGz(tarPath, extractDir); err != nil {
-		return fmt.Errorf("failed to extract stack: %w", err)
+	switch archiveExt {
+	case "tar.gz":
+		if err := extractTarGz(archivePath, extractDir); err != nil {
+			return fmt.Errorf("failed to extract stack: %w", err)
+		}
+	case "zip":
+		if err := extractZip(archivePath, extractDir); err != nil {
+			return fmt.Errorf("failed to extract stack: %w", err)
+		}
+	default:
+		return fmt.Errorf("unsupported archive format: %s", archiveExt)
 	}
 
-	// Find the actual content directory (GitHub adds a prefix folder)
+	// GitHub/GitLab wrap contents in a randomly-named prefix folder — skip it if present.
 	entries, err := os.ReadDir(extractDir)
 	if err != nil {
 		return fmt.Errorf("failed to read extracted directory: %w", err)
 	}
 	if len(entries) == 0 {
-		return fmt.Errorf("extracted directory is empty")
+		return fmt.Errorf("extracted archive is empty")
 	}
 
-	// Get source directory
 	var sourceDir string
-	if subPath == "." {
-		sourceDir = filepath.Join(extractDir, entries[0].Name())
+	firstIsDir := entries[0].IsDir()
+	if firstIsDir && len(entries) == 1 {
+		// Single top-level dir (GitHub/GitLab prefix) — unwrap it
+		if subPath == "" || subPath == "." {
+			sourceDir = filepath.Join(extractDir, entries[0].Name())
+		} else {
+			sourceDir = filepath.Join(extractDir, entries[0].Name(), subPath)
+		}
 	} else {
-		sourceDir = filepath.Join(extractDir, entries[0].Name(), subPath)
+		// Generic/Bitbucket: no prefix dir — content is directly inside extractDir
+		if subPath == "" || subPath == "." {
+			sourceDir = extractDir
+		} else {
+			sourceDir = filepath.Join(extractDir, subPath)
+		}
 	}
-	
-	// Copy to destination
+
 	if err := utils.CopyDir(sourceDir, destPath, nil); err != nil {
 		return fmt.Errorf("failed to copy stack: %w", err)
 	}
 
-	fmt.Printf("✓ Downloaded stack successfully\n")
+	fmt.Printf("✓ Stack downloaded successfully\n")
 	return nil
 }
 
@@ -201,6 +227,63 @@ func downloadToFile(url, path string) error {
 
 	_, err = io.Copy(out, resp.Body)
 	return err
+}
+
+// archiveFormatFromURL returns "tar.gz" or "zip" based on the URL path.
+// Defaults to "zip" if extension is unrecognised.
+func archiveFormatFromURL(url string) string {
+	lower := strings.ToLower(url)
+	if strings.Contains(lower, ".tar.gz") || strings.Contains(lower, ".tgz") {
+		return "tar.gz"
+	}
+	return "zip"
+}
+
+// extractZip extracts a zip archive to destPath.
+func extractZip(zipPath, destPath string) error {
+	r, err := zip.OpenReader(zipPath)
+	if err != nil {
+		return err
+	}
+	defer r.Close()
+
+	cleanDest := filepath.Clean(destPath) + string(os.PathSeparator)
+
+	for _, f := range r.File {
+		target := filepath.Join(destPath, filepath.FromSlash(f.Name))
+
+		// Zip Slip protection
+		if !strings.HasPrefix(filepath.Clean(target)+string(os.PathSeparator), cleanDest) {
+			return fmt.Errorf("invalid path in zip (path traversal attempt): %s", f.Name)
+		}
+
+		if f.FileInfo().IsDir() {
+			if err := os.MkdirAll(target, 0755); err != nil {
+				return err
+			}
+			continue
+		}
+
+		if err := os.MkdirAll(filepath.Dir(target), 0755); err != nil {
+			return err
+		}
+		out, err := os.Create(target)
+		if err != nil {
+			return err
+		}
+		rc, err := f.Open()
+		if err != nil {
+			out.Close()
+			return err
+		}
+		_, copyErr := io.Copy(out, rc)
+		rc.Close()
+		out.Close()
+		if copyErr != nil {
+			return copyErr
+		}
+	}
+	return nil
 }
 
 // extractTarGz extracts a tar.gz file to destination
