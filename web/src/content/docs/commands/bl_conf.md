@@ -27,8 +27,13 @@ bl conf [flags]
   # Show configuration
   bl conf
 
-  # Edit configuration
-  bl conf --edit
+  # Edit configuration (uses defaultEditor from config, or $EDITOR env)
+  bl conf -e 
+
+  # Edit with a specific editor
+  bl conf -e code
+  bl conf --edit notepad
+  bl conf -e vim
 
   # Reset to defaults
   bl conf --reset
@@ -43,10 +48,9 @@ bl conf [flags]
 ### Options
 
 ```
-  -e, --edit                  Edit configuration
-  -h, --help                  help for conf
-  -r, --reset                 Reset configuration to defaults
-      --set-registry string   Set custom registry URL
-  -s, --show                  Show configuration
+  -e, --edit string[="__default__"]   Edit configuration (optional: editor name)
+  -h, --help                          help for conf
+  -r, --reset                         Reset configuration to defaults
+      --set-registry string           Set custom registry URL
 ```
 

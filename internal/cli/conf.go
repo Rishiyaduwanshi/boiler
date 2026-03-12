@@ -24,8 +24,13 @@ Configuration includes paths, preferences, and behavior settings.`,
 	Example: `  # Show configuration
   bl conf
 
-  # Edit configuration
-  bl conf --edit
+  # Edit configuration (uses defaultEditor from config, or $EDITOR env)
+  bl conf -e 
+
+  # Edit with a specific editor
+  bl conf -e code
+  bl conf --edit notepad
+  bl conf -e vim
 
   # Reset to defaults
   bl conf --reset
@@ -43,7 +48,7 @@ Configuration includes paths, preferences, and behavior settings.`,
 			}
 			return
 		}
-		if confEdit {
+		if confEdit != "" {
 			if err := editConfig(); err != nil {
 				fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 				os.Exit(1)
@@ -62,16 +67,15 @@ Configuration includes paths, preferences, and behavior settings.`,
 }
 
 var (
-	confEdit        bool
+	confEdit        string
 	confReset       bool
-	confShow        bool
 	confSetRegistry string
 )
 
 func init() {
-	confCmd.Flags().BoolVarP(&confEdit, "edit", "e", false, "Edit configuration")
+	confCmd.Flags().StringVarP(&confEdit, "edit", "e", "", "Edit configuration (optional: editor name)")
+	confCmd.Flags().Lookup("edit").NoOptDefVal = "__default__"
 	confCmd.Flags().BoolVarP(&confReset, "reset", "r", false, "Reset configuration to defaults")
-	confCmd.Flags().BoolVarP(&confShow, "show", "s", false, "Show configuration")
 	confCmd.Flags().StringVar(&confSetRegistry, "set-registry", "", "Set custom registry URL")
 }
 
@@ -97,9 +101,17 @@ func editConfig() error {
 		return fmt.Errorf("failed to get config path: %w", err)
 	}
 
-	editor := cfg.DefaultEditor
-	if envEditor := os.Getenv("EDITOR"); envEditor != "" {
-		editor = envEditor
+	// Priority: explicit editor from -e flag → config defaultEditor
+	var editor string
+	if confEdit != "__default__" {
+		editor = confEdit
+	} else {
+		editor = cfg.DefaultEditor
+	}
+
+	// Verify editor exists
+	if _, err := exec.LookPath(editor); err != nil {
+		return fmt.Errorf("editor %q not found. Set defaultEditor in boiler.conf.json or pass editor name: bl conf -e <editor>", editor)
 	}
 
 	cmd := exec.Command(editor, configPath)

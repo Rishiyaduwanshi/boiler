@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"github.com/rishiyaduwanshi/boiler/pkg/version"
 )
 
@@ -30,6 +31,14 @@ type Paths struct {
 	Bin      string `json:"bin"`
 }
 
+// defaultEditor returns the OS-appropriate default editor
+func defaultEditor() string {
+	if runtime.GOOS == "windows" {
+		return "notepad"
+	}
+	return "vi"
+}
+
 // getRootPath returns the default root directory for boiler
 func getRootPath() string {
 	home, err := os.UserHomeDir()
@@ -53,7 +62,7 @@ func DefaultConfig() *Config {
 		Author:        "Abhinav Prakash",
 		Github:        "github.com/rishiyaduwanshi/boiler",
 		Description:   "A CLI tool to manage reusable code snippets and stacks",
-		DefaultEditor: "vim",
+		DefaultEditor: defaultEditor(),
 		Registry:      "https://github.com/rishiyaduwanshi/boiler",
 		Paths: Paths{
 			Root:     rootPath,
@@ -168,14 +177,15 @@ func mergeWithDefaults(cfg *Config) {
 		cfg.Paths = defaults.Paths
 	}
 
-	// Sync artifact comment styles: always overwrite built-in keys with latest
-	// defaults so format changes (e.g. adding suffix) take effect automatically.
-	// Custom user-added keys (not present in defaults) are left untouched.
+	// Only add artifact keys that the user hasn't set.
+	// User's existing values are always respected.
 	if cfg.Artifacts == nil {
 		cfg.Artifacts = defaults.Artifacts
 	} else {
 		for k, v := range defaults.Artifacts {
-			cfg.Artifacts[k] = v
+			if _, exists := cfg.Artifacts[k]; !exists {
+				cfg.Artifacts[k] = v
+			}
 		}
 	}
 
