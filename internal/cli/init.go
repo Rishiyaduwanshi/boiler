@@ -165,19 +165,25 @@ func createSnippetConfig(path string) error {
 	}
 	
 	// Get comment style from config, fallback to default if not found
-	commentPrefix := cfg.Artifacts[artifact]
-	if commentPrefix == "" {
-		commentPrefix = cfg.Artifacts["default"]
+	artifactStyle := cfg.Artifacts[artifact]
+	if artifactStyle == "" {
+		artifactStyle = cfg.Artifacts["default"]
 	}
-	
+	parts := strings.SplitN(artifactStyle, "  ", 2)
+	commentPrefix := parts[0]
+	commentSuffix := ""
+	if len(parts) == 2 {
+		commentSuffix = parts[1]
+	}
+
 	// Prompt for metadata using base name as default
 	commonMeta, err := utils.PromptCommonMetadata(baseName, initYes)
 	if err != nil {
 		return err
 	}
-	
+
 	// Create snippet file with metadata comments
-	if err := utils.GenerateSnippetTemplate(fileName, commonMeta, commentPrefix); err != nil {
+	if err := utils.GenerateSnippetTemplate(fileName, commonMeta, commentPrefix, commentSuffix); err != nil {
 		return err
 	}
 	

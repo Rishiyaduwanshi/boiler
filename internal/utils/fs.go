@@ -139,7 +139,7 @@ func CopyFileWithVariables(src, dst string, varReplacements map[string]string) e
 	defer destFile.Close()
 
 	// Regex to match metadata lines
-	metadataRe := regexp.MustCompile(`^\s*[/#;-]*\s*__(?:author|desc|version|var)\s+.+`)
+	metadataRe := regexp.MustCompile(`__(?:author|desc|version|var)\b`)
 
 	scanner := bufio.NewScanner(sourceFile)
 	writer := bufio.NewWriter(destFile)

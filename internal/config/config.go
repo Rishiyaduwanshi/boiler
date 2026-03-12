@@ -80,14 +80,14 @@ func DefaultConfig() *Config {
 			"sh":         "#  ",
 			"bash":       "#  ",
 			"ps1":        "#  ",
-			"html":       "<!--  ",
-			"htm":        "<!--  ",
-			"css":        "/*  ",
+			"html":       "<!--  -->",
+			"htm":        "<!--  -->",
+			"css":        "/*  */",
 			"sql":        "--  ",
 			"yml":        "#  ",
 			"yaml":       "#  ",
-			"xml":        "<!--  ",
-			"md":         "<!--  ",
+			"xml":        "<!--  -->",
+			"md":         "<!--  -->",
 			"ahk":        ";  ",
 			"dockerfile": "#  ",
 			"gitignore":  "#  ",
@@ -168,14 +168,14 @@ func mergeWithDefaults(cfg *Config) {
 		cfg.Paths = defaults.Paths
 	}
 
-	// Add any missing artifact comment styles
+	// Sync artifact comment styles: always overwrite built-in keys with latest
+	// defaults so format changes (e.g. adding suffix) take effect automatically.
+	// Custom user-added keys (not present in defaults) are left untouched.
 	if cfg.Artifacts == nil {
 		cfg.Artifacts = defaults.Artifacts
 	} else {
 		for k, v := range defaults.Artifacts {
-			if _, ok := cfg.Artifacts[k]; !ok {
-				cfg.Artifacts[k] = v
-			}
+			cfg.Artifacts[k] = v
 		}
 	}
 

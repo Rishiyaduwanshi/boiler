@@ -129,13 +129,17 @@ func ValidateSnippetMetadata(meta *SnippetMetadata) error {
 
 
 // GenerateSnippetTemplate creates a snippet file with metadata comments
-func GenerateSnippetTemplate(filePath string, meta CommonMetadata, commentPrefix string) error {
-	content := fmt.Sprintf(`%s__author %s
-%s__desc %s
-%s__var bl__EXAMPLE_VAR = DefaultValue
-
-// Your code here
-`, commentPrefix, meta.Author, commentPrefix, meta.Description, commentPrefix)
+func GenerateSnippetTemplate(filePath string, meta CommonMetadata, prefix, suffix string) error {
+	sfx := ""
+	if suffix != "" {
+		sfx = " " + suffix
+	}
+	content := fmt.Sprintf("%s  __author %s%s\n%s  __desc %s%s\n%s  __var bl__EXAMPLE_VAR = DefaultValue%s\n\n%s  Your code here%s\n",
+		prefix, meta.Author, sfx,
+		prefix, meta.Description, sfx,
+		prefix, sfx,
+		prefix, sfx,
+	)
 
 	if err := os.WriteFile(filePath, []byte(content), 0644); err != nil {
 		return fmt.Errorf("failed to write file: %w", err)
