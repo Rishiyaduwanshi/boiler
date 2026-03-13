@@ -6,6 +6,8 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+
+	"github.com/rishiyaduwanshi/boiler/internal/utils"
 	"github.com/rishiyaduwanshi/boiler/pkg/version"
 )
 
@@ -20,6 +22,7 @@ type Config struct {
 	Paths         Paths             `json:"paths"`
 	Artifacts     map[string]string `json:"artifacts"`
 	Aliases       map[string]string `json:"aliases"`
+	Vars          map[string]string `json:"vars"`
 }
 
 type Paths struct {
@@ -105,6 +108,7 @@ func DefaultConfig() *Config {
 			"ini":        ";  ",
 		},
 		Aliases: make(map[string]string),
+		Vars:    make(map[string]string),
 	}
 }
 
@@ -191,6 +195,12 @@ func mergeWithDefaults(cfg *Config) {
 
 	if cfg.Aliases == nil {
 		cfg.Aliases = make(map[string]string)
+	}
+
+	if cfg.Vars == nil {
+		cfg.Vars = make(map[string]string)
+	} else {
+		cfg.Vars = utils.NormalizeVarMap(cfg.Vars)
 	}
 }
 

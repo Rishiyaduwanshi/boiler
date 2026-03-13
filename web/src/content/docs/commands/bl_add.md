@@ -10,51 +10,52 @@ Add a snippet or stack to boiler/ by default
 Add a stored snippet or stack to ./boiler by default.
 
 Destination:
-	Use optional [destination] to override the default path:
-		bl add logger .
-		bl add logger ./src/utils
-		bl add logger /absolute/path
+- Use optional `[destination]` to override the default path.
+- bl add logger .
+- bl add logger ./src/utils
+- bl add logger /absolute/path
 
 Stack placement:
-	By default, stacks are copied inside a stack-named folder:
-		bl add express@1            -> ./boiler/express
-	Use --spread to copy stack contents directly into destination:
-		bl add express@1 --spread   -> contents in ./boiler
+- By default, stacks are copied inside a stack-named folder.
+- bl add express@1 -> ./boiler/express
+- Use --spread to copy stack contents directly into destination.
+- bl add express@1 --spread -> contents in ./boiler
 
 The command copies resources from your store. For snippets with a single version,
 you can use just the name (e.g., 'errorHandler' will auto-select version 1).
 For multiple versions, you'll be prompted to choose.
 
 Template Variables:
-  Snippets can contain template variables using the format: bl__VAR_NAME
-  When adding a snippet with variables, you'll be prompted to provide values:
-    - Default values are shown in brackets (from __var declarations)
-    - Press Enter to use default or type a custom value
-    - Variables are replaced and metadata comments are removed in the final file
+- Snippets can contain template variables using the format: bl__VAR_NAME.
+- When adding a snippet with variables, you'll be prompted to provide values.
+- If matching config vars exist, they are used as defaults.
+- Default values are shown in brackets (from __var declarations).
+- Press Enter to use default or type a custom value.
+- Variables are replaced and metadata comments are removed in the final file.
+
+Command Variables:
+- Use @name to resolve values from config vars (set via 'bl var').
+- Example: bl add express@1 -r --registry @team_reg
 
 Stacks are also versioned and can be added by name or with explicit version.
 
 Remote Resources:
-  Use -r flag to fetch from remote source and save to local store.
-  Provider is auto-detected from the URL (GitHub, GitLab, Bitbucket, generic).
-  Resource is cached locally - subsequent uses don't need -r.
+- Use -r flag to fetch from remote source and save to local store.
+- Provider is auto-detected from the URL (GitHub, GitLab, Bitbucket, generic).
+- Resource is cached locally; subsequent uses do not need -r.
+- For one-shot fetch without saving to local store, use 'bl use' instead.
 
-  For one-shot fetch without saving to local store, use 'bl use' instead.
-
-    1. Registry:           bl add express@1 -r
-       (registry set via: bl conf --set-registry <url>)
-
-    2. GitHub short:       bl add owner/repo -r
-    3. GitHub full URL:    bl add https://github.com/owner/repo -r
-    4. GitLab:             bl add https://gitlab.com/owner/repo -r
-    5. Bitbucket:          bl add https://bitbucket.org/owner/repo -r
-
-    6. File from repo:     bl add owner/repo:path/to/file.js -r
-    7. Direct file URL:    bl add https://site.com/file.js -r
-    8. Direct archive:     bl add https://site.com/stack.zip -r
-    9. Custom domain file: bl add site.com:path/file.js -r
-
-   10. One-time registry:  bl add express@1 -r --registry https://github.com/other/boiler
+Supported remote formats:
+- Registry: bl add express@1 -r (registry set via: bl conf --set-registry `<url>`)
+- GitHub short: bl add owner/repo -r
+- GitHub full URL: bl add `https://github.com/owner/repo` -r
+- GitLab: bl add `https://gitlab.com/owner/repo` -r
+- Bitbucket: bl add `https://bitbucket.org/owner/repo` -r
+- File from repo: bl add owner/repo:path/to/file.js -r
+- Direct file URL: bl add `https://site.com/file.js` -r
+- Direct archive: bl add `https://site.com/stack.zip` -r
+- Custom domain file: bl add site.com:path/file.js -r
+- One-time registry: bl add express@1 -r --registry `https://github.com/other/boiler`
 
 ```
 bl add [resource] [destination] [flags]
@@ -66,11 +67,11 @@ bl add [resource] [destination] [flags]
   # Add snippet (auto-detects if single version)
   bl add errorHandler
 
-	# Add to current directory
-	bl add errorHandler .
+  # Add to current directory
+  bl add errorHandler .
 
-	# Add to a custom destination
-	bl add errorHandler ./src/utils
+  # Add to a custom destination
+  bl add errorHandler ./src/utils
 
   # Add snippet with template variables
   bl add apiClient
@@ -81,11 +82,11 @@ bl add [resource] [destination] [flags]
   # Add specific version
   bl add logger@2.js
 
-	# Add stack into boiler/express-api
+  # Add stack into boiler/express-api
   bl add express-api@1
 
-	# Add stack contents directly into destination
-	bl add express-api@1 --spread
+  # Add stack contents directly into destination
+  bl add express-api@1 --spread
 
   # Force overwrite
   bl add middleware --force
@@ -113,6 +114,9 @@ bl add [resource] [destination] [flags]
 
   # Remote: one-time registry override
   bl add express@1 -r --registry https://github.com/myorg/boiler
+
+  # Remote: registry from config variable
+  bl add express@1 -r --registry @team_reg
 
   # One-shot fetch without saving to store (no -r needed)
   bl use alice/my-stack

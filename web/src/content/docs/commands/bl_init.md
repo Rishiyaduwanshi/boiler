@@ -13,15 +13,15 @@ For stacks (directories): Creates boiler.stack.json
 For snippets (files): Creates boiler.snippet.json with metadata
 
 Stack config includes:
-  - Stack name and description
-  - Author information
-  - Files/folders to ignore
-  - Version metadata
+- Stack name and description
+- Author information
+- Files/folders to ignore
+- Version metadata
 
 Snippet config includes:
-  - Name, description, author
-  - Language and tags
-  - Version for templating
+- Name, description, author
+- Language and tags
+- Version for templating
 
 Similar to 'npm init', this helps you prepare projects for storing.
 

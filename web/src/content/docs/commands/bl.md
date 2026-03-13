@@ -10,10 +10,10 @@ Boiler - Code snippet and stack manager
 Boiler - A CLI tool to manage reusable code snippets and project stacks.
 
 Store, version, and reuse your code across projects. Perfect for:
-  - Reusable utility functions (snippets)
-  - Project templates and boilerplates (stacks)
-  - Code patterns you use frequently
-  - Multi-language development workflows
+- Reusable utility functions (snippets)
+- Project templates and boilerplates (stacks)
+- Code patterns you use frequently
+- Multi-language development workflows
 
 All resources are versioned automatically, making it easy to manage multiple
 variations of the same snippet or stack.

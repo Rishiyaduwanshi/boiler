@@ -13,16 +13,16 @@ Files are stored as snippets with version numbers.
 Directories must have a boiler.stack.json config file (run 'bl init' first).
 
 Version Management:
-  If snippet already exists, you'll be prompted with options:
-    (o) Overwrite - Replace the latest version with new content
-    (n) New version - Create a new incremental version
-    (c) Cancel - Abort the operation
-  First-time storage automatically creates version 1
+If snippet already exists, you'll be prompted with options:
+- (o) Overwrite - Replace the latest version with new content
+- (n) New version - Create a new incremental version
+- (c) Cancel - Abort the operation
+- First-time storage automatically creates version 1
 
 Stacks require boiler.stack.json with:
-  - id: Stack name
-  - version: Version number
-  - ignore: Patterns to exclude
+- id: Stack name
+- version: Version number
+- ignore: Patterns to exclude
 
 If a stack version already exists, you'll be prompted to overwrite.
 

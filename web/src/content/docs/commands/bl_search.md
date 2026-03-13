@@ -10,15 +10,16 @@ Search for snippets or stacks
 Search for resources in your store by name.
 
 Searches both snippets and stacks by default. Use flags to filter:
-  - Use -s or --snippets to search only snippets
-  - Use -k or --stacks to search only stacks
+- Use -s or --snippets to search only snippets
+- Use -k or --stacks to search only stacks
 
 Search is case-insensitive and matches partial names.
 
 Remote Search:
-  Use -r flag to search remote registry:
-    - Default registry from config
-    - Or specify custom: --registry https://github.com/other/boiler
+Use -r flag to search remote registry:
+- Default registry from config
+- Or specify custom: --registry `https://github.com/other/boiler`
+- Use config variable reference: --registry @team_reg
 
 ```
 bl search [query] [flags]
@@ -41,6 +42,9 @@ bl search [query] [flags]
 
   # Search custom registry
   bl search express -r --registry https://github.com/myorg/boiler
+
+  # Search registry from config variable
+  bl search express -r --registry @team_reg
 ```
 
 ### Options

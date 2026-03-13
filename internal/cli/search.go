@@ -24,7 +24,8 @@ Search is case-insensitive and matches partial names.
 Remote Search:
   Use -r flag to search remote registry:
     - Default registry from config
-    - Or specify custom: --registry https://github.com/other/boiler`,
+		- Or specify custom: --registry https://github.com/other/boiler
+		- Use config variable reference: --registry @team_reg`,
 	Example: `  # Search for anything with 'error'
   bl search error
 
@@ -38,10 +39,17 @@ Remote Search:
   bl search express -r
 
   # Search custom registry
-  bl search express -r --registry https://github.com/myorg/boiler`,
-	Args:  cobra.ExactArgs(1),
+	bl search express -r --registry https://github.com/myorg/boiler
+
+	# Search registry from config variable
+	bl search express -r --registry @team_reg`,
+	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		query := args[0]
+		query, err := utils.ResolveInputToken(args[0], "query", cfg.Vars)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			os.Exit(1)
+		}
 		logger.Info(fmt.Sprintf("Searching for: %s", query))
 
 		if err := searchResources(query); err != nil {
@@ -120,12 +128,17 @@ func searchRemoteResources(query string) error {
 		registryURL = searchRegistry
 	}
 
+	registryURL, err := utils.ResolveInputToken(registryURL, "registry", cfg.Vars)
+	if err != nil {
+		return err
+	}
+
 	// Initialize remote store
 	remoteStoreHandler, err := remote.NewRemoteStore(registryURL)
 	if err != nil {
 		return fmt.Errorf("failed to initialize remote store: %w", err)
 	}
-	
+
 	// Load remote metadata
 	fmt.Println("🔄 Fetching remote registry...")
 	remoteStore, err := remoteStoreHandler.LoadFromURL()
@@ -138,7 +151,7 @@ func searchRemoteResources(query string) error {
 	searchStks := !searchSnippets // Search stacks by default
 
 	results := remoteStoreHandler.Search(remoteStore, query, searchSnips, searchStks)
-	
+
 	foundAny := false
 
 	// Display snippets

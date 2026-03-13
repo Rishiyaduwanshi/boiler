@@ -10,10 +10,10 @@ Clean snippets, stacks, or store
 Remove snippets, stacks, or clear entire store.
 
 You can:
-  - Remove specific resource by name
-  - Remove all snippets (use -s or --snippets flag)
-  - Remove all stacks (use -k or --stacks flag)
-  - Clear everything (use -a or --all flag)
+- Remove specific resource by name
+- Remove all snippets (use -s or --snippets flag)
+- Remove all stacks (use -k or --stacks flag)
+- Clear everything (use -a or --all flag)
 
 Version-specific deletion is supported.
 

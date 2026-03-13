@@ -10,12 +10,12 @@ Show boiler installation path
 Display all Boiler installation paths.
 
 Shows:
-  - Root - Main Boiler directory
-  - Store - Where resources are stored
-  - Snippets - Snippet storage location
-  - Stacks - Stack storage location
-  - Logs - Log file directory
-  - Bin - Executable location
+- Root - Main Boiler directory
+- Store - Where resources are stored
+- Snippets - Snippet storage location
+- Stacks - Stack storage location
+- Logs - Log file directory
+- Bin - Executable location
 
 ```
 bl path [flags]

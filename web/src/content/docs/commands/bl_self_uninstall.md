@@ -10,9 +10,9 @@ Uninstall Boiler CLI
 Uninstall Boiler CLI from your system.
 
 This will:
-  - Remove the binary from installation directory
-  - Clean PATH environment variable
-  - Optionally remove config and store data
+- Remove the binary from installation directory
+- Clean PATH environment variable
+- Optionally remove config and store data
 
 You will be prompted for confirmation before deletion.
 

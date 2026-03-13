@@ -65,6 +65,8 @@ func init() {
 	// Add subcommands
 	rootCmd.AddCommand(versionCmd)
 	rootCmd.AddCommand(confCmd)
+	rootCmd.AddCommand(varCmd)
+	rootCmd.AddCommand(unvarCmd)
 	rootCmd.AddCommand(addCmd)
 	rootCmd.AddCommand(storeCmd)
 	rootCmd.AddCommand(listCmd)

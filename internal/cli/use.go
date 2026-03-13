@@ -7,6 +7,7 @@ import (
 
 	"github.com/rishiyaduwanshi/boiler/internal/remote"
 	"github.com/rishiyaduwanshi/boiler/internal/store"
+	"github.com/rishiyaduwanshi/boiler/internal/utils"
 	"github.com/spf13/cobra"
 )
 
@@ -54,11 +55,26 @@ Supported formats:
   # Direct file URL (snippet)
   bl use https://mysite.com/snippets/logger.js
 
+	# Resource from config variable
+	bl use @starter_stack
+
   # Into a specific folder
   bl use alice/my-stack --to ./new-project`,
 	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		if err := useResource(args[0]); err != nil {
+		remotePath, err := utils.ResolveInputToken(args[0], "resource", cfg.Vars)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			os.Exit(1)
+		}
+
+		destPath, err := utils.ResolveInputToken(useTo, "destination", cfg.Vars)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			os.Exit(1)
+		}
+
+		if err := useResource(remotePath, destPath); err != nil {
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 			os.Exit(1)
 		}
@@ -72,8 +88,7 @@ func init() {
 	rootCmd.AddCommand(useCmd)
 }
 
-func useResource(remotePath string) error {
-	destPath := useTo
+func useResource(remotePath, destPath string) error {
 	if destPath == "" {
 		destPath = "."
 	}

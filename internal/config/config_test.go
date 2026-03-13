@@ -54,6 +54,9 @@ func TestDefaultConfig(t *testing.T) {
 	if cfg.Aliases == nil {
 		t.Error("Aliases map should not be nil")
 	}
+	if cfg.Vars == nil {
+		t.Error("Vars map should not be nil")
+	}
 }
 
 // ── Save / Load roundtrip ─────────────────────────────────────────────────────
@@ -117,7 +120,7 @@ func TestMergeWithDefaults(t *testing.T) {
 	// Partial config - missing several fields
 	partial := &Config{
 		DefaultEditor: "emacs",
-		// Registry, Name, Paths, Artifacts, Aliases all zero
+		// Registry, Name, Paths, Artifacts, Aliases, Vars all zero
 	}
 	mergeWithDefaults(partial)
 
@@ -138,6 +141,29 @@ func TestMergeWithDefaults(t *testing.T) {
 	}
 	if partial.Aliases == nil {
 		t.Error("Aliases should be initialized by mergeWithDefaults")
+	}
+	if partial.Vars == nil {
+		t.Error("Vars should be initialized by mergeWithDefaults")
+	}
+}
+
+func TestMergeWithDefaults_NormalizesVars(t *testing.T) {
+	redirectHome(t)
+
+	cfg := &Config{
+		Vars: map[string]string{
+			"bl__API_URL": "https://api.example.com",
+			"@TEAM_REG":   "https://github.com/myorg/boiler",
+		},
+	}
+
+	mergeWithDefaults(cfg)
+
+	if cfg.Vars["api_url"] != "https://api.example.com" {
+		t.Fatalf("expected normalized key api_url")
+	}
+	if cfg.Vars["team_reg"] != "https://github.com/myorg/boiler" {
+		t.Fatalf("expected normalized key team_reg")
 	}
 }
 
@@ -284,6 +310,7 @@ func TestConfigJSONRoundtrip(t *testing.T) {
 
 	cfg := DefaultConfig()
 	cfg.Aliases["ll"] = "list --long"
+	cfg.Vars["api_url"] = "https://api.example.com"
 
 	data, err := json.MarshalIndent(cfg, "", "  ")
 	if err != nil {
@@ -297,6 +324,9 @@ func TestConfigJSONRoundtrip(t *testing.T) {
 
 	if restored.Aliases["ll"] != "list --long" {
 		t.Error("alias not preserved across JSON roundtrip")
+	}
+	if restored.Vars["api_url"] != "https://api.example.com" {
+		t.Error("vars not preserved across JSON roundtrip")
 	}
 	if restored.Paths.Snippets != cfg.Paths.Snippets {
 		t.Error("Paths.Snippets not preserved across JSON roundtrip")

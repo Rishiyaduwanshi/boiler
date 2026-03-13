@@ -17,51 +17,52 @@ var addCmd = &cobra.Command{
 	Long: `Add a stored snippet or stack to ./boiler by default.
 
 Destination:
-	Use optional [destination] to override the default path:
-		bl add logger .
-		bl add logger ./src/utils
-		bl add logger /absolute/path
+- Use optional [destination] to override the default path.
+- bl add logger .
+- bl add logger ./src/utils
+- bl add logger /absolute/path
 
 Stack placement:
-	By default, stacks are copied inside a stack-named folder:
-		bl add express@1            -> ./boiler/express
-	Use --spread to copy stack contents directly into destination:
-		bl add express@1 --spread   -> contents in ./boiler
+- By default, stacks are copied inside a stack-named folder.
+- bl add express@1 -> ./boiler/express
+- Use --spread to copy stack contents directly into destination.
+- bl add express@1 --spread -> contents in ./boiler
 
 The command copies resources from your store. For snippets with a single version,
 you can use just the name (e.g., 'errorHandler' will auto-select version 1).
 For multiple versions, you'll be prompted to choose.
 
 Template Variables:
-  Snippets can contain template variables using the format: bl__VAR_NAME
-  When adding a snippet with variables, you'll be prompted to provide values:
-    - Default values are shown in brackets (from __var declarations)
-    - Press Enter to use default or type a custom value
-    - Variables are replaced and metadata comments are removed in the final file
+- Snippets can contain template variables using the format: bl__VAR_NAME.
+- When adding a snippet with variables, you'll be prompted to provide values.
+- If matching config vars exist, they are used as defaults.
+- Default values are shown in brackets (from __var declarations).
+- Press Enter to use default or type a custom value.
+- Variables are replaced and metadata comments are removed in the final file.
+
+Command Variables:
+- Use @name to resolve values from config vars (set via 'bl var').
+- Example: bl add express@1 -r --registry @team_reg
 
 Stacks are also versioned and can be added by name or with explicit version.
 
 Remote Resources:
-  Use -r flag to fetch from remote source and save to local store.
-  Provider is auto-detected from the URL (GitHub, GitLab, Bitbucket, generic).
-  Resource is cached locally - subsequent uses don't need -r.
+- Use -r flag to fetch from remote source and save to local store.
+- Provider is auto-detected from the URL (GitHub, GitLab, Bitbucket, generic).
+- Resource is cached locally; subsequent uses do not need -r.
+- For one-shot fetch without saving to local store, use 'bl use' instead.
 
-  For one-shot fetch without saving to local store, use 'bl use' instead.
-
-    1. Registry:           bl add express@1 -r
-       (registry set via: bl conf --set-registry <url>)
-
-    2. GitHub short:       bl add owner/repo -r
-    3. GitHub full URL:    bl add https://github.com/owner/repo -r
-    4. GitLab:             bl add https://gitlab.com/owner/repo -r
-    5. Bitbucket:          bl add https://bitbucket.org/owner/repo -r
-
-    6. File from repo:     bl add owner/repo:path/to/file.js -r
-    7. Direct file URL:    bl add https://site.com/file.js -r
-    8. Direct archive:     bl add https://site.com/stack.zip -r
-    9. Custom domain file: bl add site.com:path/file.js -r
-
-   10. One-time registry:  bl add express@1 -r --registry https://github.com/other/boiler`,
+Supported remote formats:
+- Registry: bl add express@1 -r (registry set via: bl conf --set-registry <url>)
+- GitHub short: bl add owner/repo -r
+- GitHub full URL: bl add https://github.com/owner/repo -r
+- GitLab: bl add https://gitlab.com/owner/repo -r
+- Bitbucket: bl add https://bitbucket.org/owner/repo -r
+- File from repo: bl add owner/repo:path/to/file.js -r
+- Direct file URL: bl add https://site.com/file.js -r
+- Direct archive: bl add https://site.com/stack.zip -r
+- Custom domain file: bl add site.com:path/file.js -r
+- One-time registry: bl add express@1 -r --registry https://github.com/other/boiler`,
 	Example: `  # Add snippet (auto-detects if single version)
   bl add errorHandler
 
@@ -113,14 +114,26 @@ Remote Resources:
   # Remote: one-time registry override
   bl add express@1 -r --registry https://github.com/myorg/boiler
 
+	# Remote: registry from config variable
+	bl add express@1 -r --registry @team_reg
+
   # One-shot fetch without saving to store (no -r needed)
   bl use alice/my-stack`,
 	Args: cobra.RangeArgs(1, 2),
 	Run: func(cmd *cobra.Command, args []string) {
-		resource := args[0]
+		resource, err := utils.ResolveInputToken(args[0], "resource", cfg.Vars)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			os.Exit(1)
+		}
+
 		positionalDest := ""
 		if len(args) == 2 {
-			positionalDest = args[1]
+			positionalDest, err = utils.ResolveInputToken(args[1], "destination", cfg.Vars)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+				os.Exit(1)
+			}
 		}
 
 		destPath := resolveAddDestination(positionalDest)
@@ -134,6 +147,12 @@ Remote Resources:
 }
 
 const addDefaultDestination = "boiler"
+
+const (
+	addForceFlag      = "force"
+	addForceFlagShort = "f"
+	addForceDesc      = "Force operation without confirmation"
+)
 
 func resolveAddDestination(positionalDest string) string {
 	if positionalDest == "" {
@@ -221,6 +240,7 @@ func addSnippet(st *store.Store, name, destPath string) error {
 	if len(meta.Variables) > 0 {
 		fmt.Println("Template variables found:")
 		for varName, defaultValue := range meta.Variables {
+			defaultValue = utils.ResolveSnippetVarDefault(varName, defaultValue, cfg.Vars)
 			prompt := fmt.Sprintf("  %s", varName)
 			value, err := utils.PromptWithDefault(prompt, defaultValue)
 			if err != nil {
@@ -360,6 +380,12 @@ func addResourceFromRemote(resource, destPath string) error {
 		registryURL = addRegistry
 	}
 
+	resolvedRegistryURL, err := utils.ResolveInputToken(registryURL, "registry", cfg.Vars)
+	if err != nil {
+		return err
+	}
+	registryURL = resolvedRegistryURL
+
 	// Initialize remote store
 	remoteStoreHandler, err := remote.NewRemoteStore(registryURL)
 	if err != nil {
@@ -424,17 +450,7 @@ func addResourceFromRemote(resource, destPath string) error {
 			return err
 		}
 
-		// Copy to destination
-		selectedBaseName, _, selectedExt := store.ParseResourceName(resource)
-		destFileName := selectedBaseName + selectedExt
-		finalDestPath := filepath.Join(destPath, destFileName)
-		if err := utils.CopyFileWithVariables(localDestPath, finalDestPath, nil); err != nil {
-			return fmt.Errorf("failed to copy snippet: %w", err)
-		}
-
-		fmt.Printf(utils.MsgSnippetAdded, resource, finalDestPath)
-		logger.Info(fmt.Sprintf("Remote snippet added: %s -> %s", resource, finalDestPath))
-		return nil
+		return addSnippet(st, resource, destPath)
 	}
 
 	// Try as stack
@@ -528,15 +544,7 @@ func addDirectRemoteResource(remotePath, destPath string) error {
 			return err
 		}
 
-		// Copy to destination
-		finalDestPath := filepath.Join(destPath, resourceName)
-		if err := utils.CopyFileWithVariables(localDestPath, finalDestPath, nil); err != nil {
-			return fmt.Errorf("failed to copy snippet: %w", err)
-		}
-
-		fmt.Printf(utils.MsgSnippetAdded, resourceName, finalDestPath)
-		logger.Info(fmt.Sprintf("Direct remote snippet added: %s -> %s", remotePath, finalDestPath))
-		return nil
+		return addSnippet(st, resourceName, destPath)
 	}
 
 	// It's a stack
@@ -579,6 +587,6 @@ var (
 func init() {
 	addCmd.Flags().BoolVarP(&addRemote, "remote", "r", false, "Fetch from remote registry")
 	addCmd.Flags().BoolVar(&addSpread, "spread", false, "Spread stack contents directly into destination")
-	addCmd.Flags().BoolVarP(&addForce, FlagForce, FlagForceShort, false, DescForce)
+	addCmd.Flags().BoolVarP(&addForce, addForceFlag, addForceFlagShort, false, addForceDesc)
 	addCmd.Flags().StringVar(&addRegistry, "registry", "", "Custom registry URL (overrides config)")
 }

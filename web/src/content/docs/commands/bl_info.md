@@ -10,11 +10,11 @@ Show detailed information about a resource
 Display detailed information about a stored snippet or stack.
 
 Shows:
-  - Full path in store
-  - File size (for snippets)
-  - File count and total size (for stacks)
-  - Last modified time
-  - Version information
+- Full path in store
+- File size (for snippets)
+- File count and total size (for stacks)
+- Last modified time
+- Version information
 
 ```
 bl info [resource] [flags]

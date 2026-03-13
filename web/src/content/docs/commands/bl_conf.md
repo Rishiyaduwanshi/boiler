@@ -10,10 +10,10 @@ Manage boiler configuration
 View and manage Boiler configuration.
 
 You can:
-  - View current configuration (default)
-  - Edit config in default editor (use -e or --edit)
-  - Reset to defaults (use -r or --reset)
-  - Set registry URL (use --set-registry)
+- View current configuration (default)
+- Edit config in default editor (use -e or --edit)
+- Reset to defaults (use -r or --reset)
+- Set registry URL (use --set-registry)
 
 Configuration includes paths, preferences, and behavior settings.
 
@@ -28,7 +28,7 @@ bl conf [flags]
   bl conf
 
   # Edit configuration (uses defaultEditor from config, or $EDITOR env)
-  bl conf -e 
+  bl conf -e
 
   # Edit with a specific editor
   bl conf -e code
