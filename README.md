@@ -162,6 +162,8 @@ bl init              # Initialize stack/snippet config
 bl store [path]      # Store file/folder
 bl add <name> [path] # Add snippet/stack (default destination: ./boiler)
 bl add <name> --spread # Spread stack contents into destination
+bl alias [k|k=v]     # List, get, or set command aliases
+bl unalias <k>       # Remove a command alias
 bl var [k|k=v]       # List, get, or set reusable variables
 bl unvar <k>         # Remove a reusable variable
 bl use <resource>    # One-shot remote fetch (no local store saved)

@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"os"
 	"sync"
 
 	"github.com/rishiyaduwanshi/boiler/internal/config"
@@ -55,6 +56,7 @@ func Execute(config *config.Config, log *utils.Logger) error {
 	cfg = config
 	logger = log
 	rootCmd.SilenceErrors = true
+	rootCmd.SetArgs(expandFirstCommandAlias(os.Args[1:]))
 	ensureCommandDocsNormalized()
 	return rootCmd.Execute()
 }
@@ -77,6 +79,8 @@ func init() {
 	// Add subcommands
 	rootCmd.AddCommand(versionCmd)
 	rootCmd.AddCommand(confCmd)
+	rootCmd.AddCommand(aliasCmd)
+	rootCmd.AddCommand(unaliasCmd)
 	rootCmd.AddCommand(varCmd)
 	rootCmd.AddCommand(unvarCmd)
 	rootCmd.AddCommand(addCmd)
