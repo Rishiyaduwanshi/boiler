@@ -45,9 +45,9 @@ cd ../my-other-project
 bl add errorHandler
 ```
 
-Output: `✓ Snippet added: errorHandler@1.js → ./errorHandler.js`
+Output: `✓ Snippet added: errorHandler@1.js → boiler/errorHandler.js`
 
-The snippet is copied to your current directory!
+The snippet is copied to the default `boiler/` directory.
 
 ## 4. Store a Project Stack
 
@@ -75,9 +75,9 @@ cd new-project
 bl add express-starter
 ```
 
-Output: `✓ Stack added: express-starter@1 → .`
+Output: `✓ Stack added: express-starter@1 → boiler/express-starter`
 
-Your entire project structure is copied!
+Your stack is copied to `./boiler/express-starter` by default.
 
 ## Common Commands
 
@@ -89,9 +89,10 @@ bl store <folder> --stack    # Store a stack
 
 ### Add Resources
 ```bash
-bl add <name>                # Add snippet/stack (auto-detects version)
+bl add <name>                # Add snippet/stack into ./boiler
+bl add <name> <path>         # Add to a specific relative/absolute path
+bl add <name> --spread       # Spread stack contents into destination
 bl add <name@version.ext>    # Add specific version
-bl add <name> --to ./path    # Add to specific path
 bl add <name> -r             # Fetch from remote registry and save locally
 bl use <url-or-repo>         # One-shot fetch from anywhere (no local store)
 ```

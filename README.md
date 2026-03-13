@@ -62,7 +62,7 @@ bl store ./middleware/auth.js
 
 # 2. Add to any project
 bl add auth
-# ✓ Added snippet 'auth' to ./auth.js
+# ✓ Added snippet 'auth@1.js' to boiler/auth.js
 
 # 3. Store a directory as stack (bl init required first)
 cd ./my-template
@@ -71,7 +71,7 @@ bl store       # stores it
 
 # 4. Add a stack
 bl add my-template
-# ✓ Added stack 'my-template' to .
+# ✓ Added stack 'my-template@1' to boiler/my-template
 
 # 5. List everything
 bl ls
@@ -98,7 +98,7 @@ function handleError(err) {
 bl add errorHandler
 #   bl__LOG_LEVEL [error]: warn
 #   bl__EMAIL [admin@example.com]: dev@app.com
-# ✓ Added snippet 'errorHandler' to ./errorHandler.js
+# ✓ Added snippet 'errorHandler@1.js' to boiler/errorHandler.js
 # (metadata stripped, variables replaced)
 ```
 
@@ -159,7 +159,8 @@ bl use https://mysite.com/template.zip
 ```bash
 bl init              # Initialize stack/snippet config
 bl store [path]      # Store file/folder
-bl add <name>        # Add snippet/stack (-r to fetch from remote)
+bl add <name> [path] # Add snippet/stack (default destination: ./boiler)
+bl add <name> --spread # Spread stack contents into destination
 bl use <resource>    # One-shot remote fetch (no local store saved)
 bl ls                # List all resources
 bl search <query>    # Search by name (-r to search remote)

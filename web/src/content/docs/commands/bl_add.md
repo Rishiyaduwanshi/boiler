@@ -3,11 +3,23 @@ title: bl add
 description: Command reference for bl add
 ---
 
-Add a snippet or stack to current directory
+Add a snippet or stack to boiler/ by default
 
 ### Synopsis
 
-Add a stored snippet or stack to your current directory.
+Add a stored snippet or stack to ./boiler by default.
+
+Destination:
+	Use optional [destination] to override the default path:
+		bl add logger .
+		bl add logger ./src/utils
+		bl add logger /absolute/path
+
+Stack placement:
+	By default, stacks are copied inside a stack-named folder:
+		bl add express@1            -> ./boiler/express
+	Use --spread to copy stack contents directly into destination:
+		bl add express@1 --spread   -> contents in ./boiler
 
 The command copies resources from your store. For snippets with a single version,
 you can use just the name (e.g., 'errorHandler' will auto-select version 1).
@@ -45,7 +57,7 @@ Remote Resources:
    10. One-time registry:  bl add express@1 -r --registry https://github.com/other/boiler
 
 ```
-bl add [resource] [flags]
+bl add [resource] [destination] [flags]
 ```
 
 ### Examples
@@ -53,6 +65,12 @@ bl add [resource] [flags]
 ```
   # Add snippet (auto-detects if single version)
   bl add errorHandler
+
+	# Add to current directory
+	bl add errorHandler .
+
+	# Add to a custom destination
+	bl add errorHandler ./src/utils
 
   # Add snippet with template variables
   bl add apiClient
@@ -63,11 +81,11 @@ bl add [resource] [flags]
   # Add specific version
   bl add logger@2.js
 
-  # Add to specific directory
-  bl add config --to ./src/utils
-
-  # Add stack
+	# Add stack into boiler/express-api
   bl add express-api@1
+
+	# Add stack contents directly into destination
+	bl add express-api@1 --spread
 
   # Force overwrite
   bl add middleware --force
@@ -107,6 +125,6 @@ bl add [resource] [flags]
   -h, --help              help for add
       --registry string   Custom registry URL (overrides config)
   -r, --remote            Fetch from remote registry
-  -t, --to string         Destination path (default ".")
+      --spread            Spread stack contents directly into destination
 ```
 

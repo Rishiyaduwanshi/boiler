@@ -12,9 +12,21 @@ import (
 )
 
 var addCmd = &cobra.Command{
-	Use:   "add [resource]",
-	Short: "Add a snippet or stack to current directory",
-	Long: `Add a stored snippet or stack to your current directory.
+	Use:   "add [resource] [destination]",
+	Short: "Add a snippet or stack to boiler/ by default",
+	Long: `Add a stored snippet or stack to ./boiler by default.
+
+Destination:
+	Use optional [destination] to override the default path:
+		bl add logger .
+		bl add logger ./src/utils
+		bl add logger /absolute/path
+
+Stack placement:
+	By default, stacks are copied inside a stack-named folder:
+		bl add express@1            -> ./boiler/express
+	Use --spread to copy stack contents directly into destination:
+		bl add express@1 --spread   -> contents in ./boiler
 
 The command copies resources from your store. For snippets with a single version,
 you can use just the name (e.g., 'errorHandler' will auto-select version 1).
@@ -53,6 +65,12 @@ Remote Resources:
 	Example: `  # Add snippet (auto-detects if single version)
   bl add errorHandler
 
+	# Add to current directory
+	bl add errorHandler .
+
+	# Add to a custom destination
+	bl add errorHandler ./src/utils
+
   # Add snippet with template variables
   bl add apiClient
   # Prompts: bl__API_URL [http://localhost:3000]: https://api.example.com
@@ -62,11 +80,11 @@ Remote Resources:
   # Add specific version
   bl add logger@2.js
 
-  # Add to specific directory
-  bl add config --to ./src/utils
-
-  # Add stack
+	# Add stack into boiler/express-api
   bl add express-api@1
+
+	# Add stack contents directly into destination
+	bl add express-api@1 --spread
 
   # Force overwrite
   bl add middleware --force
@@ -97,21 +115,36 @@ Remote Resources:
 
   # One-shot fetch without saving to store (no -r needed)
   bl use alice/my-stack`,
-	Args:  cobra.ExactArgs(1),
+	Args: cobra.RangeArgs(1, 2),
 	Run: func(cmd *cobra.Command, args []string) {
 		resource := args[0]
-		logger.Info(fmt.Sprintf("Adding resource: %s", resource))
+		positionalDest := ""
+		if len(args) == 2 {
+			positionalDest = args[1]
+		}
 
-		if err := addResource(resource); err != nil {
+		destPath := resolveAddDestination(positionalDest)
+		logger.Info(fmt.Sprintf("Adding resource: %s -> %s", resource, destPath))
+
+		if err := addResource(resource, destPath); err != nil {
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 			os.Exit(1)
 		}
 	},
 }
 
-func addResource(resource string) error {
+const addDefaultDestination = "boiler"
+
+func resolveAddDestination(positionalDest string) string {
+	if positionalDest == "" {
+		return addDefaultDestination
+	}
+	return filepath.Clean(positionalDest)
+}
+
+func addResource(resource, destPath string) error {
 	if addRemote {
-		return addResourceFromRemote(resource)
+		return addResourceFromRemote(resource, destPath)
 	}
 
 	st, err := utils.LoadStore(cfg.Paths.Store)
@@ -119,15 +152,13 @@ func addResource(resource string) error {
 		return err
 	}
 
-	destPath := addTo
-	if destPath == "" {
-		destPath = "."
-	}
-
 	baseName, version, ext := store.ParseResourceName(resource)
 
 	// Snippet (has file extension)
 	if ext != "" {
+		if addSpread {
+			return fmt.Errorf("--spread is only supported for stacks")
+		}
 		if version != "" {
 			return addSnippet(st, baseName+"@"+version+ext, destPath)
 		}
@@ -145,6 +176,16 @@ func addResource(resource string) error {
 	// No extension - try as stack first
 	if _, ok := st.GetStack(resource); ok {
 		return addStack(st, resource, destPath)
+	}
+
+	// Try stack lookup by base name
+	stackMatches := utils.FindMatchingResources(st.ListStacks(), baseName, "")
+	if len(stackMatches) > 0 {
+		selected, err := utils.PickFromList(baseName, stackMatches)
+		if err != nil {
+			return err
+		}
+		return addStack(st, selected, destPath)
 	}
 
 	// Fall back to snippet lookup (name without version/ext)
@@ -218,25 +259,99 @@ func addStack(st *store.Store, name, destPath string) error {
 		return fmt.Errorf(utils.ErrResourceNotFound, "stack directory", stackPath)
 	}
 
-	if utils.FileExists(destPath) && destPath != "." && !addForce {
-			return fmt.Errorf(utils.ErrDestAlreadyExists, destPath)
+	finalDestPath, err := copyStackToDestination(stackPath, name, destPath)
+	if err != nil {
+		return err
 	}
 
-	ignorePatterns := utils.DefaultIgnorePatterns
-	if err := utils.CopyDir(stackPath, destPath, ignorePatterns); err != nil {
-		return fmt.Errorf("failed to copy stack: %w", err)
-	}
-
-	fmt.Printf(utils.MsgStackAdded, name, destPath)
-	logger.Info(fmt.Sprintf("Stack added: %s -> %s", name, destPath))
+	fmt.Printf(utils.MsgStackAdded, name, finalDestPath)
+	logger.Info(fmt.Sprintf("Stack added: %s -> %s", name, finalDestPath))
 	return nil
 }
 
+func copyStackToDestination(stackPath, stackName, destPath string) (string, error) {
+	ignorePatterns := utils.DefaultIgnorePatterns
+
+	if addSpread {
+		if err := validateSpreadDestination(stackPath, destPath, ignorePatterns); err != nil {
+			return "", err
+		}
+		if err := utils.CopyDir(stackPath, destPath, ignorePatterns); err != nil {
+			return "", fmt.Errorf("failed to copy stack: %w", err)
+		}
+		return destPath, nil
+	}
+
+	stackDir := stackDirectoryName(stackName)
+	finalDestPath := filepath.Join(destPath, stackDir)
+	if utils.FileExists(finalDestPath) && !addForce {
+		return "", fmt.Errorf(utils.ErrDestAlreadyExists, finalDestPath)
+	}
+
+	if err := utils.CopyDir(stackPath, finalDestPath, ignorePatterns); err != nil {
+		return "", fmt.Errorf("failed to copy stack: %w", err)
+	}
+
+	return finalDestPath, nil
+}
+
+func validateSpreadDestination(stackPath, destPath string, ignorePatterns []string) error {
+	if addForce {
+		return nil
+	}
+
+	if !utils.FileExists(destPath) {
+		return nil
+	}
+
+	if !utils.IsDirectory(destPath) {
+		return fmt.Errorf("destination '%s' must be a directory", destPath)
+	}
+
+	entries, err := os.ReadDir(stackPath)
+	if err != nil {
+		return fmt.Errorf("failed to inspect stack contents: %w", err)
+	}
+
+	for _, entry := range entries {
+		if isIgnoredEntry(entry.Name(), ignorePatterns) {
+			continue
+		}
+
+		target := filepath.Join(destPath, entry.Name())
+		if utils.FileExists(target) {
+			return fmt.Errorf(utils.ErrDestAlreadyExists, target)
+		}
+	}
+
+	return nil
+}
+
+func isIgnoredEntry(name string, patterns []string) bool {
+	for _, pattern := range patterns {
+		if name == pattern {
+			return true
+		}
+		if matched, _ := filepath.Match(pattern, name); matched {
+			return true
+		}
+	}
+	return false
+}
+
+func stackDirectoryName(resourceName string) string {
+	baseName, _, _ := store.ParseResourceName(resourceName)
+	if baseName == "" {
+		return resourceName
+	}
+	return baseName
+}
+
 // addResourceFromRemote fetches and adds a resource from remote registry
-func addResourceFromRemote(resource string) error {
+func addResourceFromRemote(resource, destPath string) error {
 	// Check if resource is direct GitHub path (owner/repo format)
 	if store.IsRemotePath(resource) {
-		return addDirectRemoteResource(resource)
+		return addDirectRemoteResource(resource, destPath)
 	}
 
 	// Use custom registry if provided, otherwise use config
@@ -250,7 +365,7 @@ func addResourceFromRemote(resource string) error {
 	if err != nil {
 		return fmt.Errorf("failed to initialize remote store: %w", err)
 	}
-	
+
 	// Load remote metadata (boiler.meta.json from GitHub)
 	fmt.Println("🔄 Fetching remote registry...")
 	remoteStore, err := remoteStoreHandler.LoadFromURL()
@@ -258,16 +373,14 @@ func addResourceFromRemote(resource string) error {
 		return fmt.Errorf("failed to load remote registry: %w", err)
 	}
 
-	destPath := addTo
-	if destPath == "" {
-		destPath = "."
-	}
-
 	// Parse resource name
 	baseName, _, ext := store.ParseResourceName(resource)
 
 	// Try as snippet first
 	if ext != "" {
+		if addSpread {
+			return fmt.Errorf("--spread is only supported for stacks")
+		}
 		remotePath, exists := remoteStore.GetSnippet(resource)
 		if !exists {
 			matches := utils.FindMatchingResources(remoteStore.ListSnippets(), baseName, ext)
@@ -312,7 +425,8 @@ func addResourceFromRemote(resource string) error {
 		}
 
 		// Copy to destination
-		destFileName := baseName + ext
+		selectedBaseName, _, selectedExt := store.ParseResourceName(resource)
+		destFileName := selectedBaseName + selectedExt
 		finalDestPath := filepath.Join(destPath, destFileName)
 		if err := utils.CopyFileWithVariables(localDestPath, finalDestPath, nil); err != nil {
 			return fmt.Errorf("failed to copy snippet: %w", err)
@@ -344,7 +458,7 @@ func addResourceFromRemote(resource string) error {
 	}
 
 	// Download stack to local store first
-	localStackPath := filepath.Join(cfg.Paths.Stacks, baseName)
+	localStackPath := filepath.Join(cfg.Paths.Stacks, stackDirectoryName(resource))
 
 	// Fetch stack
 	if err := remote.FetchStack(remotePath, localStackPath); err != nil {
@@ -360,24 +474,19 @@ func addResourceFromRemote(resource string) error {
 		return err
 	}
 
-	// Copy to destination
-	if err := utils.CopyDir(localStackPath, destPath, utils.DefaultIgnorePatterns); err != nil {
-		return fmt.Errorf("failed to copy stack: %w", err)
+	finalDestPath, err := copyStackToDestination(localStackPath, resource, destPath)
+	if err != nil {
+		return err
 	}
 
-	fmt.Printf(utils.MsgStackAdded, resource, destPath)
-	logger.Info(fmt.Sprintf("Remote stack added: %s -> %s", resource, destPath))
+	fmt.Printf(utils.MsgStackAdded, resource, finalDestPath)
+	logger.Info(fmt.Sprintf("Remote stack added: %s -> %s", resource, finalDestPath))
 	return nil
 }
 
 // addDirectRemoteResource adds a resource directly from GitHub without registry lookup
 // Supports formats: owner/repo, owner/repo:path, owner/repo@branch:path
-func addDirectRemoteResource(remotePath string) error {
-	destPath := addTo
-	if destPath == "" {
-		destPath = "."
-	}
-
+func addDirectRemoteResource(remotePath, destPath string) error {
 	// Parse remote path
 	owner, repo, subPath := store.ParseRemotePath(remotePath)
 	if owner == "" || repo == "" {
@@ -390,6 +499,10 @@ func addDirectRemoteResource(remotePath string) error {
 	isSnippet := filepath.Ext(subPath) != ""
 
 	if isSnippet {
+		if addSpread {
+			return fmt.Errorf("--spread is only supported for stacks")
+		}
+
 		// Download snippet
 		localStorePath := filepath.Join(cfg.Paths.Snippets, filepath.Dir(subPath))
 		if err := os.MkdirAll(localStorePath, 0755); err != nil {
@@ -446,27 +559,26 @@ func addDirectRemoteResource(remotePath string) error {
 		return err
 	}
 
-	// Copy to destination
-	if err := utils.CopyDir(localStackPath, destPath, utils.DefaultIgnorePatterns); err != nil {
-		return fmt.Errorf("failed to copy stack: %w", err)
+	finalDestPath, err := copyStackToDestination(localStackPath, resourceName, destPath)
+	if err != nil {
+		return err
 	}
 
-	fmt.Printf(utils.MsgStackAdded, resourceName, destPath)
-	logger.Info(fmt.Sprintf("Direct remote stack added: %s -> %s", remotePath, destPath))
+	fmt.Printf(utils.MsgStackAdded, resourceName, finalDestPath)
+	logger.Info(fmt.Sprintf("Direct remote stack added: %s -> %s", remotePath, finalDestPath))
 	return nil
 }
 
-
 var (
 	addRemote   bool
-	addTo       string
+	addSpread   bool
 	addForce    bool
 	addRegistry string
 )
 
 func init() {
 	addCmd.Flags().BoolVarP(&addRemote, "remote", "r", false, "Fetch from remote registry")
-	addCmd.Flags().StringVarP(&addTo, "to", "t", ".", "Destination path")
+	addCmd.Flags().BoolVar(&addSpread, "spread", false, "Spread stack contents directly into destination")
 	addCmd.Flags().BoolVarP(&addForce, FlagForce, FlagForceShort, false, DescForce)
 	addCmd.Flags().StringVar(&addRegistry, "registry", "", "Custom registry URL (overrides config)")
 }
