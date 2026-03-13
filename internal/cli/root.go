@@ -1,6 +1,8 @@
 package cli
 
 import (
+	"sync"
+
 	"github.com/rishiyaduwanshi/boiler/internal/config"
 	"github.com/rishiyaduwanshi/boiler/internal/utils"
 	"github.com/spf13/cobra"
@@ -10,6 +12,8 @@ var (
 	cfg    *config.Config
 	logger *utils.Logger
 )
+
+var normalizeCommandDocsOnce sync.Once
 
 // rootCmd represents the base command
 var rootCmd = &cobra.Command{
@@ -51,12 +55,20 @@ func Execute(config *config.Config, log *utils.Logger) error {
 	cfg = config
 	logger = log
 	rootCmd.SilenceErrors = true
+	ensureCommandDocsNormalized()
 	return rootCmd.Execute()
 }
 
 // GetRootCommand returns the root command for documentation generation
 func GetRootCommand() *cobra.Command {
+	ensureCommandDocsNormalized()
 	return rootCmd
+}
+
+func ensureCommandDocsNormalized() {
+	normalizeCommandDocsOnce.Do(func() {
+		utils.NormalizeCommandTreeDocs(rootCmd)
+	})
 }
 
 func init() {
