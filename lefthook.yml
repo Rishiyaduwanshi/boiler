@@ -18,6 +18,8 @@ pre-commit:
 
 pre-push:
   commands:
+    hero-version-tag-sync:
+      run: node scripts/pre-push-hero-version.mjs
     test:
       run: go test ./internal/... -timeout=120s -v
 
