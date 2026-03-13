@@ -58,7 +58,7 @@ If a stack version already exists, you'll be prompted to overwrite.`,
 
   # Store with custom name
   bl store ./config.js --name dbConfig.js`,
-	Args:  cobra.MaximumNArgs(1),
+	Args: cobra.MaximumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		path := "."
 		if len(args) > 0 {

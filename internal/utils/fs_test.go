@@ -222,4 +222,3 @@ func TestCopyFileWithVariables_NilReplacements(t *testing.T) {
 		t.Errorf("content changed unexpectedly: %q", got)
 	}
 }
-

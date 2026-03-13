@@ -34,7 +34,7 @@ func TestParseResourceNameWrapper(t *testing.T) {
 		want  string
 	}{
 		{"logger@1.js", "logger@1.js"},
-		{"logger.js", "logger.js"},   // no version → name+ext
+		{"logger.js", "logger.js"}, // no version → name+ext
 		{"express@2", "express@2"},
 		{"express", "express"},
 	}

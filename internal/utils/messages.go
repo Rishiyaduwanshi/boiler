@@ -19,17 +19,17 @@ const (
 	MsgPromptConfirmCleanAll    = "⚠️  This will remove ALL snippets and stacks!"
 
 	// Error messages
-	ErrPathNotExist       = "path '%s' does not exist"
-	ErrResourceNotFound   = "%s '%s' not found"
-	ErrSnippetMustBeFile  = "snippet must be a file, not a directory"
-	ErrStackMustBeDir     = "stack must be a directory, not a file"
-	ErrSnippetNeedExt     = "snippet file must have an extension"
-	ErrFileAlreadyExists  = "file '%s' already exists. Use --force to overwrite"
-	ErrDestAlreadyExists  = "destination '%s' already exists. Use --force to overwrite"
+	ErrPathNotExist      = "path '%s' does not exist"
+	ErrResourceNotFound  = "%s '%s' not found"
+	ErrSnippetMustBeFile = "snippet must be a file, not a directory"
+	ErrStackMustBeDir    = "stack must be a directory, not a file"
+	ErrSnippetNeedExt    = "snippet file must have an extension"
+	ErrFileAlreadyExists = "file '%s' already exists. Use --force to overwrite"
+	ErrDestAlreadyExists = "destination '%s' already exists. Use --force to overwrite"
 
 	// Info messages
-	MsgCancelled       = "Cancelled"
-	MsgNoSnippets      = "No snippets to clean"
-	MsgNoStacks        = "No stacks to clean"
+	MsgCancelled        = "Cancelled"
+	MsgNoSnippets       = "No snippets to clean"
+	MsgNoStacks         = "No stacks to clean"
 	MsgNoResourcesFound = "No resources found in store"
 )

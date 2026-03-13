@@ -29,7 +29,7 @@ Shows:
 
   # Without version (shows all versions)
   bl info logger`,
-	Args:  cobra.ExactArgs(1),
+	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		resource := args[0]
 		logger.Info(fmt.Sprintf("Getting info for: %s", resource))

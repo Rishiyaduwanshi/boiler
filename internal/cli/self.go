@@ -429,4 +429,3 @@ func init() {
 	selfCmd.AddCommand(selfUninstallCmd)
 	selfCmd.AddCommand(selfUpdateCmd)
 }
-

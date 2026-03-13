@@ -29,10 +29,10 @@ type SnippetMetadata struct {
 // PromptCommonMetadata prompts user for common metadata fields
 func PromptCommonMetadata(defaultName string, skipPrompts bool) (CommonMetadata, error) {
 	var meta CommonMetadata
-	
+
 	// Get author from git
 	author := getGitAuthor()
-	
+
 	if skipPrompts {
 		meta = CommonMetadata{
 			Name:        defaultName,
@@ -49,7 +49,7 @@ func PromptCommonMetadata(defaultName string, skipPrompts bool) (CommonMetadata,
 		meta.Version = PromptString("Version", "1")
 		meta.CreatedAt = time.Now()
 	}
-	
+
 	return meta, nil
 }
 
@@ -76,7 +76,7 @@ func ParseSnippetMetadata(filePath string) (*SnippetMetadata, error) {
 	}
 
 	scanner := bufio.NewScanner(file)
-	
+
 	// Regex patterns for metadata
 	authorRe := regexp.MustCompile(`__author\s+(.+)`)
 	descRe := regexp.MustCompile(`__desc\s+(.+)`)
@@ -86,7 +86,7 @@ func ParseSnippetMetadata(filePath string) (*SnippetMetadata, error) {
 
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
-		
+
 		// Skip empty lines
 		if len(line) == 0 {
 			continue
@@ -125,8 +125,6 @@ func ValidateSnippetMetadata(meta *SnippetMetadata) error {
 	// Version auto-increments based on existing versions in store
 	return nil
 }
-
-
 
 // GenerateSnippetTemplate creates a snippet file with metadata comments
 func GenerateSnippetTemplate(filePath string, meta CommonMetadata, prefix, suffix string) error {

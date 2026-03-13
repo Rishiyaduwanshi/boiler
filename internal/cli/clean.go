@@ -83,6 +83,19 @@ var (
 	cleanStacks   bool
 )
 
+const (
+	cleanAllFlag           = "all"
+	cleanAllFlagShort      = "a"
+	cleanSnippetsFlag      = "snippets"
+	cleanSnippetsFlagShort = "n"
+	cleanStacksFlag        = "stacks"
+	cleanStacksFlagShort   = "k"
+
+	cleanAllDesc      = "Clean all resources"
+	cleanSnippetsDesc = "Snippets only"
+	cleanStacksDesc   = "Stacks only"
+)
+
 func cleanResource(resource string) error {
 	st, err := utils.LoadStore(cfg.Paths.Store)
 	if err != nil {
@@ -290,7 +303,7 @@ func interactiveClean() error {
 
 func init() {
 	rootCmd.AddCommand(cleanCmd)
-	cleanCmd.Flags().BoolVarP(&cleanAll, FlagAll, FlagAllShort, false, DescCleanAll)
-	cleanCmd.Flags().BoolVarP(&cleanSnippets, FlagSnippets, FlagSnippetsShort, false, DescSnippetsOnly)
-	cleanCmd.Flags().BoolVarP(&cleanStacks, FlagStacks, FlagStacksShort, false, DescStacksOnly)
+	cleanCmd.Flags().BoolVarP(&cleanAll, cleanAllFlag, cleanAllFlagShort, false, cleanAllDesc)
+	cleanCmd.Flags().BoolVarP(&cleanSnippets, cleanSnippetsFlag, cleanSnippetsFlagShort, false, cleanSnippetsDesc)
+	cleanCmd.Flags().BoolVarP(&cleanStacks, cleanStacksFlag, cleanStacksFlagShort, false, cleanStacksDesc)
 }

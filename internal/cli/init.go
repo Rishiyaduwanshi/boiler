@@ -56,11 +56,10 @@ Similar to 'npm init', this helps you prepare projects for storing.`,
 	},
 }
 
-
 func initBoilerConfig() error {
 	// Determine what to initialize
 	var isSnippet bool
-	
+
 	if initAsSnippet {
 		// Explicitly requested snippet with -n flag
 		isSnippet = true
@@ -77,20 +76,20 @@ func initBoilerConfig() error {
 			return fmt.Errorf("failed to read input: %w", err)
 		}
 		choice = strings.ToLower(strings.TrimSpace(choice))
-		
+
 		// Validate choice
 		if choice != "k" && choice != "n" && choice != "stack" && choice != "snippet" {
 			return fmt.Errorf("invalid choice '%s'. Please enter 'k' for stack or 'n' for snippet", choice)
 		}
-		
+
 		isSnippet = (choice == "n" || choice == "snippet")
 	}
-	
+
 	if isSnippet {
 		// For snippet, just create file (will prompt for name)
 		return createSnippetConfig("")
 	}
-	
+
 	// For stack, check if config exists
 	stackConfigPath := "./boiler.stack.json"
 	if utils.FileExists(stackConfigPath) {
@@ -106,13 +105,13 @@ func createStackConfig(path string) error {
 		return fmt.Errorf("failed to get current directory: %w", err)
 	}
 	defaultName := filepath.Base(cwd)
-	
+
 	// Prompt for common metadata
 	commonMeta, err := utils.PromptCommonMetadata(defaultName, initYes)
 	if err != nil {
 		return err
 	}
-	
+
 	config := models.StackConfig{
 		ID:          commonMeta.Name,
 		Version:     commonMeta.Version,
@@ -136,7 +135,7 @@ func createStackConfig(path string) error {
 	fmt.Println("\nNext steps:")
 	fmt.Println("  1. Edit boiler.stack.json to customize settings")
 	fmt.Println("  2. Run 'bl store' to save this stack")
-	
+
 	return nil
 }
 
@@ -148,14 +147,14 @@ func createSnippetConfig(path string) error {
 	} else {
 		fileName = utils.PromptString("Filename (e.g., handler.js, Dockerfile, .gitignore)", "snippet.bl")
 	}
-	
+
 	fileName = strings.TrimSpace(fileName)
-	
+
 	// Extract extension from filename
 	ext := filepath.Ext(fileName)
 	var artifact string
 	var baseName string
-	
+
 	if ext != "" {
 		// Has extension: handler.js → artifact="js", base="handler"
 		artifact = strings.TrimPrefix(ext, ".")
@@ -170,7 +169,7 @@ func createSnippetConfig(path string) error {
 		}
 		baseName = fileName
 	}
-	
+
 	// Get comment style from config, fallback to default if not found
 	artifactStyle := cfg.Artifacts[artifact]
 	if artifactStyle == "" {
@@ -193,17 +192,15 @@ func createSnippetConfig(path string) error {
 	if err := utils.GenerateSnippetTemplate(fileName, commonMeta, commentPrefix, commentSuffix); err != nil {
 		return err
 	}
-	
+
 	fmt.Printf("✓ Created %s\n", fileName)
 	fmt.Println("\nNext steps:")
 	fmt.Println("  1. Edit the file and add your code")
 	fmt.Println("  2. Add template variables: // __var bl__VAR_NAME = DefaultValue")
 	fmt.Println("  3. Run 'bl store " + fileName + "' to save the snippet")
-	
+
 	return nil
 }
-
-
 
 var (
 	initYes       bool
