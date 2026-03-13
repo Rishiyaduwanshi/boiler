@@ -12,15 +12,17 @@ import (
 )
 
 var aliasNameRe = regexp.MustCompile(`^[a-z][a-z0-9_-]*$`)
+const maxAliasExpansionDepth = 8
 
 var aliasCmd = &cobra.Command{
-	Use:   "alias [name|name=command]",
+	Use:   "alias [name|name=command [args...]]",
 	Short: "Manage reusable command aliases",
 	Long: `Manage command aliases stored in boiler.conf.json.
 
 Usage patterns:
   bl alias              List all aliases
-  bl alias name=cmd     Set or update an alias
+	 bl alias name=cmd     Set or update an alias
+	 bl alias name='cmd --flag value'  Set alias with default args
   bl alias name         Get one alias value
   bl unalias name       Remove an alias (use 'unalias' command)
 
@@ -30,6 +32,7 @@ Alias names are normalized internally:
 
 Examples:
   bl alias ll=ls
+  bl alias sexp='search express -r --registry https://github.com/rishiyaduwanshi/boiler'
   bl alias s=search
   bl alias ll`,
 	Args: cobra.MaximumNArgs(1),
@@ -92,11 +95,31 @@ func normalizeAliasName(raw string) (string, error) {
 }
 
 func normalizeAliasTarget(raw string) (string, error) {
-	target := strings.ToLower(strings.TrimSpace(raw))
-	if !aliasNameRe.MatchString(target) {
-		return "", fmt.Errorf("invalid alias target %q: expected a command token", raw)
+	target := strings.TrimSpace(raw)
+	if target == "" {
+		return "", fmt.Errorf("invalid alias target %q: expected command", raw)
 	}
+
+	target = strings.TrimSpace(strings.TrimPrefix(strings.TrimSpace(target), "bl "))
+	if target == "" {
+		return "", fmt.Errorf("invalid alias target %q: expected command", raw)
+	}
+
 	return target, nil
+}
+
+func parseAliasTargetTokens(raw string) ([]string, error) {
+	target, err := normalizeAliasTarget(raw)
+	if err != nil {
+		return nil, err
+	}
+
+	tokens := strings.Fields(target)
+	if len(tokens) == 0 {
+		return nil, fmt.Errorf("invalid alias target %q: expected command", raw)
+	}
+
+	return tokens, nil
 }
 
 func setAliasFromAssignment(assignment string) error {
@@ -113,10 +136,11 @@ func setAliasFromAssignment(assignment string) error {
 	if err != nil {
 		return err
 	}
-
-	if isBuiltInCommandToken(name) {
-		return fmt.Errorf("alias name %q conflicts with an existing command", name)
+	targetTokens, err := parseAliasTargetTokens(target)
+	if err != nil {
+		return err
 	}
+	target = strings.Join(targetTokens, " ")
 
 	ensureConfigAliases()
 	cfg.Aliases[name] = target
@@ -167,26 +191,6 @@ func listAliases() error {
 	return nil
 }
 
-func isBuiltInCommandToken(token string) bool {
-	normalizedToken := strings.ToLower(strings.TrimSpace(token))
-	if normalizedToken == "" {
-		return false
-	}
-
-	for _, command := range rootCmd.Commands() {
-		if strings.EqualFold(command.Name(), normalizedToken) {
-			return true
-		}
-		for _, commandAlias := range command.Aliases {
-			if strings.EqualFold(commandAlias, normalizedToken) {
-				return true
-			}
-		}
-	}
-
-	return false
-}
-
 func expandFirstCommandAlias(args []string) []string {
 	if len(args) == 0 || cfg == nil {
 		return args
@@ -197,25 +201,34 @@ func expandFirstCommandAlias(args []string) []string {
 		return args
 	}
 
-	firstToken := strings.TrimSpace(args[0])
-	if firstToken == "" || strings.HasPrefix(firstToken, "-") {
-		return args
-	}
-
-	aliasName, err := normalizeAliasName(firstToken)
-	if err != nil {
-		return args
-	}
-
-	target, ok := cfg.Aliases[aliasName]
-	if !ok {
-		return args
-	}
-
 	expanded := append([]string(nil), args...)
-	expanded[0] = target
-	if logger != nil {
-		logger.Info(fmt.Sprintf("Alias expanded: %s -> %s", firstToken, target))
+
+	for depth := 0; depth < maxAliasExpansionDepth; depth++ {
+		firstToken := strings.TrimSpace(expanded[0])
+		if firstToken == "" || strings.HasPrefix(firstToken, "-") {
+			return expanded
+		}
+
+		aliasName, err := normalizeAliasName(firstToken)
+		if err != nil {
+			return expanded
+		}
+
+		target, ok := cfg.Aliases[aliasName]
+		if !ok {
+			return expanded
+		}
+
+		targetTokens, err := parseAliasTargetTokens(target)
+		if err != nil {
+			return expanded
+		}
+
+		expanded = append(append([]string{}, targetTokens...), expanded[1:]...)
+		if logger != nil {
+			logger.Info(fmt.Sprintf("Alias expanded: %s -> %s", firstToken, strings.Join(targetTokens, " ")))
+		}
 	}
+
 	return expanded
 }

@@ -12,6 +12,7 @@ Manage command aliases stored in boiler.conf.json.
 Usage patterns:
 - bl alias              List all aliases
 - bl alias name=cmd     Set or update an alias
+- bl alias name='cmd --flag value'  Set alias with default args
 - bl alias name         Get one alias value
 - bl unalias name       Remove an alias (use 'unalias' command)
 
@@ -21,11 +22,12 @@ Alias names are normalized internally:
 
 Examples:
 - bl alias ll=ls
+- bl alias sexp='search express -r --registry `https://github.com/rishiyaduwanshi/boiler'`
 - bl alias s=search
 - bl alias ll
 
 ```
-bl alias [name|name=command] [flags]
+bl alias [name|name=command [args...]] [flags]
 ```
 
 ### Options
