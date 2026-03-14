@@ -48,9 +48,9 @@ bl conf [flags]
 ### Options
 
 ```
-  -e, --edit string[="__default__"]   Edit configuration (optional: editor name)
-  -h, --help                          help for conf
-  -r, --reset                         Reset configuration to defaults
-      --set-registry string           Set custom registry URL
+  -e, --edit string           Edit configuration (optional: editor name)
+  -h, --help                  help for conf
+  -r, --reset                 Reset configuration to defaults
+      --set-registry string   Set custom registry URL
 ```
 

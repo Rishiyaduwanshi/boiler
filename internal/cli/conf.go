@@ -74,7 +74,7 @@ var (
 
 func init() {
 	confCmd.Flags().StringVarP(&confEdit, "edit", "e", "", "Edit configuration (optional: editor name)")
-	confCmd.Flags().Lookup("edit").NoOptDefVal = "__default__"
+	// confCmd.Flags().Lookup("edit").NoOptDefVal = "__default__"
 	confCmd.Flags().BoolVarP(&confReset, "reset", "r", false, "Reset configuration to defaults")
 	confCmd.Flags().StringVar(&confSetRegistry, "set-registry", "", "Set custom registry URL")
 }
