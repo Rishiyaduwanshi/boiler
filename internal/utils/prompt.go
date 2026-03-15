@@ -2,7 +2,9 @@ package utils
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
+	"io"
 	"os"
 	"strings"
 )
@@ -11,7 +13,7 @@ func Prompt(message string) (string, error) {
 	fmt.Print(message)
 	reader := bufio.NewReader(os.Stdin)
 	input, err := reader.ReadString('\n')
-	if err != nil {
+	if err != nil && !errors.Is(err, io.EOF) {
 		return "", err
 	}
 	return strings.TrimSpace(input), nil

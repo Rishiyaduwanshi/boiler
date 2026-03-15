@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -28,12 +29,16 @@ func FetchSnippet(remotePath string, destPath string) error {
 
 	var fileURL string
 	switch {
-	case strings.HasPrefix(remotePath, "http://") || strings.HasPrefix(remotePath, "https://"):
-		// Direct URL - generic/registry server passes full URL in meta.json
-		fileURL = remotePath
+	case utils.IsURL(remotePath):
+		// Direct URL - normalize known hosted file pages to raw URLs.
+		fileURL = normalizeDirectFileURL(remotePath)
 	case owner != "" && repo != "":
-		// owner/repo:path - use provider (defaults to GitHub for short format)
-		p := Detect(remotePath)
+		if filePath == "" || filePath == "." {
+			return fmt.Errorf("invalid snippet path: %s", remotePath)
+		}
+
+		// owner/repo:path and provider-prefixed formats (github:, gitlab:, bitbucket:)
+		p := providerForRemotePath(remotePath)
 		fileURL = p.RawFileURL(owner, repo, "main", filePath)
 	case repo != "" && filePath != "":
 		// domain.com:path - build HTTPS URL
@@ -49,7 +54,7 @@ func FetchSnippet(remotePath string, destPath string) error {
 		return fmt.Errorf("failed to download snippet: %w", err)
 	}
 
-	if err := os.MkdirAll(filepath.Dir(destPath), 0755); err != nil {
+	if err := utils.EnsureDir(filepath.Dir(destPath)); err != nil {
 		return fmt.Errorf("failed to create destination directory: %w", err)
 	}
 
@@ -73,17 +78,31 @@ func FetchSnippet(remotePath string, destPath string) error {
 func FetchStack(remotePath string, destPath string) error {
 	// Detect provider: full URLs carry host info; short "owner/repo" defaults to GitHub.
 	var p Provider
-	if strings.HasPrefix(remotePath, "http://") || strings.HasPrefix(remotePath, "https://") {
+	if utils.IsURL(remotePath) {
 		p = Detect(remotePath)
 	} else {
-		p = githubProvider{} // backward-compatible default
+		p = providerForRemotePath(remotePath)
 	}
 
 	owner, repo, subPath := store.ParseRemotePath(remotePath)
+	ref := "main"
 
 	// For full URLs, extract owner/repo from the URL itself
-	if strings.HasPrefix(remotePath, "http://") || strings.HasPrefix(remotePath, "https://") {
-		owner, repo = parseOwnerRepo(remotePath)
+	if utils.IsURL(remotePath) {
+		parsedOwner, parsedRepo := parseOwnerRepo(remotePath)
+		if parsedOwner != "" && parsedRepo != "" {
+			owner, repo = parsedOwner, parsedRepo
+		}
+
+		parsedRef, parsedSubPath, ok := parseHostedStackRefAndSubPath(remotePath)
+		if ok {
+			ref = parsedRef
+			subPath = parsedSubPath
+		}
+	}
+
+	if subPath == "" {
+		subPath = "."
 	}
 	repo = strings.TrimSuffix(repo, ".git")
 
@@ -95,7 +114,7 @@ func FetchStack(remotePath string, destPath string) error {
 		// Direct archive URL - user passed something like:
 		//   https://anysite.com/mystack.zip
 		//   https://anysite.com/mystack.tar.gz
-		if !strings.HasPrefix(remotePath, "http://") && !strings.HasPrefix(remotePath, "https://") {
+		if !utils.IsURL(remotePath) {
 			return fmt.Errorf("invalid remote path: %s (expected owner/repo or a full archive URL)", remotePath)
 		}
 		archiveURL = remotePath
@@ -103,7 +122,7 @@ func FetchStack(remotePath string, destPath string) error {
 		archiveExt = archiveFormatFromURL(archiveURL)
 		fmt.Printf("📥 Downloading stack...\n")
 	} else {
-		archiveURL = p.ArchiveURL(owner, repo, "main", subPath)
+		archiveURL = p.ArchiveURL(owner, repo, ref, subPath)
 		archiveExt = p.ArchiveFormat()
 		fmt.Printf("📥 Downloading stack from %s (%s/%s)...\n", p.Name(), owner, repo)
 	}
@@ -169,39 +188,145 @@ func FetchStack(remotePath string, destPath string) error {
 	return nil
 }
 
-// Helper functions
-
-// downloadFile downloads a file from URL and returns its content
-func downloadFile(url string) ([]byte, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create request: %w", err)
+func providerForRemotePath(remotePath string) Provider {
+	lower := strings.ToLower(strings.TrimSpace(remotePath))
+	if utils.IsURL(lower) {
+		return Detect(remotePath)
 	}
 
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("HTTP request failed: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("HTTP %d: %s", resp.StatusCode, resp.Status)
+	prefix := lower
+	if idx := strings.Index(prefix, ":"); idx >= 0 {
+		prefix = prefix[:idx]
 	}
 
-	data, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read response: %w", err)
+	switch prefix {
+	case "github", "github.com", "www.github.com":
+		return githubProvider{}
+	case "gitlab", "gitlab.com", "www.gitlab.com":
+		return gitlabProvider{host: "gitlab.com"}
+	case "bitbucket", "bitbucket.org", "www.bitbucket.org":
+		return bitbucketProvider{}
+	default:
+		// owner/repo and owner/repo:path default to GitHub.
+		return githubProvider{}
 	}
-
-	return data, nil
 }
 
-// downloadToFile downloads a file from URL and saves to path
-func downloadToFile(url, path string) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+func normalizeDirectFileURL(rawURL string) string {
+	parsed, err := url.Parse(rawURL)
+	if err != nil {
+		return rawURL
+	}
+
+	host := strings.ToLower(parsed.Host)
+	segments := strings.Split(strings.Trim(parsed.Path, "/"), "/")
+
+	switch host {
+	case "github.com", "www.github.com":
+		if len(segments) >= 5 && segments[2] == "blob" {
+			owner := segments[0]
+			repo := segments[1]
+			ref := segments[3]
+			filePath := strings.Join(segments[4:], "/")
+			if owner != "" && repo != "" && ref != "" && filePath != "" {
+				return fmt.Sprintf("https://raw.githubusercontent.com/%s/%s/%s/%s", owner, repo, ref, filePath)
+			}
+		}
+
+		// Accept malformed but common input: https://github.com/owner/repo:path/to/file
+		if len(segments) >= 2 {
+			repoWithPath := strings.SplitN(segments[1], ":", 2)
+			if len(repoWithPath) == 2 {
+				owner := segments[0]
+				repo := repoWithPath[0]
+				fileParts := []string{repoWithPath[1]}
+				if len(segments) > 2 {
+					fileParts = append(fileParts, segments[2:]...)
+				}
+				filePath := strings.Join(fileParts, "/")
+				if owner != "" && repo != "" && filePath != "" {
+					return fmt.Sprintf("https://raw.githubusercontent.com/%s/%s/main/%s", owner, repo, filePath)
+				}
+			}
+		}
+
+	case "gitlab.com", "www.gitlab.com":
+		if len(segments) >= 6 && segments[2] == "-" && segments[3] == "blob" {
+			owner := segments[0]
+			repo := segments[1]
+			ref := segments[4]
+			filePath := strings.Join(segments[5:], "/")
+			if owner != "" && repo != "" && ref != "" && filePath != "" {
+				return fmt.Sprintf("https://gitlab.com/%s/%s/-/raw/%s/%s", owner, repo, ref, filePath)
+			}
+		}
+
+	case "bitbucket.org", "www.bitbucket.org":
+		if len(segments) >= 5 && segments[2] == "src" {
+			owner := segments[0]
+			repo := segments[1]
+			ref := segments[3]
+			filePath := strings.Join(segments[4:], "/")
+			if owner != "" && repo != "" && ref != "" && filePath != "" {
+				return fmt.Sprintf("https://bitbucket.org/%s/%s/raw/%s/%s", owner, repo, ref, filePath)
+			}
+		}
+	}
+
+	return rawURL
+}
+
+func parseHostedStackRefAndSubPath(rawURL string) (ref, subPath string, ok bool) {
+	parsed, err := url.Parse(rawURL)
+	if err != nil {
+		return "", "", false
+	}
+
+	host := strings.ToLower(parsed.Host)
+	segments := strings.Split(strings.Trim(parsed.Path, "/"), "/")
+
+	switch host {
+	case "github.com", "www.github.com":
+		if len(segments) >= 4 && (segments[2] == "tree" || segments[2] == "blob") {
+			ref = segments[3]
+			if len(segments) > 4 {
+				subPath = strings.Join(segments[4:], "/")
+			} else {
+				subPath = "."
+			}
+			return ref, subPath, true
+		}
+
+	case "gitlab.com", "www.gitlab.com":
+		if len(segments) >= 5 && segments[2] == "-" && (segments[3] == "tree" || segments[3] == "blob") {
+			ref = segments[4]
+			if len(segments) > 5 {
+				subPath = strings.Join(segments[5:], "/")
+			} else {
+				subPath = "."
+			}
+			return ref, subPath, true
+		}
+
+	case "bitbucket.org", "www.bitbucket.org":
+		if len(segments) >= 4 && segments[2] == "src" {
+			ref = segments[3]
+			if len(segments) > 4 {
+				subPath = strings.Join(segments[4:], "/")
+			} else {
+				subPath = "."
+			}
+			return ref, subPath, true
+		}
+	}
+
+	return "", "", false
+}
+
+// Helper functions
+
+func withHTTPGet(url string, timeout time.Duration, consume func(io.Reader) error) error {
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
@@ -219,14 +344,45 @@ func downloadToFile(url, path string) error {
 		return fmt.Errorf("HTTP %d: %s", resp.StatusCode, resp.Status)
 	}
 
+	if err := consume(resp.Body); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// downloadFile downloads a file from URL and returns its content
+func downloadFile(url string) ([]byte, error) {
+	var data []byte
+	err := withHTTPGet(url, 30*time.Second, func(r io.Reader) error {
+		body, err := io.ReadAll(r)
+		if err != nil {
+			return fmt.Errorf("failed to read response: %w", err)
+		}
+		data = body
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return data, nil
+}
+
+// downloadToFile downloads a file from URL and saves to path
+func downloadToFile(url, path string) error {
 	out, err := os.Create(path)
 	if err != nil {
 		return fmt.Errorf("failed to create file: %w", err)
 	}
 	defer out.Close()
 
-	_, err = io.Copy(out, resp.Body)
-	return err
+	return withHTTPGet(url, 60*time.Second, func(r io.Reader) error {
+		if _, err := io.Copy(out, r); err != nil {
+			return fmt.Errorf("failed to write response to file: %w", err)
+		}
+		return nil
+	})
 }
 
 // archiveFormatFromURL returns "tar.gz" or "zip" based on the URL path.

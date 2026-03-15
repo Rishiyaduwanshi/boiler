@@ -44,6 +44,8 @@ Remote Resources:
 - Provider is auto-detected from the URL (GitHub, GitLab, Bitbucket, generic).
 - Resource is cached locally; subsequent uses do not need -r.
 - For one-shot fetch without saving to local store, use 'bl use' instead.
+- Use --stack/-k or --snippet/-n to override stack/snippet auto-detection.
+- For ambiguous remote inputs, stack detection is preferred by default.
 
 Supported remote formats:
 - Registry: bl add express@1 -r (registry set via: bl conf --set-registry `<url>`)
@@ -112,6 +114,12 @@ bl add [resource] [destination] [flags]
   # Remote: direct archive URL
   bl add https://mysite.com/stack.zip -r
 
+  # Remote: force snippet mode when auto-detection is unclear
+  bl add owner/repo:path/to/template -r --snippet
+
+  # Remote: force stack mode
+  bl add https://example.com/custom-source -r --stack
+
   # Remote: one-time registry override
   bl add express@1 -r --registry https://github.com/myorg/boiler
 
@@ -129,6 +137,8 @@ bl add [resource] [destination] [flags]
   -h, --help              help for add
       --registry string   Custom registry URL (overrides config)
   -r, --remote            Fetch from remote registry
+  -n, --snippet           Treat resource as snippet (overrides auto-detection)
       --spread            Spread stack contents directly into destination
+  -k, --stack             Treat resource as stack (overrides auto-detection)
 ```
 

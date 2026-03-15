@@ -11,10 +11,10 @@ import (
 
 func TestParseResourceName(t *testing.T) {
 	tests := []struct {
-		input     string
-		wantName  string
-		wantVer   string
-		wantExt   string
+		input    string
+		wantName string
+		wantVer  string
+		wantExt  string
 	}{
 		// snippet with version and extension
 		{"logger@1.js", "logger", "1", ".js"},
@@ -51,8 +51,8 @@ func TestParseResourceName(t *testing.T) {
 
 func TestIsStackIsSnippet(t *testing.T) {
 	tests := []struct {
-		input    string
-		isStack  bool
+		input     string
+		isStack   bool
 		isSnippet bool
 	}{
 		{"express-api@1", true, false},
@@ -82,6 +82,10 @@ func TestIsRemotePath(t *testing.T) {
 	}{
 		{"owner/repo", true},
 		{"owner/repo:path/file.js", true},
+		{"github:owner/repo/path/file.js", true},
+		{"github.com:owner/repo/path/file.js", true},
+		{"gitlab:owner/repo/path/file.js", true},
+		{"bitbucket:owner/repo/path/file.js", true},
 		{"https://github.com/owner/repo", true},
 		{"http://example.com/file.js", true},
 		{"iamabhinav.dev:snippets/validator.js", true},
@@ -112,6 +116,10 @@ func TestParseRemotePath(t *testing.T) {
 	}{
 		{"owner/repo", "owner", "repo", "."},
 		{"owner/repo:path/file.js", "owner", "repo", "path/file.js"},
+		{"github:rich-harris/degit/src/utils.js", "rich-harris", "degit", "src/utils.js"},
+		{"github.com:rich-harris/degit/src", "rich-harris", "degit", "src"},
+		{"gitlab:my-org/api/templates/app.go", "my-org", "api", "templates/app.go"},
+		{"bitbucket.org:team/repo/src/main.go", "team", "repo", "src/main.go"},
 		{"https://example.com/file.js", "", "https://example.com/file.js", ""},
 		{"iamabhinav.dev:snippets/file.js", "", "iamabhinav.dev", "snippets/file.js"},
 	}

@@ -2,8 +2,11 @@ package cli
 
 import (
 	"fmt"
+	"net/url"
 	"os"
+	"path"
 	"path/filepath"
+	"strings"
 
 	"github.com/rishiyaduwanshi/boiler/internal/remote"
 	"github.com/rishiyaduwanshi/boiler/internal/store"
@@ -51,6 +54,8 @@ Remote Resources:
 - Provider is auto-detected from the URL (GitHub, GitLab, Bitbucket, generic).
 - Resource is cached locally; subsequent uses do not need -r.
 - For one-shot fetch without saving to local store, use 'bl use' instead.
+- Use --stack/-k or --snippet/-n to override stack/snippet auto-detection.
+- For ambiguous remote inputs, stack detection is preferred by default.
 
 Supported remote formats:
 - Registry: bl add express@1 -r (registry set via: bl conf --set-registry <url>)
@@ -111,6 +116,12 @@ Supported remote formats:
   # Remote: direct archive URL
   bl add https://mysite.com/stack.zip -r
 
+	# Remote: force snippet mode when auto-detection is unclear
+	bl add owner/repo:path/to/template -r --snippet
+
+	# Remote: force stack mode
+	bl add https://example.com/custom-source -r --stack
+
   # Remote: one-time registry override
   bl add express@1 -r --registry https://github.com/myorg/boiler
 
@@ -149,9 +160,23 @@ Supported remote formats:
 const addDefaultDestination = "boiler"
 
 const (
-	addForceFlag      = "force"
-	addForceFlagShort = "f"
-	addForceDesc      = "Force operation without confirmation"
+	addForceFlag        = "force"
+	addForceFlagShort   = "f"
+	addForceDesc        = "Force operation without confirmation"
+	addStackFlag        = "stack"
+	addStackFlagShort   = "k"
+	addStackDesc        = "Treat resource as stack (overrides auto-detection)"
+	addSnippetFlag      = "snippet"
+	addSnippetFlagShort = "n"
+	addSnippetDesc      = "Treat resource as snippet (overrides auto-detection)"
+)
+
+type addResourceType int
+
+const (
+	addResourceTypeAuto addResourceType = iota
+	addResourceTypeStack
+	addResourceTypeSnippet
 )
 
 func resolveAddDestination(positionalDest string) string {
@@ -161,9 +186,79 @@ func resolveAddDestination(positionalDest string) string {
 	return filepath.Clean(positionalDest)
 }
 
+func resolveAddResourceType() (addResourceType, error) {
+	if addAsStack && addAsSnippet {
+		return addResourceTypeAuto, fmt.Errorf("--%s and --%s cannot be used together", addStackFlag, addSnippetFlag)
+	}
+
+	if addAsStack {
+		return addResourceTypeStack, nil
+	}
+
+	if addAsSnippet {
+		return addResourceTypeSnippet, nil
+	}
+
+	return addResourceTypeAuto, nil
+}
+
+func resolveSnippetResource(st *store.Store, resource string) (string, error) {
+	baseName, version, ext := store.ParseResourceName(resource)
+
+	if version != "" && ext != "" {
+		return baseName + "@" + version + ext, nil
+	}
+
+	if _, ok := st.GetSnippet(resource); ok {
+		return resource, nil
+	}
+
+	matches := utils.FindMatchingResources(st.ListSnippets(), baseName, ext)
+	if len(matches) == 0 {
+		return "", fmt.Errorf(utils.ErrResourceNotFound, "snippet", resource)
+	}
+
+	lookupName := baseName
+	if ext != "" {
+		lookupName = baseName + ext
+	}
+
+	selected, err := utils.PickFromList(lookupName, matches)
+	if err != nil {
+		return "", err
+	}
+
+	return selected, nil
+}
+
+func resolveStackResource(st *store.Store, resource string) (string, error) {
+	baseName, _, _ := store.ParseResourceName(resource)
+
+	if _, ok := st.GetStack(resource); ok {
+		return resource, nil
+	}
+
+	matches := utils.FindMatchingResources(st.ListStacks(), baseName, "")
+	if len(matches) == 0 {
+		return "", fmt.Errorf(utils.ErrResourceNotFound, "stack", resource)
+	}
+
+	selected, err := utils.PickFromList(baseName, matches)
+	if err != nil {
+		return "", err
+	}
+
+	return selected, nil
+}
+
 func addResource(resource, destPath string) error {
+	resourceType, err := resolveAddResourceType()
+	if err != nil {
+		return err
+	}
+
 	if addRemote {
-		return addResourceFromRemote(resource, destPath)
+		return addResourceFromRemote(resource, destPath, resourceType)
 	}
 
 	st, err := utils.LoadStore(cfg.Paths.Store)
@@ -171,52 +266,56 @@ func addResource(resource, destPath string) error {
 		return err
 	}
 
-	baseName, version, ext := store.ParseResourceName(resource)
-
-	// Snippet (has file extension)
-	if ext != "" {
+	if resourceType == addResourceTypeSnippet {
 		if addSpread {
 			return fmt.Errorf("--spread is only supported for stacks")
 		}
-		if version != "" {
-			return addSnippet(st, baseName+"@"+version+ext, destPath)
-		}
-		matches := utils.FindMatchingResources(st.ListSnippets(), baseName, ext)
-		if len(matches) == 0 {
-			return fmt.Errorf(utils.ErrResourceNotFound, "snippet", resource)
-		}
-		selected, err := utils.PickFromList(baseName+ext, matches)
+
+		selected, err := resolveSnippetResource(st, resource)
 		if err != nil {
 			return err
 		}
 		return addSnippet(st, selected, destPath)
 	}
 
-	// No extension - try as stack first
-	if _, ok := st.GetStack(resource); ok {
-		return addStack(st, resource, destPath)
-	}
-
-	// Try stack lookup by base name
-	stackMatches := utils.FindMatchingResources(st.ListStacks(), baseName, "")
-	if len(stackMatches) > 0 {
-		selected, err := utils.PickFromList(baseName, stackMatches)
+	if resourceType == addResourceTypeStack {
+		selected, err := resolveStackResource(st, resource)
 		if err != nil {
 			return err
 		}
 		return addStack(st, selected, destPath)
 	}
 
-	// Fall back to snippet lookup (name without version/ext)
+	baseName, _, ext := store.ParseResourceName(resource)
+
+	if ext != "" {
+		if addSpread {
+			return fmt.Errorf("--spread is only supported for stacks")
+		}
+
+		selected, err := resolveSnippetResource(st, resource)
+		if err != nil {
+			return err
+		}
+		return addSnippet(st, selected, destPath)
+	}
+
+	selectedStack, stackErr := resolveStackResource(st, resource)
+	if stackErr == nil {
+		return addStack(st, selectedStack, destPath)
+	}
+
 	matches := utils.FindMatchingResources(st.ListSnippets(), baseName, "")
 	if len(matches) == 0 {
 		return fmt.Errorf(utils.ErrResourceNotFound, "stack or snippet", resource)
 	}
-	selected, err := utils.PickFromList(baseName, matches)
+
+	selectedSnippet, err := utils.PickFromList(baseName, matches)
 	if err != nil {
 		return err
 	}
-	return addSnippet(st, selected, destPath)
+
+	return addSnippet(st, selectedSnippet, destPath)
 }
 
 func addSnippet(st *store.Store, name, destPath string) error {
@@ -368,10 +467,10 @@ func stackDirectoryName(resourceName string) string {
 }
 
 // addResourceFromRemote fetches and adds a resource from remote registry
-func addResourceFromRemote(resource, destPath string) error {
+func addResourceFromRemote(resource, destPath string, resourceType addResourceType) error {
 	// Check if resource is direct GitHub path (owner/repo format)
 	if store.IsRemotePath(resource) {
-		return addDirectRemoteResource(resource, destPath)
+		return addDirectRemoteResource(resource, destPath, resourceType)
 	}
 
 	// Use custom registry if provided, otherwise use config
@@ -399,14 +498,22 @@ func addResourceFromRemote(resource, destPath string) error {
 		return fmt.Errorf("failed to load remote registry: %w", err)
 	}
 
-	// Parse resource name
 	baseName, _, ext := store.ParseResourceName(resource)
+	fetchAsSnippet := ext != ""
 
-	// Try as snippet first
-	if ext != "" {
+	if resourceType == addResourceTypeSnippet {
+		fetchAsSnippet = true
+	}
+
+	if resourceType == addResourceTypeStack {
+		fetchAsSnippet = false
+	}
+
+	if fetchAsSnippet {
 		if addSpread {
 			return fmt.Errorf("--spread is only supported for stacks")
 		}
+
 		remotePath, exists := remoteStore.GetSnippet(resource)
 		if !exists {
 			matches := utils.FindMatchingResources(remoteStore.ListSnippets(), baseName, ext)
@@ -426,15 +533,21 @@ func addResourceFromRemote(resource, destPath string) error {
 			return fmt.Errorf("snippet '%s' does not have a valid remote location", resource)
 		}
 
-		// Download snippet to local store first
-		localStorePath := filepath.Join(cfg.Paths.Snippets, filepath.Dir(remotePath))
-		if err := os.MkdirAll(localStorePath, 0755); err != nil {
-			return fmt.Errorf("failed to create local store directory: %w", err)
+		// Parse remote path to get snippet file location inside repo/domain.
+		_, _, remoteFile := store.ParseRemotePath(remotePath)
+		if remoteFile == "" || remoteFile == "." {
+			return fmt.Errorf("invalid remote snippet path: %s", remotePath)
 		}
 
-		// Parse remote path to get filename
-		_, _, remotefile := store.ParseRemotePath(remotePath)
-		localDestPath := filepath.Join(cfg.Paths.Snippets, filepath.Base(remotefile))
+		localRelativePath := filepath.Clean(filepath.FromSlash(remoteFile))
+		if localRelativePath == "." || filepath.IsAbs(localRelativePath) || strings.HasPrefix(localRelativePath, "..") {
+			return fmt.Errorf("invalid remote snippet path: %s", remotePath)
+		}
+
+		localDestPath := filepath.Join(cfg.Paths.Snippets, localRelativePath)
+		if err := utils.EnsureDir(filepath.Dir(localDestPath)); err != nil {
+			return fmt.Errorf("failed to create local store directory: %w", err)
+		}
 
 		// Fetch snippet
 		if err := remote.FetchSnippet(remotePath, localDestPath); err != nil {
@@ -453,7 +566,10 @@ func addResourceFromRemote(resource, destPath string) error {
 		return addSnippet(st, resource, destPath)
 	}
 
-	// Try as stack
+	if resourceType == addResourceTypeSnippet {
+		return fmt.Errorf("snippet '%s' not found in remote registry", resource)
+	}
+
 	remotePath, exists := remoteStore.GetStack(resource)
 	if !exists {
 		matches := utils.FindMatchingResources(remoteStore.ListStacks(), baseName, "")
@@ -475,6 +591,9 @@ func addResourceFromRemote(resource, destPath string) error {
 
 	// Download stack to local store first
 	localStackPath := filepath.Join(cfg.Paths.Stacks, stackDirectoryName(resource))
+	if err := os.RemoveAll(localStackPath); err != nil {
+		return fmt.Errorf("failed to reset local stack cache: %w", err)
+	}
 
 	// Fetch stack
 	if err := remote.FetchStack(remotePath, localStackPath); err != nil {
@@ -500,23 +619,51 @@ func addResourceFromRemote(resource, destPath string) error {
 	return nil
 }
 
-// addDirectRemoteResource adds a resource directly from GitHub without registry lookup
-// Supports formats: owner/repo, owner/repo:path, owner/repo@branch:path
-func addDirectRemoteResource(remotePath, destPath string) error {
+// addDirectRemoteResource adds a resource directly from remote without registry lookup.
+func shouldTreatDirectRemotePathAsSnippet(subPath string, resourceType addResourceType) bool {
+	switch resourceType {
+	case addResourceTypeSnippet:
+		return true
+	case addResourceTypeStack:
+		return false
+	default:
+		return filepath.Ext(subPath) != ""
+	}
+}
+
+func shouldTreatDirectURLAsSnippet(resource string, resourceType addResourceType) bool {
+	switch resourceType {
+	case addResourceTypeSnippet:
+		return true
+	case addResourceTypeStack:
+		return false
+	default:
+		return isDirectRemoteFileURL(resource)
+	}
+}
+
+func addDirectRemoteResource(remotePath, destPath string, resourceType addResourceType) error {
+	if isHTTPRemotePath(remotePath) {
+		return addDirectRemoteURLResource(remotePath, destPath, resourceType)
+	}
+
 	// Parse remote path
 	owner, repo, subPath := store.ParseRemotePath(remotePath)
 	if owner == "" || repo == "" {
-		return fmt.Errorf("invalid remote path format: %s (expected: owner/repo or owner/repo:path)", remotePath)
+		return fmt.Errorf("invalid remote path format: %s (expected: owner/repo, owner/repo:path, provider:owner/repo/path, or full URL)", remotePath)
 	}
 
 	fmt.Printf("📥 Fetching directly from %s/%s...\n", owner, repo)
 
-	// Determine if it's a stack (no extension in subPath) or snippet (has extension)
-	isSnippet := filepath.Ext(subPath) != ""
+	isSnippet := shouldTreatDirectRemotePathAsSnippet(subPath, resourceType)
 
 	if isSnippet {
 		if addSpread {
 			return fmt.Errorf("--spread is only supported for stacks")
+		}
+
+		if subPath == "" || subPath == "." || strings.HasSuffix(subPath, "/") {
+			return fmt.Errorf("snippet path must point to a file: %s", remotePath)
 		}
 
 		// Download snippet
@@ -549,6 +696,9 @@ func addDirectRemoteResource(remotePath, destPath string) error {
 
 	// It's a stack
 	localStackPath := filepath.Join(cfg.Paths.Stacks, repo)
+	if err := os.RemoveAll(localStackPath); err != nil {
+		return fmt.Errorf("failed to reset local stack cache: %w", err)
+	}
 
 	// Fetch stack
 	if err := remote.FetchStack(remotePath, localStackPath); err != nil {
@@ -577,16 +727,179 @@ func addDirectRemoteResource(remotePath, destPath string) error {
 	return nil
 }
 
+func isHTTPRemotePath(resource string) bool {
+	return utils.IsURL(resource)
+}
+
+func isDirectRemoteFileURL(resource string) bool {
+	lower := strings.ToLower(resource)
+	trimmed := strings.SplitN(resource, "?", 2)[0]
+	trimmed = strings.SplitN(trimmed, "#", 2)[0]
+
+	parsed, err := url.Parse(trimmed)
+	if err == nil {
+		host := strings.ToLower(parsed.Hostname())
+		segments := strings.Split(strings.Trim(parsed.Path, "/"), "/")
+
+		switch host {
+		case "github.com", "www.github.com":
+			if len(segments) >= 4 && segments[2] == "blob" {
+				// Blob URLs without extension are most likely directory-like inputs.
+				if filepath.Ext(segments[len(segments)-1]) == "" {
+					return false
+				}
+				return true
+			}
+		case "gitlab.com", "www.gitlab.com":
+			if len(segments) >= 5 && segments[2] == "-" && segments[3] == "blob" {
+				if filepath.Ext(segments[len(segments)-1]) == "" {
+					return false
+				}
+				return true
+			}
+		}
+	}
+
+	if strings.Contains(lower, "raw.githubusercontent.com/") ||
+		strings.Contains(lower, "/-/raw/") {
+		return true
+	}
+
+	switch strings.ToLower(filepath.Ext(trimmed)) {
+	case "", ".zip", ".tar", ".gz", ".tgz":
+		return false
+	default:
+		return true
+	}
+}
+
+func fileNameFromRemoteURL(remotePath string) string {
+	parsed, err := url.Parse(remotePath)
+	if err == nil {
+		name := path.Base(parsed.Path)
+		if name != "" && name != "." && name != "/" {
+			return name
+		}
+	}
+
+	name := filepath.Base(remotePath)
+	if name == "" || name == "." || name == "/" {
+		return ""
+	}
+	return name
+}
+
+func trimArchiveSuffix(name string) string {
+	lower := strings.ToLower(name)
+	switch {
+	case strings.HasSuffix(lower, ".tar.gz"):
+		return name[:len(name)-len(".tar.gz")]
+	case strings.HasSuffix(lower, ".tgz"):
+		return name[:len(name)-len(".tgz")]
+	case strings.HasSuffix(lower, ".zip"):
+		return name[:len(name)-len(".zip")]
+	default:
+		return name
+	}
+}
+
+func stackNameFromRemoteURL(remotePath string) string {
+	parsed, err := url.Parse(remotePath)
+	if err == nil {
+		host := strings.ToLower(parsed.Hostname())
+		segments := strings.Split(strings.Trim(parsed.Path, "/"), "/")
+
+		if (host == "github.com" || host == "gitlab.com" || host == "bitbucket.org") && len(segments) >= 2 {
+			repo := strings.TrimSuffix(segments[1], ".git")
+			if repo != "" {
+				return repo
+			}
+		}
+
+		if len(segments) > 0 {
+			name := trimArchiveSuffix(segments[len(segments)-1])
+			if name != "" && name != "." && name != "/" {
+				return name
+			}
+		}
+	}
+
+	return "remote-stack"
+}
+
+func addDirectRemoteURLResource(remotePath, destPath string, resourceType addResourceType) error {
+	if shouldTreatDirectURLAsSnippet(remotePath, resourceType) {
+		if addSpread {
+			return fmt.Errorf("--spread is only supported for stacks")
+		}
+
+		resourceName := fileNameFromRemoteURL(remotePath)
+		if resourceName == "" {
+			return fmt.Errorf("could not determine snippet file name from URL: %s", remotePath)
+		}
+
+		localDestPath := filepath.Join(cfg.Paths.Snippets, resourceName)
+		if err := utils.EnsureDir(filepath.Dir(localDestPath)); err != nil {
+			return fmt.Errorf("failed to create local store directory: %w", err)
+		}
+
+		if err := remote.FetchSnippet(remotePath, localDestPath); err != nil {
+			return err
+		}
+
+		st, err := utils.LoadStore(cfg.Paths.Store)
+		if err != nil {
+			return err
+		}
+		if err := st.AddSnippet(resourceName, localDestPath); err != nil {
+			return err
+		}
+
+		return addSnippet(st, resourceName, destPath)
+	}
+
+	resourceName := stackNameFromRemoteURL(remotePath)
+	localStackPath := filepath.Join(cfg.Paths.Stacks, stackDirectoryName(resourceName))
+	if err := os.RemoveAll(localStackPath); err != nil {
+		return fmt.Errorf("failed to reset local stack cache: %w", err)
+	}
+
+	if err := remote.FetchStack(remotePath, localStackPath); err != nil {
+		return err
+	}
+
+	st, err := utils.LoadStore(cfg.Paths.Store)
+	if err != nil {
+		return err
+	}
+	if err := st.AddStack(resourceName, localStackPath); err != nil {
+		return err
+	}
+
+	finalDestPath, err := copyStackToDestination(localStackPath, resourceName, destPath)
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf(utils.MsgStackAdded, resourceName, finalDestPath)
+	logger.Info(fmt.Sprintf("Direct remote stack added: %s -> %s", remotePath, finalDestPath))
+	return nil
+}
+
 var (
-	addRemote   bool
-	addSpread   bool
-	addForce    bool
-	addRegistry string
+	addRemote    bool
+	addSpread    bool
+	addForce     bool
+	addRegistry  string
+	addAsStack   bool
+	addAsSnippet bool
 )
 
 func init() {
 	addCmd.Flags().BoolVarP(&addRemote, "remote", "r", false, "Fetch from remote registry")
 	addCmd.Flags().BoolVar(&addSpread, "spread", false, "Spread stack contents directly into destination")
 	addCmd.Flags().BoolVarP(&addForce, addForceFlag, addForceFlagShort, false, addForceDesc)
+	addCmd.Flags().BoolVarP(&addAsStack, addStackFlag, addStackFlagShort, false, addStackDesc)
+	addCmd.Flags().BoolVarP(&addAsSnippet, addSnippetFlag, addSnippetFlagShort, false, addSnippetDesc)
 	addCmd.Flags().StringVar(&addRegistry, "registry", "", "Custom registry URL (overrides config)")
 }

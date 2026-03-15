@@ -3,6 +3,8 @@ package remote
 import (
 	"fmt"
 	"strings"
+
+	"github.com/rishiyaduwanshi/boiler/internal/utils"
 )
 
 // Provider abstracts how a remote host serves raw files and stack archives.
@@ -124,7 +126,7 @@ func (genericProvider) ArchiveFormat() string { return "zip" }
 func Detect(registryURL string) Provider {
 	// Normalize
 	u := strings.ToLower(strings.TrimSuffix(registryURL, "/"))
-	if !strings.HasPrefix(u, "http://") && !strings.HasPrefix(u, "https://") {
+	if !utils.IsURL(u) {
 		u = "https://" + u
 	}
 
@@ -141,7 +143,7 @@ func Detect(registryURL string) Provider {
 	default:
 		// Strip scheme for generic base URL construction
 		base := registryURL
-		if !strings.HasPrefix(base, "http://") && !strings.HasPrefix(base, "https://") {
+		if !utils.IsURL(base) {
 			base = "https://" + base
 		}
 		base = strings.TrimSuffix(base, "/")
@@ -169,8 +171,8 @@ func parseOwnerRepo(registryURL string) (owner, repo string) {
 		if strings.HasPrefix(registryURL, prefix) {
 			rest := strings.TrimPrefix(registryURL, prefix)
 			rest = strings.TrimSuffix(rest, "/")
-			parts := strings.SplitN(rest, "/", 2)
-			if len(parts) == 2 {
+			parts := strings.Split(rest, "/")
+			if len(parts) >= 2 {
 				return parts[0], parts[1]
 			}
 			return rest, ""

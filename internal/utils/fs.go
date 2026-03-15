@@ -17,7 +17,7 @@ func CopyFile(src, dst string) error {
 	}
 	defer sourceFile.Close()
 
-	if err := os.MkdirAll(filepath.Dir(dst), 0755); err != nil {
+	if err := EnsureDir(filepath.Dir(dst)); err != nil {
 		return fmt.Errorf("failed to create destination directory: %w", err)
 	}
 
@@ -128,7 +128,7 @@ func CopyFileWithVariables(src, dst string, varReplacements map[string]string) e
 	}
 	defer sourceFile.Close()
 
-	if err := os.MkdirAll(filepath.Dir(dst), 0755); err != nil {
+	if err := EnsureDir(filepath.Dir(dst)); err != nil {
 		return fmt.Errorf("failed to create destination directory: %w", err)
 	}
 

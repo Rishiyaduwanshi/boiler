@@ -140,10 +140,10 @@ func (s *Store) ListStacks() []string {
 // Returns empty slice if no versions exist.
 func (s *Store) GetAllVersions(baseName, extension string) []int {
 	versions := []int{}
-	
+
 	for snippetName := range s.meta.Snippets {
 		name, versionStr, ext := ParseResourceName(snippetName)
-		
+
 		// Match by base name and extension
 		if name == baseName && ext == extension {
 			if versionStr != "" {
@@ -153,7 +153,7 @@ func (s *Store) GetAllVersions(baseName, extension string) []int {
 			}
 		}
 	}
-	
+
 	sort.Ints(versions)
 	return versions
 }
@@ -193,19 +193,66 @@ func IsSnippet(resource string) bool {
 	return !IsStack(resource)
 }
 
+func isProviderPrefix(prefix string) bool {
+	switch strings.ToLower(prefix) {
+	case "github", "github.com", "www.github.com",
+		"gitlab", "gitlab.com", "www.gitlab.com",
+		"bitbucket", "bitbucket.org", "www.bitbucket.org":
+		return true
+	default:
+		return false
+	}
+}
+
+func parseOwnerRepoPath(value string) (owner, repo, subPath string, ok bool) {
+	trimmed := strings.TrimPrefix(strings.TrimSpace(value), "/")
+	parts := strings.Split(trimmed, "/")
+	if len(parts) < 2 {
+		return "", "", "", false
+	}
+
+	owner = parts[0]
+	repo = parts[1]
+	if owner == "" || repo == "" {
+		return "", "", "", false
+	}
+
+	if len(parts) == 2 {
+		return owner, repo, ".", true
+	}
+
+	subPath = strings.Join(parts[2:], "/")
+	if subPath == "" {
+		subPath = "."
+	}
+
+	return owner, repo, subPath, true
+}
+
+func isURL(value string) bool {
+	lower := strings.ToLower(strings.TrimSpace(value))
+	return strings.HasPrefix(lower, "http://") || strings.HasPrefix(lower, "https://")
+}
+
 // IsRemotePath checks if a path is a remote GitHub location or URL
 // Formats: "owner/repo:path", "owner/repo", "https://domain.com/path", "domain.com:path"
 func IsRemotePath(path string) bool {
 	// Check if it's a full URL
-	if strings.HasPrefix(path, "http://") || strings.HasPrefix(path, "https://") {
+	if isURL(path) {
 		return true
 	}
-	
+
 	// Remote paths contain / for GitHub owner/repo
 	// and don't start with drive letters or / (absolute paths)
 	if strings.Contains(path, ":") {
-		// Check if it's like "owner/repo:path" or "domain.com:path" not "C:/path"
 		parts := strings.SplitN(path, ":", 2)
+		prefix := strings.ToLower(parts[0])
+
+		if isProviderPrefix(prefix) {
+			return true
+		}
+
+		// Check if it's like "owner/repo:path" or "domain.com:path" not "C:/path"
 		if strings.Contains(parts[0], "/") && !strings.HasPrefix(path, "/") {
 			return true
 		}
@@ -228,24 +275,31 @@ func IsRemotePath(path string) bool {
 // Format: "domain.com:path" -> ("", "domain.com", "path")
 func ParseRemotePath(remotePath string) (owner, repo, path string) {
 	// Check if it's a full URL
-	if strings.HasPrefix(remotePath, "http://") || strings.HasPrefix(remotePath, "https://") {
+	if isURL(remotePath) {
 		// Return the full URL as "repo" (it's actually a direct URL)
 		return "", remotePath, ""
 	}
-	
+
 	// Check for domain:path format (e.g., "iamabhinav.dev:snippets/file.js")
 	if strings.Contains(remotePath, ":") {
 		parts := strings.SplitN(remotePath, ":", 2)
-		domain := parts[0]
-		filePath := parts[1]
-		
-		// If it contains a dot, it's likely a domain
-		if strings.Contains(domain, ".") {
-			return "", domain, filePath
+		prefix := strings.TrimSpace(parts[0])
+		filePath := strings.TrimPrefix(strings.TrimSpace(parts[1]), "/")
+
+		if isProviderPrefix(prefix) {
+			if owner, repo, path, ok := parseOwnerRepoPath(filePath); ok {
+				return owner, repo, path
+			}
+			return "", "", ""
 		}
-		
+
+		// If it contains a dot, it's likely a domain
+		if strings.Contains(prefix, ".") {
+			return "", prefix, filePath
+		}
+
 		// Otherwise, it's owner/repo:path format
-		repoparts := strings.SplitN(domain, "/", 2)
+		repoparts := strings.SplitN(prefix, "/", 2)
 		if len(repoparts) == 2 {
 			return repoparts[0], repoparts[1], filePath
 		}
