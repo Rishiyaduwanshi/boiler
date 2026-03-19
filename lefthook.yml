@@ -26,4 +26,4 @@ pre-push:
 commit-msg:
   commands:
     conventional:
-      run: "grep -Eq '^(feat|fix|docs|style|refactor|test|chore|perf|ci|build|revert)(\\(.+\\))?: .+' {1}"
+      run: "grep -Eq '^(feat|fix|docs|style|refactor|test|chore|perf|ci|build|revert)(\\(.+\\))?: .+' {1} || (echo 'Invalid commit message format.' && echo 'Expected: <type>(optional-scope): <description>' && echo 'Allowed types: feat|fix|docs|style|refactor|test|chore|perf|ci|build|revert' && echo 'Example: feat(cli): add custom destination support' && exit 1)"
