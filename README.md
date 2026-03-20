@@ -11,6 +11,8 @@ Store reusable code snippets and project templates locally. Automatic versioning
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Go Version](https://img.shields.io/badge/Go-1.25+-00ADD8?logo=go)](https://golang.org)
 [![Release](https://img.shields.io/github/v/release/rishiyaduwanshi/boiler)](https://github.com/rishiyaduwanshi/boiler/releases)
+[![Sponsor](https://img.shields.io/badge/Sponsor-Boiler-2ea043?logo=githubsponsors&logoColor=white)](https://github.com/sponsors/rishiyaduwanshi)
+[![Use Cases](https://img.shields.io/badge/Use%20Cases-Explore-f97316)](https://boiler.iamabhinav.dev/guides/usecases/)
 
 [Documentation](https://boiler.iamabhinav.dev) • [Use Cases](https://boiler.iamabhinav.dev/guides/usecases/)
 
@@ -192,6 +194,7 @@ go build -o bl main.go
 ```
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+For security reporting, see [SECURITY.md](SECURITY.md).
 
 ---
 
