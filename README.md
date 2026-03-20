@@ -8,7 +8,7 @@
 
 Store reusable code snippets and project templates locally. Automatic versioning, template variables, zero config.
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![License: Apache-2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Go Version](https://img.shields.io/badge/Go-1.25+-00ADD8?logo=go)](https://golang.org)
 [![Release](https://img.shields.io/github/v/release/rishiyaduwanshi/boiler)](https://github.com/rishiyaduwanshi/boiler/releases)
 [![Sponsor](https://img.shields.io/badge/Sponsor-Boiler-2ea043?logo=githubsponsors&logoColor=white)](https://github.com/sponsors/rishiyaduwanshi)
@@ -200,7 +200,7 @@ For security reporting, see [SECURITY.md](SECURITY.md).
 
 ## License
 
-MIT © [Abhinav Prakash](https://github.com/rishiyaduwanshi)
+Apache-2.0 © [Abhinav Prakash](https://github.com/rishiyaduwanshi)
 
 ---
 
