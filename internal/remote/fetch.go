@@ -39,7 +39,9 @@ func FetchSnippet(remotePath string, destPath string) error {
 
 		// owner/repo:path and provider-prefixed formats (github:, gitlab:, bitbucket:)
 		p := providerForRemotePath(remotePath)
-		fileURL = p.RawFileURL(owner, repo, "main", filePath)
+		repo = strings.TrimSuffix(repo, ".git")
+		ref := resolveProviderRef(p, owner, repo, defaultRemoteRef)
+		fileURL = p.RawFileURL(owner, repo, ref, filePath)
 	case repo != "" && filePath != "":
 		// domain.com:path - build HTTPS URL
 		fileURL = fmt.Sprintf("https://%s/%s", repo, filePath)
@@ -85,7 +87,8 @@ func FetchStack(remotePath string, destPath string) error {
 	}
 
 	owner, repo, subPath := store.ParseRemotePath(remotePath)
-	ref := "main"
+	ref := defaultRemoteRef
+	hasExplicitRef := false
 
 	// For full URLs, extract owner/repo from the URL itself
 	if utils.IsURL(remotePath) {
@@ -98,6 +101,7 @@ func FetchStack(remotePath string, destPath string) error {
 		if ok {
 			ref = parsedRef
 			subPath = parsedSubPath
+			hasExplicitRef = true
 		}
 	}
 
@@ -105,6 +109,9 @@ func FetchStack(remotePath string, destPath string) error {
 		subPath = "."
 	}
 	repo = strings.TrimSuffix(repo, ".git")
+	if !hasExplicitRef {
+		ref = resolveProviderRef(p, owner, repo, ref)
+	}
 
 	// archiveURL is either constructed by the provider (GitHub/GitLab/Bitbucket)
 	// or the remotePath itself when it is a direct archive URL (any host, one-off fetch).
@@ -124,7 +131,7 @@ func FetchStack(remotePath string, destPath string) error {
 	} else {
 		archiveURL = p.ArchiveURL(owner, repo, ref, subPath)
 		archiveExt = p.ArchiveFormat()
-		fmt.Printf("📥 Downloading stack from %s (%s/%s)...\n", p.Name(), owner, repo)
+		fmt.Printf("📥 Downloading stack from %s (%s/%s@%s)...\n", p.Name(), owner, repo, ref)
 	}
 
 	// Create temp directory

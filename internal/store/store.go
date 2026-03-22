@@ -293,15 +293,16 @@ func ParseRemotePath(remotePath string) (owner, repo, path string) {
 			return "", "", ""
 		}
 
-		// If it contains a dot, it's likely a domain
-		if strings.Contains(prefix, ".") {
-			return "", prefix, filePath
-		}
-
-		// Otherwise, it's owner/repo:path format
+		// owner/repo:path format should be resolved before domain:path,
+		// because repository names can contain dots (e.g., next.js).
 		repoparts := strings.SplitN(prefix, "/", 2)
 		if len(repoparts) == 2 {
 			return repoparts[0], repoparts[1], filePath
+		}
+
+		// If it contains a dot, it's likely a domain
+		if strings.Contains(prefix, ".") {
+			return "", prefix, filePath
 		}
 	} else {
 		// Check for simple owner/repo format

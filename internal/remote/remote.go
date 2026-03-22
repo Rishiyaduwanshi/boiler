@@ -25,7 +25,8 @@ func NewRemoteStore(registryURL string) (*RemoteStore, error) {
 func (r *RemoteStore) LoadFromURL() (*store.Store, error) {
 	p := Detect(r.registryURL)
 	owner, repo := parseOwnerRepo(r.registryURL)
-	metaURL := p.RawFileURL(owner, repo, "main", "store/boiler.meta.json")
+	ref := resolveProviderRef(p, owner, repo, defaultRemoteRef)
+	metaURL := p.RawFileURL(owner, repo, ref, "store/boiler.meta.json")
 
 	// Download metadata
 	data, err := downloadFile(metaURL)

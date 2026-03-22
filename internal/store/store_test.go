@@ -82,6 +82,7 @@ func TestIsRemotePath(t *testing.T) {
 	}{
 		{"owner/repo", true},
 		{"owner/repo:path/file.js", true},
+		{"vercel/next.js:examples/blog", true},
 		{"github:owner/repo/path/file.js", true},
 		{"github.com:owner/repo/path/file.js", true},
 		{"gitlab:owner/repo/path/file.js", true},
@@ -116,6 +117,7 @@ func TestParseRemotePath(t *testing.T) {
 	}{
 		{"owner/repo", "owner", "repo", "."},
 		{"owner/repo:path/file.js", "owner", "repo", "path/file.js"},
+		{"vercel/next.js:examples/blog", "vercel", "next.js", "examples/blog"},
 		{"github:rich-harris/degit/src/utils.js", "rich-harris", "degit", "src/utils.js"},
 		{"github.com:rich-harris/degit/src", "rich-harris", "degit", "src"},
 		{"gitlab:my-org/api/templates/app.go", "my-org", "api", "templates/app.go"},
