@@ -43,7 +43,7 @@ Remote Resources:
 - Use -r flag to fetch from remote source and save to local store.
 - Provider is auto-detected from the URL (GitHub, GitLab, Bitbucket, generic).
 - Resource is cached locally; subsequent uses do not need -r.
-- For one-shot fetch without saving to local store, use 'bl use' instead.
+- Use --no-store for one-shot fetch without saving to local store.
 - Use --stack/-k or --snippet/-n to override stack/snippet auto-detection.
 - For ambiguous remote inputs, stack detection is preferred by default.
 
@@ -126,8 +126,8 @@ bl add [resource] [destination] [flags]
   # Remote: registry from config variable
   bl add express@1 -r --registry :team_reg
 
-  # One-shot fetch without saving to store (no -r needed)
-  bl use alice/my-stack
+  # One-shot fetch without saving to store
+  bl add alice/my-stack -r --no-store
 ```
 
 ### Options
@@ -135,6 +135,7 @@ bl add [resource] [destination] [flags]
 ```
   -f, --force             Force operation without confirmation
   -h, --help              help for add
+      --no-store          Fetch remote resource without saving to local store
       --registry string   Custom registry URL (overrides config)
   -r, --remote            Fetch from remote registry
   -n, --snippet           Treat resource as snippet (overrides auto-detection)

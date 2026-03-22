@@ -7,29 +7,13 @@ Fetch a remote resource directly without saving to local store
 
 ### Synopsis
 
-Fetch a snippet or stack from any remote source and place it in the
-current directory - no local store involved, no registry lookup needed.
+Fetch a remote resource directly without saving to local store.
 
-Unlike 'bl add -r', this command is purely one-shot:
-- Downloads the resource
-- Copies it to the destination
-- Does NOT save it to your local store
-
-Provider is auto-detected from the URL (GitHub, GitLab, Bitbucket, generic).
-Both .zip and .tar.gz archives are supported and auto-detected from the URL.
-
-Supported formats:
-- owner/repo                             GitHub repo as stack (default branch)
-- owner/repo:path/to/file.js            File from GitHub repo
-- `https://github.com/owner/repo`         GitHub full URL
-- `https://gitlab.com/owner/repo`         GitLab repo
-- `https://bitbucket.org/owner/repo`      Bitbucket repo
-- `https://anysite.com/stack.zip`         Direct zip archive
-- `https://anysite.com/stack.tar.gz`      Direct tar.gz archive
-- `https://anysite.com/file.js`           Direct file (snippet)
+The resource is fetched from remote source and copied directly to destination
+without writing into local store metadata.
 
 ```
-bl use [resource] [flags]
+bl use [resource] [destination] [flags]
 ```
 
 ### Examples
@@ -60,14 +44,17 @@ bl use [resource] [flags]
   bl use :starter_stack
 
   # Into a specific folder
-  bl use alice/my-stack --to ./new-project
+  bl use alice/my-stack ./new-project
+
+  # Force overwrite destination conflicts
+  bl use alice/my-stack ./new-project --force
 ```
 
 ### Options
 
 ```
-  -h, --help        help for use
-  -t, --to string   Destination path (default ".")
+  -f, --force   Force operation without confirmation
+  -h, --help    help for use
 ```
 
 ### Options inherited from parent commands
