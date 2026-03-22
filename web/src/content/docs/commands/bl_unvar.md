@@ -12,7 +12,7 @@ Remove a variable from boiler.conf.json.
 Examples:
 - bl unvar API_URL
 - bl unvar bl__TEAM_REG
-- bl unvar @team_reg
+- bl unvar :team_reg
 
 ```
 bl unvar [name] [flags]

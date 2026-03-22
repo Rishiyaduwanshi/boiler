@@ -25,7 +25,7 @@ Remote Search:
   Use -r flag to search remote registry:
     - Default registry from config
 		- Or specify custom: --registry https://github.com/other/boiler
-		- Use config variable reference: --registry @team_reg`,
+		- Use config variable reference: --registry :team_reg`,
 	Example: `  # Search for anything with 'error'
   bl search error
 
@@ -42,7 +42,7 @@ Remote Search:
 	bl search express -r --registry https://github.com/myorg/boiler
 
 	# Search registry from config variable
-	bl search express -r --registry @team_reg`,
+	bl search express -r --registry :team_reg`,
 	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		query, err := utils.ResolveInputToken(args[0], "query", cfg.Vars)

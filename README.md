@@ -110,7 +110,7 @@ bl add errorHandler
 
 - ✅ **Automatic Versioning** - `@1`, `@2`, etc.
 - ✅ **Template Variables** - `bl__VAR_NAME` syntax with prompts
-- ✅ **Reusable Config Vars** - `bl var KEY=value` and `@KEY` references in commands
+- ✅ **Reusable Config Vars** - `bl var KEY=value` and `:KEY` references in commands
 - ✅ **Remote Fetching** - GitHub, GitLab, Bitbucket, custom registries, direct URLs
 - ✅ **Language Agnostic** - JS, Python, Go, Java, TS, Rust, C++, etc.
 - ✅ **Stack Templates** - Store entire project folders

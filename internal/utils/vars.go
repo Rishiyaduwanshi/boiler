@@ -8,15 +8,15 @@ import (
 
 const (
 	SnippetVarPrefix = "bl__"
-	CommandVarPrefix = "@"
+	CommandVarPrefix = ":"
 )
 
 var (
-	commandVarTokenRe  = regexp.MustCompile(`^@[A-Za-z_][A-Za-z0-9_-]*$`)
+	commandVarTokenRe  = regexp.MustCompile(`^:[A-Za-z_][A-Za-z0-9_-]*$`)
 	normalizedVarKeyRe = regexp.MustCompile(`^[a-z_][a-z0-9_-]*$`)
 )
 
-// IsCommandVarReference reports whether token is a command variable reference (e.g. @TEAM_REG).
+// IsCommandVarReference reports whether token is a command variable reference (e.g. :TEAM_REG).
 func IsCommandVarReference(token string) bool {
 	return commandVarTokenRe.MatchString(strings.TrimSpace(token))
 }
@@ -24,7 +24,7 @@ func IsCommandVarReference(token string) bool {
 // NormalizeVarKey converts a user-provided variable key to canonical form.
 // Rules:
 // - trim spaces
-// - optional prefixes are stripped (@ and bl__)
+// - optional prefixes are stripped (: and bl__)
 // - hyphens and underscores are preserved
 // - key is lower-cased
 func NormalizeVarKey(raw string) (string, error) {
@@ -88,8 +88,8 @@ func LookupVar(vars map[string]string, rawKey string) (string, bool, error) {
 	return "", false, nil
 }
 
-// ResolveCommandVarToken resolves @VAR references to their configured values.
-// For non-@ tokens, it returns the original token and resolved=false.
+// ResolveCommandVarToken resolves :VAR references to their configured values.
+// For non-: tokens, it returns the original token and resolved=false.
 func ResolveCommandVarToken(token string, vars map[string]string) (resolved string, resolvedFromVar bool, err error) {
 	trimmedToken := strings.TrimSpace(token)
 	if !IsCommandVarReference(trimmedToken) {
@@ -107,7 +107,7 @@ func ResolveCommandVarToken(token string, vars map[string]string) (resolved stri
 	return value, true, nil
 }
 
-// ResolveInputToken resolves @VAR references and returns field-specific errors.
+// ResolveInputToken resolves :VAR references and returns field-specific errors.
 func ResolveInputToken(token, field string, vars map[string]string) (string, error) {
 	resolved, _, err := ResolveCommandVarToken(token, vars)
 	if err != nil {

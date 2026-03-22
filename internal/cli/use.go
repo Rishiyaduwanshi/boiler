@@ -56,7 +56,7 @@ Supported formats:
   bl use https://mysite.com/snippets/logger.js
 
 	# Resource from config variable
-	bl use @starter_stack
+	bl use :starter_stack
 
   # Into a specific folder
   bl use alice/my-stack --to ./new-project`,

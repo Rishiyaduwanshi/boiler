@@ -16,7 +16,7 @@ var unvarCmd = &cobra.Command{
 Examples:
   bl unvar API_URL
   bl unvar bl__TEAM_REG
-  bl unvar @team_reg`,
+	bl unvar :team_reg`,
 	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		if err := unsetVar(args[0]); err != nil {

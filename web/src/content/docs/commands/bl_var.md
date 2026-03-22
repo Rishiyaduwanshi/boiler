@@ -16,7 +16,7 @@ Usage patterns:
 - bl unvar name          Remove a variable (use 'unvar' command)
 
 Variable names are normalized internally:
-- Optional prefixes @ and bl__ are accepted
+- Optional prefixes : and bl__ are accepted
 - Names are case-insensitive
 - Hyphens and underscores are preserved
 

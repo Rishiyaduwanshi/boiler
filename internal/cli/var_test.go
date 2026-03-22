@@ -62,7 +62,7 @@ func TestUnsetVar_RemovesNormalizedKey(t *testing.T) {
 	if err := setVarFromAssignment("TEAM_REG=https://github.com/myorg/boiler"); err != nil {
 		t.Fatalf("setVarFromAssignment: %v", err)
 	}
-	if err := unsetVar("@team_reg"); err != nil {
+	if err := unsetVar(":team_reg"); err != nil {
 		t.Fatalf("unsetVar: %v", err)
 	}
 

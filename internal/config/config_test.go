@@ -153,7 +153,7 @@ func TestMergeWithDefaults_NormalizesVars(t *testing.T) {
 	cfg := &Config{
 		Vars: map[string]string{
 			"bl__API_URL": "https://api.example.com",
-			"@TEAM_REG":   "https://github.com/myorg/boiler",
+			":TEAM_REG":   "https://github.com/myorg/boiler",
 		},
 	}
 
