@@ -113,6 +113,15 @@ func FetchStack(remotePath string, destPath string) error {
 		ref = resolveProviderRef(p, owner, repo, ref)
 	}
 
+	if owner != "" && repo != "" && subPath != "." {
+		if err := fetchProviderSubPath(p, owner, repo, ref, subPath, destPath); err == nil {
+			fmt.Printf("✓ Stack downloaded successfully\n")
+			return nil
+		} else {
+			debugf("provider subtree fetch failed, falling back to archive: %v", err)
+		}
+	}
+
 	// archiveURL is either constructed by the provider (GitHub/GitLab/Bitbucket)
 	// or the remotePath itself when it is a direct archive URL (any host, one-off fetch).
 	var archiveURL string
@@ -129,6 +138,9 @@ func FetchStack(remotePath string, destPath string) error {
 		archiveExt = archiveFormatFromURL(archiveURL)
 		fmt.Printf("📥 Downloading stack...\n")
 	} else {
+		if subPath != "." {
+			debugf("falling back to full archive for subpath fetch path=%s", subPath)
+		}
 		archiveURL = p.ArchiveURL(owner, repo, ref, subPath)
 		archiveExt = p.ArchiveFormat()
 		fmt.Printf("📥 Downloading stack from %s (%s/%s@%s)...\n", p.Name(), owner, repo, ref)
@@ -193,6 +205,22 @@ func FetchStack(remotePath string, destPath string) error {
 
 	fmt.Printf("✓ Stack downloaded successfully\n")
 	return nil
+}
+
+func fetchProviderSubPath(p Provider, owner, repo, ref, subPath, destPath string) error {
+	switch provider := p.(type) {
+	case githubProvider:
+		fmt.Printf("📥 Fetching GitHub subtree %s/%s@%s:%s...\n", owner, repo, ref, subPath)
+		return fetchGitHubSubPath(owner, repo, ref, subPath, destPath)
+	case gitlabProvider:
+		fmt.Printf("📥 Fetching GitLab subtree %s/%s@%s:%s...\n", owner, repo, ref, subPath)
+		return fetchGitLabSubPath(provider.host, owner, repo, ref, subPath, destPath)
+	case bitbucketProvider:
+		fmt.Printf("📥 Fetching Bitbucket subtree %s/%s@%s:%s...\n", owner, repo, ref, subPath)
+		return fetchBitbucketSubPath(owner, repo, ref, subPath, destPath)
+	default:
+		return fmt.Errorf("provider %s does not support subtree fetch", p.Name())
+	}
 }
 
 func providerForRemotePath(remotePath string) Provider {

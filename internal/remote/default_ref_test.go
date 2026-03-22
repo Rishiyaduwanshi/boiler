@@ -43,3 +43,34 @@ func TestParseDefaultBranchErrorsOnMissingField(t *testing.T) {
 		t.Fatal("expected error when bitbucket main branch name is missing")
 	}
 }
+
+func TestParseGitHubDefaultBranchFromHTML(t *testing.T) {
+	tests := []struct {
+		name    string
+		input   string
+		want    string
+		wantErr bool
+	}{
+		{name: "defaultBranch key", input: `{"defaultBranch":"canary"}`, want: "canary"},
+		{name: "default_branch key", input: `{"default_branch":"stable"}`, want: "stable"},
+		{name: "missing", input: `<html></html>`, wantErr: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := parseGitHubDefaultBranchFromHTML([]byte(tt.input))
+			if tt.wantErr {
+				if err == nil {
+					t.Fatalf("expected error, got nil")
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("parseGitHubDefaultBranchFromHTML returned error: %v", err)
+			}
+			if got != tt.want {
+				t.Fatalf("branch = %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
