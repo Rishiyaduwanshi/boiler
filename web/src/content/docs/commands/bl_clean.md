@@ -49,3 +49,9 @@ bl clean [resource] [flags]
   -k, --stacks     Stacks only
 ```
 
+### Options inherited from parent commands
+
+```
+  -V, --verbose   Enable verbose debug output
+```
+

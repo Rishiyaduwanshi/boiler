@@ -39,3 +39,9 @@ bl info [resource] [flags]
   -h, --help   help for info
 ```
 
+### Options inherited from parent commands
+
+```
+  -V, --verbose   Enable verbose debug output
+```
+

@@ -45,6 +45,7 @@ bl [flags]
 
 ```
   -h, --help      help for bl
+  -V, --verbose   Enable verbose debug output
   -v, --version   Show version information
 ```
 

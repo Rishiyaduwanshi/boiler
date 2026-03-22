@@ -63,3 +63,9 @@ bl store [path] [flags]
   -k, --stack         Force store as stack
 ```
 
+### Options inherited from parent commands
+
+```
+  -V, --verbose   Enable verbose debug output
+```
+

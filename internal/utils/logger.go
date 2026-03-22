@@ -13,6 +13,14 @@ type Logger struct {
 	verbose bool
 }
 
+func (l *Logger) SetVerbose(enabled bool) {
+	l.verbose = enabled
+}
+
+func (l *Logger) IsVerbose() bool {
+	return l.verbose
+}
+
 type LogLevel string
 
 const (

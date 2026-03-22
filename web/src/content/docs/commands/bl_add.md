@@ -142,3 +142,9 @@ bl add [resource] [destination] [flags]
   -k, --stack             Treat resource as stack (overrides auto-detection)
 ```
 
+### Options inherited from parent commands
+
+```
+  -V, --verbose   Enable verbose debug output
+```
+

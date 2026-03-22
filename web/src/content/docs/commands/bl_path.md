@@ -37,3 +37,9 @@ bl path [flags]
   -h, --help   help for path
 ```
 
+### Options inherited from parent commands
+
+```
+  -V, --verbose   Enable verbose debug output
+```
+

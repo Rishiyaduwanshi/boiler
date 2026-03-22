@@ -33,3 +33,9 @@ bl self uninstall [flags]
   -h, --help   help for uninstall
 ```
 
+### Options inherited from parent commands
+
+```
+  -V, --verbose   Enable verbose debug output
+```
+

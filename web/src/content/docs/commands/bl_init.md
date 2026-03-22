@@ -59,3 +59,9 @@ bl init [flags]
   -y, --yes       Skip prompts and use defaults
 ```
 
+### Options inherited from parent commands
+
+```
+  -V, --verbose   Enable verbose debug output
+```
+

@@ -17,3 +17,9 @@ Commands for updating and uninstalling Boiler itself.
   -h, --help   help for self
 ```
 
+### Options inherited from parent commands
+
+```
+  -V, --verbose   Enable verbose debug output
+```
+

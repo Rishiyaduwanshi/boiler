@@ -37,3 +37,9 @@ bl ls [flags]
   -k, --stacks     List stacks
 ```
 
+### Options inherited from parent commands
+
+```
+  -V, --verbose   Enable verbose debug output
+```
+

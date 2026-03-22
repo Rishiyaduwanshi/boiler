@@ -24,3 +24,9 @@ bl unvar [name] [flags]
   -h, --help   help for unvar
 ```
 
+### Options inherited from parent commands
+
+```
+  -V, --verbose   Enable verbose debug output
+```
+

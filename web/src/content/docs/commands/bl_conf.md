@@ -54,3 +54,9 @@ bl conf [flags]
       --set-registry string   Set custom registry URL
 ```
 
+### Options inherited from parent commands
+
+```
+  -V, --verbose   Enable verbose debug output
+```
+

@@ -23,3 +23,9 @@ bl unalias [name] [flags]
   -h, --help   help for unalias
 ```
 
+### Options inherited from parent commands
+
+```
+  -V, --verbose   Enable verbose debug output
+```
+

@@ -29,3 +29,9 @@ bl self update [flags]
   -h, --help   help for update
 ```
 
+### Options inherited from parent commands
+
+```
+  -V, --verbose   Enable verbose debug output
+```
+

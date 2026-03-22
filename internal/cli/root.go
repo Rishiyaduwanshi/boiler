@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"github.com/rishiyaduwanshi/boiler/internal/config"
+	"github.com/rishiyaduwanshi/boiler/internal/remote"
 	"github.com/rishiyaduwanshi/boiler/internal/utils"
 	"github.com/spf13/cobra"
 )
@@ -12,6 +13,7 @@ import (
 var (
 	cfg    *config.Config
 	logger *utils.Logger
+	verbose bool
 )
 
 var normalizeCommandDocsOnce sync.Once
@@ -49,6 +51,12 @@ variations of the same snippet or stack.`,
 		utils.ShowBanner()
 		utils.ShowQuickHelp()
 	},
+	PersistentPreRun: func(cmd *cobra.Command, args []string) {
+		if logger != nil {
+			logger.SetVerbose(verbose)
+		}
+		remote.SetVerbose(verbose)
+	},
 }
 
 // Execute runs the CLI
@@ -76,6 +84,7 @@ func ensureCommandDocsNormalized() {
 func init() {
 	// Add version flag
 	rootCmd.Flags().BoolP("version", "v", false, "Show version information")
+	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "V", false, "Enable verbose debug output")
 	// Add subcommands
 	rootCmd.AddCommand(versionCmd)
 	rootCmd.AddCommand(confCmd)

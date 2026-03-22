@@ -70,3 +70,9 @@ bl use [resource] [flags]
   -t, --to string   Destination path (default ".")
 ```
 
+### Options inherited from parent commands
+
+```
+  -V, --verbose   Enable verbose debug output
+```
+

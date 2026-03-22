@@ -35,3 +35,9 @@ bl var [name|name=value] [flags]
   -h, --help   help for var
 ```
 
+### Options inherited from parent commands
+
+```
+  -V, --verbose   Enable verbose debug output
+```
+

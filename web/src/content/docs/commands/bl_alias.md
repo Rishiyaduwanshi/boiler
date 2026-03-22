@@ -36,3 +36,9 @@ bl alias [name|name=command [args...]] [flags]
   -h, --help   help for alias
 ```
 
+### Options inherited from parent commands
+
+```
+  -V, --verbose   Enable verbose debug output
+```
+
