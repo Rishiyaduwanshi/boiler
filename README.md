@@ -168,7 +168,7 @@ bl alias [k|k=v]     # List, get, or set command aliases
 bl unalias <k>       # Remove a command alias
 bl var [k|k=v]       # List, get, or set reusable variables
 bl unvar <k>         # Remove a reusable variable
-bl use <resource>    # One-shot remote fetch (no local store saved)
+bl use <resource> [path]  # One-shot remote fetch (no local store saved)
 bl ls                # List all resources
 bl search <query>    # Search by name (-r to search remote)
 bl info <name>       # Show resource details

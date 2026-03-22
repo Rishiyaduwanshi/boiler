@@ -137,7 +137,7 @@ bl use alice/snippets:js/errorHandler.js
 bl use https://mysite.com/snippets/logger.js
 
 # Into a specific folder
-bl use alice/my-stack --to ./new-project
+bl use alice/my-stack ./new-project
 ```
 
 ---
@@ -164,12 +164,15 @@ sequenceDiagram
   participant CLI as Boiler CLI
   participant Registry as Registry Repo
   participant Source as Resource Source
+  participant API as Provider API
   participant Store as Local Store
 
   User->>CLI: bl add express@1 -r
   CLI->>Registry: GET store/boiler.meta.json
   Registry-->>CLI: {"stacks":{"express@1":"owner/repo"}}
-  CLI->>Source: Download archive
+  CLI->>API: Try subtree fetch (provider-specific)
+  API-->>CLI: Files (or fallback required)
+  CLI->>Source: Fallback archive download (if needed)
   Source-->>CLI: Return files
   CLI->>Store: Save + update boiler.meta.json
   Store-->>User: ✓ Resource ready
