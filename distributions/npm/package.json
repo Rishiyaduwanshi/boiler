@@ -1,0 +1,60 @@
+{
+    "name": "@boilercli/core",
+    "version": "0.3.0",
+    "description": "Boiler CLI distributed via npm",
+    "keywords": [
+        "boiler",
+        "boilerplate",
+        "cli",
+        "snippet",
+        "template",
+        "stack",
+        "scaffold",
+        "productivity",
+        "developer-tools",
+        "code-reuse"
+    ],
+    "license": "Apache-2.0",
+    "preferGlobal": true,
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/rishiyaduwanshi/boiler.git"
+    },
+    "homepage": "https://boiler.iamabhinav.dev",
+    "bugs": {
+        "url": "https://github.com/rishiyaduwanshi/boiler/issues"
+    },
+    "engines": {
+        "node": ">=18"
+    },
+    "os": [
+        "darwin",
+        "linux",
+        "win32"
+    ],
+    "cpu": [
+        "x64",
+        "arm64"
+    ],
+    "bin": {
+        "bl": "bin/bl.js",
+        "boiler": "bin/bl.js"
+    },
+    "scripts": {
+        "postinstall": "node scripts/postinstall.js",
+        "prepack": "node scripts/sync-readme.js"
+    },
+    "files": [
+        "bin",
+        "scripts",
+        "runtime",
+        "README.md"
+    ],
+    "publishConfig": {
+        "access": "public"
+    },
+    "dependencies": {
+        "adm-zip": "^0.5.16",
+        "tar": "^7.5.13"
+    }
+}
