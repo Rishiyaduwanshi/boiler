@@ -6,7 +6,9 @@ InstallerType: zip
 NestedInstallerType: portable
 NestedInstallerFiles:
 - RelativeFilePath: bl.exe
-  PortableCommandAlias: boiler
+  PortableCommandAlias:
+    - bl
+    - boiler
 ReleaseDate: 2026-03-22
 Installers:
 - Architecture: x64
