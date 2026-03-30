@@ -14,7 +14,11 @@ var useCmd = &cobra.Command{
 	Long: `Fetch a remote resource directly without saving to local store.
 
 The resource is fetched from remote source and copied directly to destination
-without writing into local store metadata.`,
+without writing into local store metadata.
+
+Stack placement:
+- By default, stacks are copied inside a stack-named folder.
+- Use --spread to copy stack contents directly into destination.`,
 	Example: `  # GitHub repo as stack
   bl use alice/my-express-stack
 
@@ -42,6 +46,9 @@ without writing into local store metadata.`,
 	# Into a specific folder
 	bl use alice/my-stack ./new-project
 
+	# Spread stack contents directly into destination
+	bl use alice/my-stack ./new-project --spread
+
 	# Force overwrite destination conflicts
 	bl use alice/my-stack ./new-project --force`,
 	Args: cobra.RangeArgs(1, 2),
@@ -62,6 +69,7 @@ without writing into local store metadata.`,
 		}
 
 		addForce = useForce
+		addSpread = useSpread
 
 		if err := addResource(resource, resolveAddDestination(positionalDest), true, true); err != nil {
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
@@ -71,8 +79,10 @@ without writing into local store metadata.`,
 }
 
 var useForce bool
+var useSpread bool
 
 func init() {
 	useCmd.Flags().BoolVarP(&useForce, addForceFlag, addForceFlagShort, false, addForceDesc)
+	useCmd.Flags().BoolVar(&useSpread, "spread", false, "Spread stack contents directly into destination")
 	rootCmd.AddCommand(useCmd)
 }

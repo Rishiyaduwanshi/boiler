@@ -12,6 +12,10 @@ Fetch a remote resource directly without saving to local store.
 The resource is fetched from remote source and copied directly to destination
 without writing into local store metadata.
 
+Stack placement:
+- By default, stacks are copied inside a stack-named folder.
+- Use --spread to copy stack contents directly into destination.
+
 ```
 bl use [resource] [destination] [flags]
 ```
@@ -46,6 +50,9 @@ bl use [resource] [destination] [flags]
   # Into a specific folder
   bl use alice/my-stack ./new-project
 
+  # Spread stack contents directly into destination
+  bl use alice/my-stack ./new-project --spread
+
   # Force overwrite destination conflicts
   bl use alice/my-stack ./new-project --force
 ```
@@ -53,8 +60,9 @@ bl use [resource] [destination] [flags]
 ### Options
 
 ```
-  -f, --force   Force operation without confirmation
-  -h, --help    help for use
+  -f, --force    Force operation without confirmation
+  -h, --help     help for use
+      --spread   Spread stack contents directly into destination
 ```
 
 ### Options inherited from parent commands
