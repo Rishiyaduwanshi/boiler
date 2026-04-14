@@ -1,0 +1,55 @@
+version: 2
+updates:
+  - package-ecosystem: gomod
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: "Asia/Kolkata"
+    target-branch: main
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: chore
+      include: scope
+
+  - package-ecosystem: npm
+    directory: "/web"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:15"
+      timezone: "Asia/Kolkata"
+    target-branch: main
+    open-pull-requests-limit: 5
+    versioning-strategy: increase
+    commit-message:
+      prefix: chore
+      include: scope
+
+  - package-ecosystem: npm
+    directory: "/distributions/npm"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:30"
+      timezone: "Asia/Kolkata"
+    target-branch: main
+    open-pull-requests-limit: 3
+    versioning-strategy: increase
+    commit-message:
+      prefix: chore
+      include: scope
+
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:45"
+      timezone: "Asia/Kolkata"
+    target-branch: main
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: chore
+      include: scope
