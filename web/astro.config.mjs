@@ -3,12 +3,16 @@ import { defineConfig } from 'astro/config';
 import starlight from '@astrojs/starlight';
 import starlightThemeGalaxy from 'starlight-theme-galaxy'
 import mermaid from 'astro-mermaid';
+import { unified } from '@astrojs/markdown-remark';
 
 // https://astro.build/config
 export default defineConfig({
   site: 'https://boiler.iamabhinav.dev',
   markdown: {
-    smartypants: false,
+    processor: unified({
+      gfm: false,
+      smartypants: false,
+    }),
   },
   integrations: [
     mermaid({
@@ -59,8 +63,14 @@ export default defineConfig({
         },
         {
           label: 'Commands',
-          autogenerate: { directory: 'commands' },
-          collapsed: false
+          collapsed: false,
+          items: [
+            {
+              autogenerate: {
+                directory: 'commands',
+              },
+            },
+          ],
         },
 
       ],
