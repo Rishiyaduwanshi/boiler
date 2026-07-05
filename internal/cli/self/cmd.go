@@ -11,6 +11,7 @@ import (
 	"github.com/rishiyaduwanshi/boiler/internal/config"
 	"io"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -95,8 +96,21 @@ func runSelfUninstall() error {
 		return fmt.Errorf("cancelled")
 	}
 
-	if err := os.Remove(exePath); err != nil {
-		return fmt.Errorf("failed to remove binary: %w", err)
+	if runtime.GOOS == "windows" {
+		// Windows locks the running executable. Rename it first.
+		oldPath := exePath + ".old"
+		os.Remove(oldPath) // ignore error
+		if err := os.Rename(exePath, oldPath); err != nil {
+			return fmt.Errorf("failed to rename binary for deletion: %w\n(Hint: If you installed via winget, please run 'winget uninstall boiler')", err)
+		}
+
+		// Attempt to delete the renamed file using a delayed detached command
+		cmd := exec.Command("cmd.exe", "/c", "ping", "127.0.0.1", "-n", "3", ">nul", "&", "del", "/F", "/Q", oldPath)
+		_ = cmd.Start()
+	} else {
+		if err := os.Remove(exePath); err != nil {
+			return fmt.Errorf("failed to remove binary: %w", err)
+		}
 	}
 
 	fmt.Println("✓ Boiler binary removed")

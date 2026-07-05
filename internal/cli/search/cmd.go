@@ -123,7 +123,7 @@ func searchResources(query string) error {
 
 // searchRemoteResources searches for resources in remote registry
 func searchRemoteResources(query string) error {
-	handler, remoteStore, err := remote.LoadRegistry(searchRegistry, cfg.Vars)
+	handler, remoteStore, err := remote.LoadRegistry(searchRegistry, cfg)
 	if err != nil {
 		return err
 	}

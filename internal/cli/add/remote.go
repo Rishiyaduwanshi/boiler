@@ -19,7 +19,7 @@ func ResourceFromRemote(resource, destPath string, resourceType ResourceType, no
 		return directRemoteResource(resource, destPath, resourceType, noStore, opts, cfg, logger)
 	}
 
-	_, remoteStore, err := remote.LoadRegistry(opts.Registry, cfg.Vars)
+	_, remoteStore, err := remote.LoadRegistry(opts.Registry, cfg)
 	if err != nil {
 		return err
 	}

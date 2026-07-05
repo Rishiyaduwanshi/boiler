@@ -2,14 +2,19 @@ package remote
 
 import (
 	"fmt"
+	"github.com/rishiyaduwanshi/boiler/internal/config"
 	"github.com/rishiyaduwanshi/boiler/internal/store"
 	"github.com/rishiyaduwanshi/boiler/internal/utils"
 )
 
 // LoadRegistry resolves the registry URL, expands :VAR references,
 // and fetches the remote boiler.meta.json.
-func LoadRegistry(registryURL string, vars map[string]string) (*RemoteStore, *store.Store, error) {
-	resolved, err := utils.ResolveInputToken(registryURL, "registry", vars)
+func LoadRegistry(registryURL string, cfg *config.Config) (*RemoteStore, *store.Store, error) {
+	if registryURL == "" {
+		registryURL = cfg.Registry
+	}
+
+	resolved, err := utils.ResolveInputToken(registryURL, "registry", cfg.Vars)
 	if err != nil {
 		return nil, nil, err
 	}
