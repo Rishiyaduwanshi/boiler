@@ -1,4 +1,5 @@
 package varcmd
+
 import (
 	"testing"
 

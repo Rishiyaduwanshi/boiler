@@ -1,13 +1,13 @@
 package use
+
 import (
-	"github.com/rishiyaduwanshi/boiler/internal/config"
 	"fmt"
+	"github.com/rishiyaduwanshi/boiler/internal/config"
 	"os"
 
 	addcmd "github.com/rishiyaduwanshi/boiler/internal/cli/add"
 	"github.com/rishiyaduwanshi/boiler/internal/utils"
 	"github.com/spf13/cobra"
-
 )
 
 var Cmd = &cobra.Command{
@@ -91,11 +91,11 @@ func init() {
 }
 
 var (
-    cfg    *config.Config
-    logger *utils.Logger
+	cfg    *config.Config
+	logger *utils.Logger
 )
 
 func Setup(c *config.Config, l *utils.Logger) {
-    cfg = c
-    logger = l
+	cfg = c
+	logger = l
 }

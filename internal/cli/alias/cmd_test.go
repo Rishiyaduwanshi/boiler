@@ -1,4 +1,5 @@
 package alias
+
 import (
 	"reflect"
 	"testing"
@@ -82,8 +83,6 @@ func TestSetAliasFromAssignment_AllowsBuiltInCommandName(t *testing.T) {
 	}
 }
 
-
-
 func TestSetAliasFromAssignment_AllowsSelfReference(t *testing.T) {
 	setupAliasCommandTest(t)
 
@@ -129,4 +128,3 @@ func TestExpandFirstCommandAlias_IgnoresNonAliasTokens(t *testing.T) {
 		}
 	}
 }
-

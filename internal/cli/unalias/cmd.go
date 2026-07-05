@@ -1,9 +1,10 @@
 package unalias
+
 import (
+	"fmt"
+	aliascmd "github.com/rishiyaduwanshi/boiler/internal/cli/alias"
 	"github.com/rishiyaduwanshi/boiler/internal/config"
 	"github.com/rishiyaduwanshi/boiler/internal/utils"
-	aliascmd "github.com/rishiyaduwanshi/boiler/internal/cli/alias"
-	"fmt"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -49,11 +50,11 @@ func unsetAlias(rawName string) error {
 }
 
 var (
-    cfg    *config.Config
-    logger *utils.Logger
+	cfg    *config.Config
+	logger *utils.Logger
 )
 
 func Setup(c *config.Config, l *utils.Logger) {
-    cfg = c
-    logger = l
+	cfg = c
+	logger = l
 }

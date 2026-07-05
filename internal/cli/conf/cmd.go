@@ -1,7 +1,8 @@
 package conf
+
 import (
-	"github.com/rishiyaduwanshi/boiler/internal/utils"
 	"fmt"
+	"github.com/rishiyaduwanshi/boiler/internal/utils"
 	"os"
 	"os/exec"
 
@@ -168,11 +169,11 @@ func setRegistry(registryURL string) error {
 }
 
 var (
-    cfg    *config.Config
-    logger *utils.Logger
+	cfg    *config.Config
+	logger *utils.Logger
 )
 
 func Setup(c *config.Config, l *utils.Logger) {
-    cfg = c
-    logger = l
+	cfg = c
+	logger = l
 }

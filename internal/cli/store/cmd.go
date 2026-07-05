@@ -1,7 +1,8 @@
 package store
+
 import (
-	"github.com/rishiyaduwanshi/boiler/internal/config"
 	"fmt"
+	"github.com/rishiyaduwanshi/boiler/internal/config"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -288,11 +289,11 @@ func init() {
 }
 
 var (
-    cfg    *config.Config
-    logger *utils.Logger
+	cfg    *config.Config
+	logger *utils.Logger
 )
 
 func Setup(c *config.Config, l *utils.Logger) {
-    cfg = c
-    logger = l
+	cfg = c
+	logger = l
 }

@@ -28,6 +28,9 @@ cd boiler
 # Install mise (if not already installed)
 curl https://mise.run | sh
 
+# Trust the repo to allow mise to run scripts
+mise trust
+
 # Setup the project (installs Go, downloads deps, sets up git hooks)
 mise run setup
 
@@ -37,8 +40,8 @@ mise run dev
 # Run locally
 ./bl --help
 
-# Run tests
-mise run test
+# You are now fully set up!
+# You can start making your code changes and follow the Development Workflow below.
 ```
 
 ---

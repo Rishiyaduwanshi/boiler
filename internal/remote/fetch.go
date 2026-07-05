@@ -533,4 +533,3 @@ func extractTarGz(tarPath, destPath string) error {
 
 	return nil
 }
-

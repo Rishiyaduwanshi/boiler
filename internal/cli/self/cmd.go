@@ -1,6 +1,6 @@
 package self
+
 import (
-	"github.com/rishiyaduwanshi/boiler/internal/config"
 	"archive/tar"
 	"archive/zip"
 	"compress/gzip"
@@ -8,6 +8,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/rishiyaduwanshi/boiler/internal/config"
 	"io"
 	"os"
 	"path/filepath"
@@ -390,11 +391,11 @@ func init() {
 }
 
 var (
-    cfg    *config.Config
-    logger *utils.Logger
+	cfg    *config.Config
+	logger *utils.Logger
 )
 
 func Setup(c *config.Config, l *utils.Logger) {
-    cfg = c
-    logger = l
+	cfg = c
+	logger = l
 }

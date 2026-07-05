@@ -1,8 +1,9 @@
 package unvar
+
 import (
-	"github.com/rishiyaduwanshi/boiler/internal/config"
-	varcmd "github.com/rishiyaduwanshi/boiler/internal/cli/var"
 	"fmt"
+	varcmd "github.com/rishiyaduwanshi/boiler/internal/cli/var"
+	"github.com/rishiyaduwanshi/boiler/internal/config"
 	"os"
 
 	"github.com/rishiyaduwanshi/boiler/internal/utils"
@@ -50,11 +51,11 @@ func unsetVar(rawKey string) error {
 }
 
 var (
-    cfg    *config.Config
-    logger *utils.Logger
+	cfg    *config.Config
+	logger *utils.Logger
 )
 
 func Setup(c *config.Config, l *utils.Logger) {
-    cfg = c
-    logger = l
+	cfg = c
+	logger = l
 }

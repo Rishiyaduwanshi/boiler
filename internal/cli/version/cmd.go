@@ -1,8 +1,9 @@
 package version
+
 import (
+	"fmt"
 	"github.com/rishiyaduwanshi/boiler/internal/config"
 	"github.com/rishiyaduwanshi/boiler/internal/utils"
-	"fmt"
 
 	"github.com/rishiyaduwanshi/boiler/pkg/version"
 	"github.com/spf13/cobra"
@@ -26,11 +27,11 @@ Shows current version, build date, and Go version used.`,
 }
 
 var (
-    cfg    *config.Config
-    logger *utils.Logger
+	cfg    *config.Config
+	logger *utils.Logger
 )
 
 func Setup(c *config.Config, l *utils.Logger) {
-    cfg = c
-    logger = l
+	cfg = c
+	logger = l
 }

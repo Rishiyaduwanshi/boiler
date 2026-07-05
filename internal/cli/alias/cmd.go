@@ -1,7 +1,8 @@
 package alias
+
 import (
-	"github.com/rishiyaduwanshi/boiler/internal/utils"
 	"fmt"
+	"github.com/rishiyaduwanshi/boiler/internal/utils"
 	"os"
 	"regexp"
 	"sort"
@@ -12,6 +13,7 @@ import (
 )
 
 var aliasNameRe = regexp.MustCompile(`^[a-z][a-z0-9_-]*$`)
+
 const maxAliasExpansionDepth = 8
 
 var Cmd = &cobra.Command{
@@ -234,11 +236,11 @@ func ExpandFirstCommandAlias(args []string) []string {
 }
 
 var (
-    cfg    *config.Config
-    logger *utils.Logger
+	cfg    *config.Config
+	logger *utils.Logger
 )
 
 func Setup(c *config.Config, l *utils.Logger) {
-    cfg = c
-    logger = l
+	cfg = c
+	logger = l
 }

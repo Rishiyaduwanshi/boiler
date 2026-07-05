@@ -28,8 +28,8 @@ import (
 )
 
 var (
-	cfg    *config.Config
-	logger *utils.Logger
+	cfg     *config.Config
+	logger  *utils.Logger
 	verbose bool
 )
 
@@ -80,7 +80,7 @@ variations of the same snippet or stack.`,
 func Execute(config *config.Config, log *utils.Logger) error {
 	cfg = config
 	logger = log
-	
+
 	// Inject config and logger into all subcommands
 	aliascmd.Setup(cfg, logger)
 	cleancmd.Setup(cfg, logger)
@@ -120,7 +120,7 @@ func init() {
 	// Add version flag
 	rootCmd.Flags().BoolP("version", "v", false, "Show version information")
 	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "V", false, "Enable verbose debug output")
-	
+
 	// Add subcommands
 	rootCmd.AddCommand(versioncmd.Cmd)
 	rootCmd.AddCommand(confcmd.Cmd)

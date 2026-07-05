@@ -40,7 +40,7 @@ func (r *RemoteStore) LoadFromURL() (*store.Store, error) {
 		Stacks:   make(map[string]string),
 		Snippets: make(map[string]string),
 	}
-	
+
 	if err := json.Unmarshal(data, meta); err != nil {
 		return nil, fmt.Errorf("failed to parse remote metadata: %w", err)
 	}
@@ -56,7 +56,7 @@ func (r *RemoteStore) LoadFromURL() (*store.Store, error) {
 func (r *RemoteStore) Search(st *store.Store, query string, searchSnippets, searchStacks bool) map[string][]string {
 	results := make(map[string][]string)
 	query = strings.ToLower(query)
-	
+
 	if searchSnippets {
 		snippets := []string{}
 		for _, name := range st.ListSnippets() {
