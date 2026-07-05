@@ -1,6 +1,6 @@
-package cli
-
+package conf
 import (
+	"github.com/rishiyaduwanshi/boiler/internal/utils"
 	"fmt"
 	"os"
 	"os/exec"
@@ -9,7 +9,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var confCmd = &cobra.Command{
+var Cmd = &cobra.Command{
 	Use:   "conf",
 	Short: "Manage boiler configuration",
 	Long: `View and manage Boiler configuration.
@@ -73,10 +73,10 @@ var (
 )
 
 func init() {
-	confCmd.Flags().StringVarP(&confEdit, "edit", "e", "", "Edit configuration (optional: editor name)")
-	// confCmd.Flags().Lookup("edit").NoOptDefVal = "__default__"
-	confCmd.Flags().BoolVarP(&confReset, "reset", "r", false, "Reset configuration to defaults")
-	confCmd.Flags().StringVar(&confSetRegistry, "set-registry", "", "Set custom registry URL")
+	Cmd.Flags().StringVarP(&confEdit, "edit", "e", "", "Edit configuration (optional: editor name)")
+	// Cmd.Flags().Lookup("edit").NoOptDefVal = "__default__"
+	Cmd.Flags().BoolVarP(&confReset, "reset", "r", false, "Reset configuration to defaults")
+	Cmd.Flags().StringVar(&confSetRegistry, "set-registry", "", "Set custom registry URL")
 }
 
 func showConfig() {
@@ -165,4 +165,14 @@ func setRegistry(registryURL string) error {
 	fmt.Printf("  Old: %s\n", oldRegistry)
 	fmt.Printf("  New: %s\n", registryURL)
 	return nil
+}
+
+var (
+    cfg    *config.Config
+    logger *utils.Logger
+)
+
+func Setup(c *config.Config, l *utils.Logger) {
+    cfg = c
+    logger = l
 }

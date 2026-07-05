@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-// ── shouldIgnore ──────────────────────────────────────────────────────────────
+// ── ShouldIgnore ─────────────────────────────────────────────────────────────
 
 func TestShouldIgnore(t *testing.T) {
 	tests := []struct {
@@ -41,8 +41,8 @@ func TestShouldIgnore(t *testing.T) {
 			label += "_" + tt.patterns[0]
 		}
 		t.Run(label, func(t *testing.T) {
-			if got := shouldIgnore(tt.name, tt.patterns); got != tt.want {
-				t.Errorf("shouldIgnore(%q, %v) = %v, want %v", tt.name, tt.patterns, got, tt.want)
+			if got := ShouldIgnore(tt.name, tt.patterns); got != tt.want {
+				t.Errorf("ShouldIgnore(%q, %v) = %v, want %v", tt.name, tt.patterns, got, tt.want)
 			}
 		})
 	}

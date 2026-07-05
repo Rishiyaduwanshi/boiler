@@ -1,6 +1,6 @@
-package cli
-
+package Cmd
 import (
+	"github.com/rishiyaduwanshi/boiler/internal/config"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -12,7 +12,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var initCmd = &cobra.Command{
+var Cmd = &cobra.Command{
 	Use:   "init",
 	Short: "Initialize stack config in current directory",
 	Long: `Initialize a boiler configuration file in the current directory.
@@ -209,7 +209,17 @@ var (
 )
 
 func init() {
-	initCmd.Flags().BoolVarP(&initYes, "yes", "y", false, "Skip prompts and use defaults")
-	initCmd.Flags().BoolVarP(&initAsSnippet, "snippet", "n", false, "Initialize as snippet")
-	initCmd.Flags().BoolVarP(&initAsStack, "stack", "k", false, "Initialize as stack")
+	Cmd.Flags().BoolVarP(&initYes, "yes", "y", false, "Skip prompts and use defaults")
+	Cmd.Flags().BoolVarP(&initAsSnippet, "snippet", "n", false, "Initialize as snippet")
+	Cmd.Flags().BoolVarP(&initAsStack, "stack", "k", false, "Initialize as stack")
+}
+
+var (
+    cfg    *config.Config
+    logger *utils.Logger
+)
+
+func Setup(c *config.Config, l *utils.Logger) {
+    cfg = c
+    logger = l
 }

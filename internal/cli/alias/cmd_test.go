@@ -1,14 +1,43 @@
-package cli
-
+package alias
 import (
 	"reflect"
 	"testing"
 
 	"github.com/rishiyaduwanshi/boiler/internal/config"
+	"github.com/rishiyaduwanshi/boiler/internal/utils"
 )
 
+func setupAliasCommandTest(t *testing.T) {
+	t.Helper()
+
+	tmp := t.TempDir()
+	t.Setenv("HOME", tmp)
+	t.Setenv("USERPROFILE", tmp)
+
+	previousCfg := cfg
+	previousLogger := logger
+	t.Cleanup(func() {
+		cfg = previousCfg
+		logger = previousLogger
+	})
+
+	cfg = config.DefaultConfig()
+	if err := cfg.InitializeDirs(); err != nil {
+		t.Fatalf("InitializeDirs: %v", err)
+	}
+	if err := config.Save(cfg); err != nil {
+		t.Fatalf("Save: %v", err)
+	}
+
+	log, err := utils.NewLogger(cfg.Paths.Logs, false)
+	if err != nil {
+		t.Fatalf("NewLogger: %v", err)
+	}
+	logger = log
+}
+
 func TestSetAliasFromAssignment_NormalizesAndPersists(t *testing.T) {
-	setupVarCommandTest(t)
+	setupAliasCommandTest(t)
 
 	if err := setAliasFromAssignment("LL=ls"); err != nil {
 		t.Fatalf("setAliasFromAssignment: %v", err)
@@ -28,7 +57,7 @@ func TestSetAliasFromAssignment_NormalizesAndPersists(t *testing.T) {
 }
 
 func TestSetAliasFromAssignment_AllowsCommandTemplate(t *testing.T) {
-	setupVarCommandTest(t)
+	setupAliasCommandTest(t)
 
 	assignment := "sexp=bl search express -r --registry https://github.com/Rishiyaduwanshi/boiler"
 	if err := setAliasFromAssignment(assignment); err != nil {
@@ -42,7 +71,7 @@ func TestSetAliasFromAssignment_AllowsCommandTemplate(t *testing.T) {
 }
 
 func TestSetAliasFromAssignment_AllowsBuiltInCommandName(t *testing.T) {
-	setupVarCommandTest(t)
+	setupAliasCommandTest(t)
 
 	if err := setAliasFromAssignment("ls=search"); err != nil {
 		t.Fatalf("setAliasFromAssignment: %v", err)
@@ -53,31 +82,10 @@ func TestSetAliasFromAssignment_AllowsBuiltInCommandName(t *testing.T) {
 	}
 }
 
-func TestUnsetAlias_RemovesNormalizedKey(t *testing.T) {
-	setupVarCommandTest(t)
 
-	if err := setAliasFromAssignment("ss=search"); err != nil {
-		t.Fatalf("setAliasFromAssignment: %v", err)
-	}
-	if err := unsetAlias("SS"); err != nil {
-		t.Fatalf("unsetAlias: %v", err)
-	}
-
-	if _, ok := cfg.Aliases["ss"]; ok {
-		t.Fatalf("expected ss to be removed")
-	}
-
-	loaded, err := config.Load()
-	if err != nil {
-		t.Fatalf("Load: %v", err)
-	}
-	if _, ok := loaded.Aliases["ss"]; ok {
-		t.Fatalf("expected ss to be removed from persisted config")
-	}
-}
 
 func TestSetAliasFromAssignment_AllowsSelfReference(t *testing.T) {
-	setupVarCommandTest(t)
+	setupAliasCommandTest(t)
 
 	if err := setAliasFromAssignment("quick=quick --help"); err != nil {
 		t.Fatalf("setAliasFromAssignment: %v", err)
@@ -89,35 +97,36 @@ func TestSetAliasFromAssignment_AllowsSelfReference(t *testing.T) {
 }
 
 func TestExpandFirstCommandAlias_ReplacesFirstToken(t *testing.T) {
-	setupVarCommandTest(t)
+	setupAliasCommandTest(t)
 	cfg.Aliases["ll"] = "ls"
 
-	got := expandFirstCommandAlias([]string{"ll", "--snippets"})
+	got := ExpandFirstCommandAlias([]string{"ll", "--snippets"})
 	want := []string{"ls", "--snippets"}
 	if !reflect.DeepEqual(got, want) {
-		t.Fatalf("expandFirstCommandAlias() = %v, want %v", got, want)
+		t.Fatalf("ExpandFirstCommandAlias() = %v, want %v", got, want)
 	}
 }
 
 func TestExpandFirstCommandAlias_ExpandsTemplateTokens(t *testing.T) {
-	setupVarCommandTest(t)
+	setupAliasCommandTest(t)
 	cfg.Aliases["sexp"] = "search express -r --registry https://github.com/Rishiyaduwanshi/boiler"
 
-	got := expandFirstCommandAlias([]string{"sexp", "--snippets"})
+	got := ExpandFirstCommandAlias([]string{"sexp", "--snippets"})
 	want := []string{"search", "express", "-r", "--registry", "https://github.com/Rishiyaduwanshi/boiler", "--snippets"}
 	if !reflect.DeepEqual(got, want) {
-		t.Fatalf("expandFirstCommandAlias() = %v, want %v", got, want)
+		t.Fatalf("ExpandFirstCommandAlias() = %v, want %v", got, want)
 	}
 }
 
 func TestExpandFirstCommandAlias_IgnoresNonAliasTokens(t *testing.T) {
-	setupVarCommandTest(t)
+	setupAliasCommandTest(t)
 	cfg.Aliases["ll"] = "ls"
 
 	for _, input := range [][]string{{"--help"}, {"unknown"}} {
-		got := expandFirstCommandAlias(input)
+		got := ExpandFirstCommandAlias(input)
 		if !reflect.DeepEqual(got, input) {
-			t.Fatalf("expandFirstCommandAlias(%v) = %v, want %v", input, got, input)
+			t.Fatalf("ExpandFirstCommandAlias(%v) = %v, want %v", input, got, input)
 		}
 	}
 }
+

@@ -1,13 +1,15 @@
-package cli
-
+package unalias
 import (
+	"github.com/rishiyaduwanshi/boiler/internal/config"
+	"github.com/rishiyaduwanshi/boiler/internal/utils"
+	aliascmd "github.com/rishiyaduwanshi/boiler/internal/cli/alias"
 	"fmt"
 	"os"
 
 	"github.com/spf13/cobra"
 )
 
-var unaliasCmd = &cobra.Command{
+var Cmd = &cobra.Command{
 	Use:   "unalias [name]",
 	Short: "Remove a command alias",
 	Long: `Remove a command alias from boiler.conf.json.
@@ -25,9 +27,9 @@ Examples:
 }
 
 func unsetAlias(rawName string) error {
-	ensureConfigAliases()
+	aliascmd.EnsureConfigAliases()
 
-	name, err := normalizeAliasName(rawName)
+	name, err := aliascmd.NormalizeAliasName(rawName)
 	if err != nil {
 		return err
 	}
@@ -37,11 +39,21 @@ func unsetAlias(rawName string) error {
 	}
 
 	delete(cfg.Aliases, name)
-	if err := persistConfigAliases(); err != nil {
+	if err := aliascmd.PersistConfigAliases(); err != nil {
 		return err
 	}
 
 	logger.Info(fmt.Sprintf("Alias removed: %s", name))
 	fmt.Printf("✓ Alias '%s' removed\n", name)
 	return nil
+}
+
+var (
+    cfg    *config.Config
+    logger *utils.Logger
+)
+
+func Setup(c *config.Config, l *utils.Logger) {
+    cfg = c
+    logger = l
 }

@@ -11,11 +11,12 @@ CGO_ENABLED = "0"
 
 [tasks.build]
 description = "Build the boiler binary"
-run = "go build -o bl.exe ."
+run = """go build -trimpath -ldflags="-s -w" -o bl.exe ."""
+
 
 [tasks.dev]
 description = "Build for development (without optimization)"
-run = "go build -o bl.exe ."
+run = "go build -race -o bl.exe ."
 
 [tasks.bin]
 description = "Install the binary to $GOPATH/bin"
@@ -46,7 +47,7 @@ run = "go get -u ./... && go mod tidy"
 description = "Build optimized release binary with version"
 run = """
 VERSION=$(git describe --tags --always --dirty 2>/dev/null || echo "dev")
-go build -o bl.exe -ldflags="-s -w -X github.com/rishiyaduwanshi/boiler/pkg/version.Version=$VERSION" .
+go build -trimpath -o bl.exe -ldflags="-s -w -X github.com/rishiyaduwanshi/boiler/pkg/version.Version=$VERSION" .
 """
 
 [tasks.dev-setup]

@@ -1,5 +1,4 @@
-package cli
-
+package varcmd
 import (
 	"fmt"
 	"os"
@@ -11,7 +10,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var varCmd = &cobra.Command{
+var Cmd = &cobra.Command{
 	Use:   "var [name|name=value]",
 	Short: "Manage reusable command and snippet variables",
 	Long: `Manage reusable variables stored in boiler.conf.json.
@@ -54,7 +53,7 @@ Examples:
 	},
 }
 
-func ensureConfigVars() {
+func EnsureConfigVars() {
 	if cfg.Vars == nil {
 		cfg.Vars = make(map[string]string)
 		return
@@ -62,7 +61,7 @@ func ensureConfigVars() {
 	cfg.Vars = utils.NormalizeVarMap(cfg.Vars)
 }
 
-func persistConfigVars() error {
+func PersistConfigVars() error {
 	if err := config.Save(cfg); err != nil {
 		return fmt.Errorf("failed to save config: %w", err)
 	}
@@ -80,10 +79,10 @@ func setVarFromAssignment(assignment string) error {
 		return err
 	}
 
-	ensureConfigVars()
+	EnsureConfigVars()
 	cfg.Vars[key] = rawValue
 
-	if err := persistConfigVars(); err != nil {
+	if err := PersistConfigVars(); err != nil {
 		return err
 	}
 
@@ -93,7 +92,7 @@ func setVarFromAssignment(assignment string) error {
 }
 
 func getVarByName(rawKey string) error {
-	ensureConfigVars()
+	EnsureConfigVars()
 
 	key, err := utils.NormalizeVarKey(rawKey)
 	if err != nil {
@@ -110,7 +109,7 @@ func getVarByName(rawKey string) error {
 }
 
 func listVars() error {
-	ensureConfigVars()
+	EnsureConfigVars()
 	if len(cfg.Vars) == 0 {
 		fmt.Println("No variables configured")
 		return nil
@@ -127,4 +126,14 @@ func listVars() error {
 		fmt.Printf("  %s=%s\n", key, cfg.Vars[key])
 	}
 	return nil
+}
+
+var (
+    cfg    *config.Config
+    logger *utils.Logger
+)
+
+func Setup(c *config.Config, l *utils.Logger) {
+    cfg = c
+    logger = l
 }

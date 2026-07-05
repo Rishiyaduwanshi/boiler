@@ -61,7 +61,7 @@ func CopyDir(src, dst string, ignorePatterns []string) error {
 		srcPath := filepath.Join(src, entry.Name())
 		dstPath := filepath.Join(dst, entry.Name())
 
-		if shouldIgnore(entry.Name(), ignorePatterns) {
+		if ShouldIgnore(entry.Name(), ignorePatterns) {
 			continue
 		}
 
@@ -79,12 +79,13 @@ func CopyDir(src, dst string, ignorePatterns []string) error {
 	return nil
 }
 
-func shouldIgnore(name string, patterns []string) bool {
+// ShouldIgnore reports whether name matches any of the given patterns.
+// Supports both exact names and glob patterns (e.g. *.log).
+func ShouldIgnore(name string, patterns []string) bool {
 	for _, pattern := range patterns {
 		if name == pattern {
 			return true
 		}
-		// Support glob patterns like *.log, *.tmp
 		if matched, _ := filepath.Match(pattern, name); matched {
 			return true
 		}
@@ -107,15 +108,6 @@ func IsDirectory(path string) bool {
 
 func EnsureDir(path string) error {
 	return os.MkdirAll(path, 0755)
-}
-
-func GetFileExtension(filename string) string {
-	return filepath.Ext(filename)
-}
-
-func GetFileNameWithoutExt(filename string) string {
-	ext := filepath.Ext(filename)
-	return filename[:len(filename)-len(ext)]
 }
 
 // CopyFileWithVariables copies a file and replaces template variables

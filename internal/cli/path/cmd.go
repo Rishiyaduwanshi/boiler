@@ -1,12 +1,13 @@
-package cli
-
+package path
 import (
+	"github.com/rishiyaduwanshi/boiler/internal/config"
+	"github.com/rishiyaduwanshi/boiler/internal/utils"
 	"fmt"
 
 	"github.com/spf13/cobra"
 )
 
-var pathCmd = &cobra.Command{
+var Cmd = &cobra.Command{
 	Use:   "path",
 	Short: "Show boiler installation path",
 	Long: `Display all Boiler installation paths.
@@ -31,4 +32,14 @@ Shows:
 		fmt.Printf("Logs:        %s\n", cfg.Paths.Logs)
 		fmt.Printf("Bin:         %s\n", cfg.Paths.Bin)
 	},
+}
+
+var (
+    cfg    *config.Config
+    logger *utils.Logger
+)
+
+func Setup(c *config.Config, l *utils.Logger) {
+    cfg = c
+    logger = l
 }

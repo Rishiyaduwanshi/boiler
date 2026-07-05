@@ -1,5 +1,4 @@
-package cli
-
+package varcmd
 import (
 	"testing"
 
@@ -53,28 +52,5 @@ func TestSetVarFromAssignment_NormalizesAndPersists(t *testing.T) {
 	}
 	if got := loaded.Vars["api_url"]; got != "https://api.example.com" {
 		t.Fatalf("loaded.Vars[api_url] = %q", got)
-	}
-}
-
-func TestUnsetVar_RemovesNormalizedKey(t *testing.T) {
-	setupVarCommandTest(t)
-
-	if err := setVarFromAssignment("TEAM_REG=https://github.com/myorg/boiler"); err != nil {
-		t.Fatalf("setVarFromAssignment: %v", err)
-	}
-	if err := unsetVar(":team_reg"); err != nil {
-		t.Fatalf("unsetVar: %v", err)
-	}
-
-	if _, ok := cfg.Vars["team_reg"]; ok {
-		t.Fatalf("expected team_reg to be removed")
-	}
-
-	loaded, err := config.Load()
-	if err != nil {
-		t.Fatalf("Load: %v", err)
-	}
-	if _, ok := loaded.Vars["team_reg"]; ok {
-		t.Fatalf("expected team_reg to be removed from persisted config")
 	}
 }

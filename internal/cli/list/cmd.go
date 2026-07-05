@@ -1,13 +1,13 @@
-package cli
-
+package list
 import (
+	"github.com/rishiyaduwanshi/boiler/internal/config"
 	"fmt"
 
 	"github.com/rishiyaduwanshi/boiler/internal/utils"
 	"github.com/spf13/cobra"
 )
 
-var listCmd = &cobra.Command{
+var Cmd = &cobra.Command{
 	Use:     "ls",
 	Aliases: []string{"list"},
 	Short:   "List snippets or stacks",
@@ -66,6 +66,16 @@ var (
 )
 
 func init() {
-	listCmd.Flags().BoolVarP(&listSnippets, "snippets", "n", false, "List snippets")
-	listCmd.Flags().BoolVarP(&listStacks, "stacks", "k", false, "List stacks")
+	Cmd.Flags().BoolVarP(&listSnippets, "snippets", "n", false, "List snippets")
+	Cmd.Flags().BoolVarP(&listStacks, "stacks", "k", false, "List stacks")
+}
+
+var (
+    cfg    *config.Config
+    logger *utils.Logger
+)
+
+func Setup(c *config.Config, l *utils.Logger) {
+    cfg = c
+    logger = l
 }

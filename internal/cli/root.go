@@ -4,6 +4,23 @@ import (
 	"os"
 	"sync"
 
+	addcmd "github.com/rishiyaduwanshi/boiler/internal/cli/add"
+	aliascmd "github.com/rishiyaduwanshi/boiler/internal/cli/alias"
+	cleancmd "github.com/rishiyaduwanshi/boiler/internal/cli/clean"
+	confcmd "github.com/rishiyaduwanshi/boiler/internal/cli/conf"
+	infocmd "github.com/rishiyaduwanshi/boiler/internal/cli/info"
+	initcmd "github.com/rishiyaduwanshi/boiler/internal/cli/init"
+	listcmd "github.com/rishiyaduwanshi/boiler/internal/cli/list"
+	pathcmd "github.com/rishiyaduwanshi/boiler/internal/cli/path"
+	searchcmd "github.com/rishiyaduwanshi/boiler/internal/cli/search"
+	selfcmd "github.com/rishiyaduwanshi/boiler/internal/cli/self"
+	storecmd "github.com/rishiyaduwanshi/boiler/internal/cli/store"
+	unaliascmd "github.com/rishiyaduwanshi/boiler/internal/cli/unalias"
+	unvarcmd "github.com/rishiyaduwanshi/boiler/internal/cli/unvar"
+	usecmd "github.com/rishiyaduwanshi/boiler/internal/cli/use"
+	varcmd "github.com/rishiyaduwanshi/boiler/internal/cli/var"
+	versioncmd "github.com/rishiyaduwanshi/boiler/internal/cli/version"
+
 	"github.com/rishiyaduwanshi/boiler/internal/config"
 	"github.com/rishiyaduwanshi/boiler/internal/remote"
 	"github.com/rishiyaduwanshi/boiler/internal/utils"
@@ -63,8 +80,26 @@ variations of the same snippet or stack.`,
 func Execute(config *config.Config, log *utils.Logger) error {
 	cfg = config
 	logger = log
+	
+	// Inject config and logger into all subcommands
+	aliascmd.Setup(cfg, logger)
+	cleancmd.Setup(cfg, logger)
+	confcmd.Setup(cfg, logger)
+	infocmd.Setup(cfg, logger)
+	initcmd.Setup(cfg, logger)
+	listcmd.Setup(cfg, logger)
+	pathcmd.Setup(cfg, logger)
+	searchcmd.Setup(cfg, logger)
+	selfcmd.Setup(cfg, logger)
+	storecmd.Setup(cfg, logger)
+	unaliascmd.Setup(cfg, logger)
+	unvarcmd.Setup(cfg, logger)
+	usecmd.Setup(cfg, logger)
+	varcmd.Setup(cfg, logger)
+	versioncmd.Setup(cfg, logger)
+
 	rootCmd.SilenceErrors = true
-	rootCmd.SetArgs(expandFirstCommandAlias(os.Args[1:]))
+	rootCmd.SetArgs(aliascmd.ExpandFirstCommandAlias(os.Args[1:]))
 	ensureCommandDocsNormalized()
 	return rootCmd.Execute()
 }
@@ -85,20 +120,22 @@ func init() {
 	// Add version flag
 	rootCmd.Flags().BoolP("version", "v", false, "Show version information")
 	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "V", false, "Enable verbose debug output")
+	
 	// Add subcommands
-	rootCmd.AddCommand(versionCmd)
-	rootCmd.AddCommand(confCmd)
-	rootCmd.AddCommand(aliasCmd)
-	rootCmd.AddCommand(unaliasCmd)
-	rootCmd.AddCommand(varCmd)
-	rootCmd.AddCommand(unvarCmd)
-	rootCmd.AddCommand(addCmd)
-	rootCmd.AddCommand(storeCmd)
-	rootCmd.AddCommand(listCmd)
-	rootCmd.AddCommand(cleanCmd)
-	rootCmd.AddCommand(infoCmd)
-	rootCmd.AddCommand(searchCmd)
-	rootCmd.AddCommand(initCmd)
-	rootCmd.AddCommand(pathCmd)
-	rootCmd.AddCommand(selfCmd)
+	rootCmd.AddCommand(versioncmd.Cmd)
+	rootCmd.AddCommand(confcmd.Cmd)
+	rootCmd.AddCommand(aliascmd.Cmd)
+	rootCmd.AddCommand(unaliascmd.Cmd)
+	rootCmd.AddCommand(varcmd.Cmd)
+	rootCmd.AddCommand(unvarcmd.Cmd)
+	rootCmd.AddCommand(addcmd.NewCmd(func() *config.Config { return cfg }, func() *utils.Logger { return logger }))
+	rootCmd.AddCommand(storecmd.Cmd)
+	rootCmd.AddCommand(listcmd.Cmd)
+	rootCmd.AddCommand(cleancmd.Cmd)
+	rootCmd.AddCommand(infocmd.Cmd)
+	rootCmd.AddCommand(searchcmd.Cmd)
+	rootCmd.AddCommand(initcmd.Cmd)
+	rootCmd.AddCommand(pathcmd.Cmd)
+	rootCmd.AddCommand(selfcmd.Cmd)
+	rootCmd.AddCommand(usecmd.Cmd)
 }

@@ -1,6 +1,6 @@
-package cli
-
+package alias
 import (
+	"github.com/rishiyaduwanshi/boiler/internal/utils"
 	"fmt"
 	"os"
 	"regexp"
@@ -14,7 +14,7 @@ import (
 var aliasNameRe = regexp.MustCompile(`^[a-z][a-z0-9_-]*$`)
 const maxAliasExpansionDepth = 8
 
-var aliasCmd = &cobra.Command{
+var Cmd = &cobra.Command{
 	Use:   "alias [name|name=command [args...]]",
 	Short: "Manage reusable command aliases",
 	Long: `Manage command aliases stored in boiler.conf.json.
@@ -58,7 +58,7 @@ Examples:
 	},
 }
 
-func ensureConfigAliases() {
+func EnsureConfigAliases() {
 	if cfg.Aliases == nil {
 		cfg.Aliases = make(map[string]string)
 		return
@@ -66,7 +66,7 @@ func ensureConfigAliases() {
 
 	normalized := make(map[string]string, len(cfg.Aliases))
 	for rawName, rawTarget := range cfg.Aliases {
-		name, err := normalizeAliasName(rawName)
+		name, err := NormalizeAliasName(rawName)
 		if err != nil {
 			continue
 		}
@@ -79,14 +79,14 @@ func ensureConfigAliases() {
 	cfg.Aliases = normalized
 }
 
-func persistConfigAliases() error {
+func PersistConfigAliases() error {
 	if err := config.Save(cfg); err != nil {
 		return fmt.Errorf("failed to save config: %w", err)
 	}
 	return nil
 }
 
-func normalizeAliasName(raw string) (string, error) {
+func NormalizeAliasName(raw string) (string, error) {
 	name := strings.ToLower(strings.TrimSpace(raw))
 	if !aliasNameRe.MatchString(name) {
 		return "", fmt.Errorf("invalid alias name %q: use letters, numbers, underscores, and hyphens", raw)
@@ -128,7 +128,7 @@ func setAliasFromAssignment(assignment string) error {
 		return fmt.Errorf("invalid alias assignment; use NAME=COMMAND")
 	}
 
-	name, err := normalizeAliasName(rawName)
+	name, err := NormalizeAliasName(rawName)
 	if err != nil {
 		return err
 	}
@@ -142,10 +142,10 @@ func setAliasFromAssignment(assignment string) error {
 	}
 	target = strings.Join(targetTokens, " ")
 
-	ensureConfigAliases()
+	EnsureConfigAliases()
 	cfg.Aliases[name] = target
 
-	if err := persistConfigAliases(); err != nil {
+	if err := PersistConfigAliases(); err != nil {
 		return err
 	}
 
@@ -155,9 +155,9 @@ func setAliasFromAssignment(assignment string) error {
 }
 
 func getAliasByName(rawName string) error {
-	ensureConfigAliases()
+	EnsureConfigAliases()
 
-	name, err := normalizeAliasName(rawName)
+	name, err := NormalizeAliasName(rawName)
 	if err != nil {
 		return err
 	}
@@ -172,7 +172,7 @@ func getAliasByName(rawName string) error {
 }
 
 func listAliases() error {
-	ensureConfigAliases()
+	EnsureConfigAliases()
 	if len(cfg.Aliases) == 0 {
 		fmt.Println("No aliases configured")
 		return nil
@@ -191,12 +191,12 @@ func listAliases() error {
 	return nil
 }
 
-func expandFirstCommandAlias(args []string) []string {
+func ExpandFirstCommandAlias(args []string) []string {
 	if len(args) == 0 || cfg == nil {
 		return args
 	}
 
-	ensureConfigAliases()
+	EnsureConfigAliases()
 	if len(cfg.Aliases) == 0 {
 		return args
 	}
@@ -209,7 +209,7 @@ func expandFirstCommandAlias(args []string) []string {
 			return expanded
 		}
 
-		aliasName, err := normalizeAliasName(firstToken)
+		aliasName, err := NormalizeAliasName(firstToken)
 		if err != nil {
 			return expanded
 		}
@@ -231,4 +231,14 @@ func expandFirstCommandAlias(args []string) []string {
 	}
 
 	return expanded
+}
+
+var (
+    cfg    *config.Config
+    logger *utils.Logger
+)
+
+func Setup(c *config.Config, l *utils.Logger) {
+    cfg = c
+    logger = l
 }

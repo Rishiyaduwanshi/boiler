@@ -1,6 +1,6 @@
-package cli
-
+package info
 import (
+	"github.com/rishiyaduwanshi/boiler/internal/config"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -10,7 +10,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var infoCmd = &cobra.Command{
+var Cmd = &cobra.Command{
 	Use:   "info [resource]",
 	Short: "Show detailed information about a resource",
 	Long: `Display detailed information about a stored snippet or stack.
@@ -118,4 +118,14 @@ func showStackInfo(st *store.Store, name string) error {
 	fmt.Printf("   Modified:    %s\n", info.ModTime().Format("2006-01-02 15:04:05"))
 
 	return nil
+}
+
+var (
+    cfg    *config.Config
+    logger *utils.Logger
+)
+
+func Setup(c *config.Config, l *utils.Logger) {
+    cfg = c
+    logger = l
 }

@@ -1,6 +1,6 @@
-package cli
-
+package self
 import (
+	"github.com/rishiyaduwanshi/boiler/internal/config"
 	"archive/tar"
 	"archive/zip"
 	"compress/gzip"
@@ -9,7 +9,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"net/http"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -33,7 +32,7 @@ type githubAsset struct {
 	BrowserDownloadURL string `json:"browser_download_url"`
 }
 
-var selfCmd = &cobra.Command{
+var Cmd = &cobra.Command{
 	Use:   "self",
 	Short: "Manage Boiler installation",
 	Long: `Manage Boiler CLI installation.
@@ -146,7 +145,7 @@ func runSelfUpdate() error {
 	// Download checksums.txt and get expected hash for our asset
 	var expectedHash string
 	if checksumURL != "" {
-		checksumData, err := selfHTTPGet(checksumURL)
+		checksumData, err := utils.HTTPGet(checksumURL, 30*time.Second)
 		if err == nil {
 			expectedHash = parseChecksumFile(string(checksumData), target)
 		}
@@ -162,7 +161,7 @@ func runSelfUpdate() error {
 	defer os.Remove(tmpArchive)
 
 	fmt.Printf("Downloading %s...\n", target)
-	if err := selfDownloadToFile(assetURL, tmpArchive); err != nil {
+	if err := utils.HTTPDownloadToFile(assetURL, tmpArchive, 120*time.Second); err != nil {
 		return fmt.Errorf("download failed: %w", err)
 	}
 
@@ -232,7 +231,7 @@ func releaseAssetName() string {
 
 // fetchLatestRelease queries the GitHub API for the latest release.
 func fetchLatestRelease() (*githubRelease, error) {
-	data, err := selfHTTPGet(githubReleaseAPI)
+	data, err := utils.HTTPGet(githubReleaseAPI, 30*time.Second)
 	if err != nil {
 		return nil, err
 	}
@@ -385,54 +384,17 @@ func extractFromZip(archivePath, binaryName, destPath string) error {
 	return fmt.Errorf("binary '%s' not found in archive", binaryName)
 }
 
-func copyFile(src, dst string) error {
-	in, err := os.Open(src)
-	if err != nil {
-		return err
-	}
-	defer in.Close()
-	out, err := os.Create(dst)
-	if err != nil {
-		return err
-	}
-	defer out.Close()
-	_, err = io.Copy(out, in)
-	return err
-}
-
-func selfHTTPGet(url string) ([]byte, error) {
-	client := &http.Client{Timeout: 30 * time.Second}
-	resp, err := client.Get(url)
-	if err != nil {
-		return nil, fmt.Errorf("HTTP request failed: %w", err)
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("HTTP %d: %s", resp.StatusCode, resp.Status)
-	}
-	return io.ReadAll(resp.Body)
-}
-
-func selfDownloadToFile(url, path string) error {
-	client := &http.Client{Timeout: 120 * time.Second}
-	resp, err := client.Get(url)
-	if err != nil {
-		return fmt.Errorf("HTTP request failed: %w", err)
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("HTTP %d: %s", resp.StatusCode, resp.Status)
-	}
-	out, err := os.Create(path)
-	if err != nil {
-		return fmt.Errorf("failed to create file: %w", err)
-	}
-	defer out.Close()
-	_, err = io.Copy(out, resp.Body)
-	return err
-}
-
 func init() {
-	selfCmd.AddCommand(selfUninstallCmd)
-	selfCmd.AddCommand(selfUpdateCmd)
+	Cmd.AddCommand(selfUninstallCmd)
+	Cmd.AddCommand(selfUpdateCmd)
+}
+
+var (
+    cfg    *config.Config
+    logger *utils.Logger
+)
+
+func Setup(c *config.Config, l *utils.Logger) {
+    cfg = c
+    logger = l
 }

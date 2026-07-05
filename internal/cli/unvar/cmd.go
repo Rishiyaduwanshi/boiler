@@ -1,6 +1,7 @@
-package cli
-
+package unvar
 import (
+	"github.com/rishiyaduwanshi/boiler/internal/config"
+	varcmd "github.com/rishiyaduwanshi/boiler/internal/cli/var"
 	"fmt"
 	"os"
 
@@ -8,7 +9,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var unvarCmd = &cobra.Command{
+var Cmd = &cobra.Command{
 	Use:   "unvar [name]",
 	Short: "Remove a variable",
 	Long: `Remove a variable from boiler.conf.json.
@@ -27,7 +28,7 @@ Examples:
 }
 
 func unsetVar(rawKey string) error {
-	ensureConfigVars()
+	varcmd.EnsureConfigVars()
 
 	key, err := utils.NormalizeVarKey(rawKey)
 	if err != nil {
@@ -39,11 +40,21 @@ func unsetVar(rawKey string) error {
 	}
 
 	delete(cfg.Vars, key)
-	if err := persistConfigVars(); err != nil {
+	if err := varcmd.PersistConfigVars(); err != nil {
 		return err
 	}
 
 	logger.Info(fmt.Sprintf("Variable removed: %s", key))
 	fmt.Printf("✓ Variable '%s' removed\n", key)
 	return nil
+}
+
+var (
+    cfg    *config.Config
+    logger *utils.Logger
+)
+
+func Setup(c *config.Config, l *utils.Logger) {
+    cfg = c
+    logger = l
 }

@@ -1,14 +1,16 @@
-package cli
-
+package use
 import (
+	"github.com/rishiyaduwanshi/boiler/internal/config"
 	"fmt"
 	"os"
 
+	addcmd "github.com/rishiyaduwanshi/boiler/internal/cli/add"
 	"github.com/rishiyaduwanshi/boiler/internal/utils"
 	"github.com/spf13/cobra"
+
 )
 
-var useCmd = &cobra.Command{
+var Cmd = &cobra.Command{
 	Use:   "use [resource] [destination]",
 	Short: "Fetch a remote resource directly without saving to local store",
 	Long: `Fetch a remote resource directly without saving to local store.
@@ -68,12 +70,12 @@ Stack placement:
 			}
 		}
 
-		opts := addOptions{
-			force:  useForce,
-			spread: useSpread,
+		opts := addcmd.Options{
+			Force:  useForce,
+			Spread: useSpread,
 		}
 
-		if err := addResource(resource, resolveAddDestination(positionalDest), true, true, opts); err != nil {
+		if err := addcmd.AddResource(resource, addcmd.ResolveDestination(positionalDest), true, true, opts, cfg, logger); err != nil {
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 			os.Exit(1)
 		}
@@ -84,7 +86,16 @@ var useForce bool
 var useSpread bool
 
 func init() {
-	useCmd.Flags().BoolVarP(&useForce, addForceFlag, addForceFlagShort, false, addForceDesc)
-	useCmd.Flags().BoolVar(&useSpread, "spread", false, "Spread stack contents directly into destination")
-	rootCmd.AddCommand(useCmd)
+	Cmd.Flags().BoolVarP(&useForce, "force", "f", false, "Force operation without confirmation")
+	Cmd.Flags().BoolVar(&useSpread, "spread", false, "Spread stack contents directly into destination")
+}
+
+var (
+    cfg    *config.Config
+    logger *utils.Logger
+)
+
+func Setup(c *config.Config, l *utils.Logger) {
+    cfg = c
+    logger = l
 }

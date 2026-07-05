@@ -1,6 +1,6 @@
-package cli
-
+package search
 import (
+	"github.com/rishiyaduwanshi/boiler/internal/config"
 	"fmt"
 	"os"
 	"strings"
@@ -10,7 +10,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var searchCmd = &cobra.Command{
+var Cmd = &cobra.Command{
 	Use:   "search [query]",
 	Short: "Search for snippets or stacks",
 	Long: `Search for resources in your store by name.
@@ -122,35 +122,16 @@ func searchResources(query string) error {
 
 // searchRemoteResources searches for resources in remote registry
 func searchRemoteResources(query string) error {
-	// Use custom registry if provided, otherwise use config
-	registryURL := cfg.Registry
-	if searchRegistry != "" {
-		registryURL = searchRegistry
-	}
-
-	registryURL, err := utils.ResolveInputToken(registryURL, "registry", cfg.Vars)
+	handler, remoteStore, err := remote.LoadRegistry(searchRegistry, cfg.Vars)
 	if err != nil {
 		return err
-	}
-
-	// Initialize remote store
-	remoteStoreHandler, err := remote.NewRemoteStore(registryURL)
-	if err != nil {
-		return fmt.Errorf("failed to initialize remote store: %w", err)
-	}
-
-	// Load remote metadata
-	fmt.Println("🔄 Fetching remote registry...")
-	remoteStore, err := remoteStoreHandler.LoadFromURL()
-	if err != nil {
-		return fmt.Errorf("failed to load remote registry: %w", err)
 	}
 
 	// Determine what to search
 	searchSnips := !searchStacks  // Search snippets by default
 	searchStks := !searchSnippets // Search stacks by default
 
-	results := remoteStoreHandler.Search(remoteStore, query, searchSnips, searchStks)
+	results := handler.Search(remoteStore, query, searchSnips, searchStks)
 
 	foundAny := false
 
@@ -189,8 +170,18 @@ var (
 )
 
 func init() {
-	searchCmd.Flags().BoolVarP(&searchSnippets, "snippets", "n", false, "Search only snippets")
-	searchCmd.Flags().BoolVarP(&searchStacks, "stacks", "k", false, "Search only stacks")
-	searchCmd.Flags().BoolVarP(&searchRemote, "remote", "r", false, "Search remote registry")
-	searchCmd.Flags().StringVar(&searchRegistry, "registry", "", "Custom registry URL (overrides config)")
+	Cmd.Flags().BoolVarP(&searchSnippets, "snippets", "n", false, "Search only snippets")
+	Cmd.Flags().BoolVarP(&searchStacks, "stacks", "k", false, "Search only stacks")
+	Cmd.Flags().BoolVarP(&searchRemote, "remote", "r", false, "Search remote registry")
+	Cmd.Flags().StringVar(&searchRegistry, "registry", "", "Custom registry URL (overrides config)")
+}
+
+var (
+    cfg    *config.Config
+    logger *utils.Logger
+)
+
+func Setup(c *config.Config, l *utils.Logger) {
+    cfg = c
+    logger = l
 }

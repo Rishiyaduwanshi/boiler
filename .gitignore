@@ -8,6 +8,8 @@ build/
 # Config and data
 boiler.conf.json
 .mise.local.toml
+store/
+logs/
 
 # Dependencies
 node_modules/
@@ -27,7 +29,6 @@ vendor/
 Thumbs.db
 
 # Logs
-logs/
 *.log
 
 # Test

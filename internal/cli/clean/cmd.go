@@ -1,6 +1,6 @@
-package cli
-
+package clean
 import (
+	"github.com/rishiyaduwanshi/boiler/internal/config"
 	"fmt"
 	"os"
 
@@ -9,7 +9,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var cleanCmd = &cobra.Command{
+var Cmd = &cobra.Command{
 	Use:   "clean [resource]",
 	Short: "Clean snippets, stacks, or store",
 	Long: `Remove snippets, stacks, or clear entire store.
@@ -302,8 +302,17 @@ func interactiveClean() error {
 }
 
 func init() {
-	rootCmd.AddCommand(cleanCmd)
-	cleanCmd.Flags().BoolVarP(&cleanAll, cleanAllFlag, cleanAllFlagShort, false, cleanAllDesc)
-	cleanCmd.Flags().BoolVarP(&cleanSnippets, cleanSnippetsFlag, cleanSnippetsFlagShort, false, cleanSnippetsDesc)
-	cleanCmd.Flags().BoolVarP(&cleanStacks, cleanStacksFlag, cleanStacksFlagShort, false, cleanStacksDesc)
+Cmd.Flags().BoolVarP(&cleanAll, cleanAllFlag, cleanAllFlagShort, false, cleanAllDesc)
+	Cmd.Flags().BoolVarP(&cleanSnippets, cleanSnippetsFlag, cleanSnippetsFlagShort, false, cleanSnippetsDesc)
+	Cmd.Flags().BoolVarP(&cleanStacks, cleanStacksFlag, cleanStacksFlagShort, false, cleanStacksDesc)
+}
+
+var (
+    cfg    *config.Config
+    logger *utils.Logger
+)
+
+func Setup(c *config.Config, l *utils.Logger) {
+    cfg = c
+    logger = l
 }
