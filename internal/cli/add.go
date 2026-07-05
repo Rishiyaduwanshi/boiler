@@ -728,13 +728,14 @@ func addDirectRemoteResource(remotePath, destPath string, resourceType addResour
 			return nil
 		}
 
-		// Download snippet
-		localStorePath := filepath.Join(cfg.Paths.Snippets, filepath.Dir(subPath))
-		if err := os.MkdirAll(localStorePath, 0755); err != nil {
+		// Download snippet - use extension-based directory to match bl store behavior
+		ext := strings.TrimPrefix(filepath.Ext(filepath.Base(subPath)), ".")
+		langDir := filepath.Join(cfg.Paths.Snippets, ext)
+		if err := os.MkdirAll(langDir, 0755); err != nil {
 			return fmt.Errorf("failed to create local store directory: %w", err)
 		}
 
-		localDestPath := filepath.Join(cfg.Paths.Snippets, filepath.Base(subPath))
+		localDestPath := filepath.Join(langDir, filepath.Base(subPath))
 
 		// Fetch snippet
 		if err := remote.FetchSnippet(remotePath, localDestPath); err != nil {
@@ -935,10 +936,13 @@ func addDirectRemoteURLResource(remotePath, destPath string, resourceType addRes
 			return nil
 		}
 
-		localDestPath := filepath.Join(cfg.Paths.Snippets, resourceName)
-		if err := utils.EnsureDir(filepath.Dir(localDestPath)); err != nil {
+		// Use extension-based directory to match bl store behavior
+		ext := strings.TrimPrefix(filepath.Ext(resourceName), ".")
+		langDir := filepath.Join(cfg.Paths.Snippets, ext)
+		if err := utils.EnsureDir(langDir); err != nil {
 			return fmt.Errorf("failed to create local store directory: %w", err)
 		}
+		localDestPath := filepath.Join(langDir, resourceName)
 
 		if err := remote.FetchSnippet(remotePath, localDestPath); err != nil {
 			return err
