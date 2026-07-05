@@ -11,12 +11,12 @@ import (
 	"io"
 	"net/http"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
 	"time"
 
+	"github.com/rishiyaduwanshi/boiler/internal/utils"
 	"github.com/rishiyaduwanshi/boiler/pkg/version"
 	"github.com/spf13/cobra"
 )
@@ -47,11 +47,12 @@ var selfUninstallCmd = &cobra.Command{
 	Long: `Uninstall Boiler CLI from your system.
 
 This will:
-  - Remove the binary from installation directory
-  - Clean PATH environment variable
-  - Optionally remove config and store data
+  - Locate and remove the Boiler binary
+  - Prompt for confirmation before deletion
 
-You will be prompted for confirmation before deletion.`,
+After removal, you will need to manually clean the PATH entry
+added by the installer (remove it from ~/.bashrc, ~/.zshrc, or
+Windows System Environment Variables).`,
 	Example: `  # Uninstall Boiler
   bl self uninstall`,
 	Run: func(cmd *cobra.Command, args []string) {
@@ -80,24 +81,30 @@ and replaces the current binary. No scripts are piped to shell.`,
 }
 
 func runSelfUninstall() error {
-	var cmd *exec.Cmd
-	scriptURL := "https://raw.githubusercontent.com/rishiyaduwanshi/boiler/main/scripts/uninstall"
-
-	if runtime.GOOS == "windows" {
-		scriptURL += ".ps1"
-		psCmd := fmt.Sprintf("irm %s | iex", scriptURL)
-		cmd = exec.Command("powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", psCmd)
-	} else {
-		scriptURL += ".sh"
-		bashCmd := fmt.Sprintf("curl -fsSL %s | bash", scriptURL)
-		cmd = exec.Command("bash", "-c", bashCmd)
+	exePath, err := os.Executable()
+	if err != nil {
+		return fmt.Errorf("failed to locate binary: %w", err)
+	}
+	exePath, err = filepath.EvalSymlinks(exePath)
+	if err != nil {
+		return fmt.Errorf("failed to resolve binary path: %w", err)
 	}
 
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	cmd.Stdin = os.Stdin
+	fmt.Printf("This will permanently remove: %s\n", exePath)
+	if !utils.ConfirmAction("Continue? (y/N): ") {
+		return fmt.Errorf("cancelled")
+	}
 
-	return cmd.Run()
+	if err := os.Remove(exePath); err != nil {
+		return fmt.Errorf("failed to remove binary: %w", err)
+	}
+
+	fmt.Println("✓ Boiler binary removed")
+	fmt.Println()
+	fmt.Println("To finish cleaning up, remove the PATH entry added by the installer:")
+	fmt.Println("  Linux/macOS: remove the 'export PATH' line from ~/.bashrc, ~/.zshrc, or ~/.config/fish/config.fish")
+	fmt.Println("  Windows:     remove the Boiler directory from your user PATH in System Environment Variables")
+	return nil
 }
 
 func runSelfUpdate() error {
