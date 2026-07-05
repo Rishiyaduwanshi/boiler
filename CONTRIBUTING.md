@@ -18,22 +18,27 @@ Boiler is actively evolving toward v1.0. The codebase is being improved continuo
 
 ## Quick Start
 
+We use [mise](https://mise.jdx.dev) to manage dependencies, tools, and scripts.
+
 ```bash
 # Clone the repository
 git clone https://github.com/rishiyaduwanshi/boiler.git
 cd boiler
 
-# Install dependencies
-go mod download
+# Install mise (if not already installed)
+curl https://mise.run | sh
 
-# Build the project
-go build -o bl main.go
+# Setup the project (installs Go, downloads deps, sets up git hooks)
+mise run setup
+
+# Build for development
+mise run dev
 
 # Run locally
 ./bl --help
 
 # Run tests
-go test ./...
+mise run test
 ```
 
 ---
@@ -42,7 +47,7 @@ go test ./...
 
 ### 1. Fork & Branch
 ```bash
-git clone https://github.com/YOUR_USERNAME/boiler.git
+git clone https://github.com/rishiyaduwanshi/boiler.git
 cd boiler
 git checkout -b fix/your-fix-name
 # or
@@ -57,7 +62,7 @@ git checkout -b feat/your-feature-name
 
 ### 3. Test Your Changes
 ```bash
-go build -o bl main.go
+mise run dev
 ./bl store ./testfile.js
 ./bl add testfile
 ./bl ls
@@ -104,76 +109,35 @@ security: implement bl self uninstall natively without curl
 docs: update CONTRIBUTING with correct project structure
 ```
 
----
-
-## Project Structure
-
-```
-boiler/
-├── main.go                        # Entry point - loads config, starts CLI
-├── gendocs.go                     # Auto-generates CLI docs
-├── go.mod / go.sum
-│
-├── internal/
-│   ├── cli/                       # One file per command
-│   │   ├── root.go               # Root command, Execute(), alias expansion
-│   │   ├── add.go                # bl add
-│   │   ├── store.go              # bl store
-│   │   ├── clean.go              # bl clean
-│   │   ├── search.go             # bl search
-│   │   ├── init.go               # bl init
-│   │   ├── self.go               # bl self update / uninstall
-│   │   └── ...
-│   ├── config/
-│   │   └── config.go             # Load/save boiler.conf.json
-│   ├── models/                    # Shared data types (StackConfig, etc.)
-│   ├── remote/                    # Remote fetch logic
-│   │   ├── fetch.go              # FetchSnippet, FetchStack
-│   │   ├── providers.go          # GitHub, GitLab, Bitbucket, Generic
-│   │   └── remote.go             # RemoteStore, registry metadata
-│   ├── store/
-│   │   └── store.go              # boiler.meta.json read/write, ParseResourceName
-│   └── utils/                    # Shared helpers
-│       ├── fs.go                 # CopyFile, CopyDir, CopyFileWithVariables
-│       ├── metadata.go           # ParseSnippetMetadata, ValidateSnippetMetadata
-│       ├── vars.go               # Variable resolution (:KEY, bl__VAR)
-│       ├── helpers.go            # LoadStore, PickFromList, FindMatchingResources
-│       ├── logger.go
-│       ├── prompt.go
-│       └── messages.go           # Shared error/success message constants
-│
-├── pkg/
-│   └── version/                   # Version string injected at build time
-│
-├── scripts/                       # Install and uninstall scripts
-│   ├── install.sh
-│   ├── install.ps1
-│   ├── uninstall.sh
-│   └── uninstall.ps1
-│
-└── web/                           # Documentation website (Astro Starlight)
-    └── src/content/docs/          # Markdown doc pages
-```
-
----
-
 ## Adding a New Command
 
-Commands use package-level variables for flags and `func init()` for registration. Follow the existing pattern:
+Commands are isolated into their own packages. Follow the existing pattern:
 
-### 1. Create `internal/cli/export.go`
+### 1. Create `internal/cli/export/cmd.go`
 
 ```go
-package cli
+package export
 
 import (
     "fmt"
     "os"
 
+    "github.com/rishiyaduwanshi/boiler/internal/config"
+    "github.com/rishiyaduwanshi/boiler/internal/utils"
     "github.com/spf13/cobra"
 )
 
-var exportCmd = &cobra.Command{
+var (
+    cfg    *config.Config
+    logger *utils.Logger
+)
+
+func Setup(c *config.Config, l *utils.Logger) {
+    cfg = c
+    logger = l
+}
+
+var Cmd = &cobra.Command{
     Use:   "export [destination]",
     Short: "Export all snippets to a directory",
     Args:  cobra.MaximumNArgs(1),
@@ -186,30 +150,44 @@ var exportCmd = &cobra.Command{
 }
 
 func runExport(args []string) error {
-    // cfg and logger are package-level, available to all commands
     logger.Info("exporting snippets")
-    // implementation here
     return nil
 }
 
 var exportForce bool
 
 func init() {
-    exportCmd.Flags().BoolVarP(&exportForce, "force", "f", false, "Overwrite existing files")
-    rootCmd.AddCommand(exportCmd)
+    Cmd.Flags().BoolVarP(&exportForce, "force", "f", false, "Overwrite existing files")
 }
 ```
 
-### 2. Add docs: `web/src/content/docs/commands/export.md`
+### 2. Register in `internal/cli/root.go`
 
-No changes to `root.go` needed - `init()` handles registration automatically.
+Add it to `Execute()` and `init()` in `root.go`:
+
+```go
+import exportcmd "github.com/rishiyaduwanshi/boiler/internal/cli/export"
+
+func Execute(...) {
+    // ...
+    exportcmd.Setup(cfg, logger)
+}
+
+func init() {
+    // ...
+    rootCmd.AddCommand(exportcmd.Cmd)
+}
+```
+
+### 3. Auto-generate docs
+
+Just run `mise build` or `lefthook run pre-commit`. The `gendocs.go` tool will automatically generate `web/src/content/docs/commands/export.md` for you!
 
 ---
 
 ## Code Style
 
-- Run `gofmt` before committing
-- Run `go vet ./...` - fix all warnings before submitting
+- Formatting and linting happen automatically on `git commit` via git hooks.
 - Keep functions small and focused
 - Handle every error - never silently discard `err`
 - Use the shared message constants in `utils/messages.go` for user-facing strings
@@ -237,9 +215,9 @@ Not sure if something is worth building? Open a [Discussion](https://github.com/
 
 ## Pull Request Checklist
 
-- [ ] Code builds: `go build -o bl main.go`
-- [ ] Tests pass: `go test ./...`
-- [ ] `go vet ./...` is clean
+- [ ] Code builds: `mise run build`
+- [ ] Tests pass: `mise run test`
+- [ ] `mise run lint` is clean
 - [ ] Related issue linked (`Closes #N`)
 - [ ] Docs updated if behavior changed
 - [ ] Commit messages follow the convention above
@@ -248,14 +226,17 @@ Not sure if something is worth building? Open a [Discussion](https://github.com/
 
 ## Running Locally
 
-```bash
-# Development build
-go build -o bl main.go
+Our cross-platform build script automatically detects your OS and builds the correct binary (`bl` or `bl.exe`).
 
-# Cross-compile
-GOOS=windows GOARCH=amd64 go build -o bl.exe main.go
-GOOS=linux   GOARCH=amd64 go build -o bl main.go
-GOOS=darwin  GOARCH=amd64 go build -o bl main.go
+```bash
+# Development build (unoptimized, good for debugging)
+mise run dev
+
+# Standard build (optimized binary)
+mise run build
+
+# Release build (injects Git version tag)
+mise run release
 ```
 
 ## Documentation Website

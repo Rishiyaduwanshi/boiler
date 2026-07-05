@@ -199,7 +199,8 @@ bl --help            # Full command list
 ```bash
 git clone https://github.com/rishiyaduwanshi/boiler.git
 cd boiler
-go build -o bl main.go
+mise run setup   # Install deps and hooks
+mise run dev     # Build development binary
 ```
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.

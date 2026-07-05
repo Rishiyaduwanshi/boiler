@@ -11,12 +11,12 @@ CGO_ENABLED = "0"
 
 [tasks.build]
 description = "Build the boiler binary"
-run = """go build -trimpath -ldflags="-s -w" -o bl.exe ."""
+run = "go run scripts/build.go build"
 
 
 [tasks.dev]
 description = "Build for development (without optimization)"
-run = "go build -race -o bl.exe ."
+run = "go run scripts/build.go dev"
 
 [tasks.bin]
 description = "Install the binary to $GOPATH/bin"
@@ -45,25 +45,19 @@ run = "go get -u ./... && go mod tidy"
 
 [tasks.release]
 description = "Build optimized release binary with version"
-run = """
-VERSION=$(git describe --tags --always --dirty 2>/dev/null || echo "dev")
-go build -trimpath -o bl.exe -ldflags="-s -w -X github.com/rishiyaduwanshi/boiler/pkg/version.Version=$VERSION" .
-"""
-
-[tasks.dev-setup]
-description = "Setup development environment (deps + git hooks)"
-run = """
-go mod download
-lefthook install
-"""
+run = "go run scripts/build.go release"
 
 [tasks.test]
 description = "Run all tests"
 run = "go test ./internal/... -timeout 120s"
 
 [tasks.setup]
-description = "First-time dev setup: installs git hooks"
-run = "lefthook install"
+description = "Set up the development environment"
+run = """
+go mod download
+go mod tidy
+lefthook install
+"""
 
 [tasks.check]
 description = "Run all checks (fmt, vet, test)"

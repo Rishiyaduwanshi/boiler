@@ -8,12 +8,12 @@
 pre-commit:
   parallel: false
   commands:
-    vet:
-      run: go vet ./...
-    build:
-      run: go build ./...
+    lint:
+      glob: "**/*.go"
+      run: mise run lint
+      stage_fixed: true
     gendocs:
-      glob: internal/cli/*.go
+      glob: "internal/cli/**/*.go"
       run: go run gendocs.go && git add web/src/content/docs/commands/*.md
 
 pre-push:
@@ -26,4 +26,4 @@ pre-push:
 commit-msg:
   commands:
     conventional:
-      run: "grep -Eq '^(feat|fix|docs|style|refactor|test|chore|perf|ci|build|revert)(\\(.+\\))?: .+' {1} || (echo 'Invalid commit message format.' && echo 'Expected: <type>(optional-scope): <description>' && echo 'Allowed types: feat|fix|docs|style|refactor|test|chore|perf|ci|build|revert' && echo 'Example: feat(cli): add custom destination support' && exit 1)"
+      run: "grep -Eq '^(feat|security|fix|docs|style|refactor|test|chore|perf|ci|build|revert)(\\(.+\\))?: .+' {1} || (echo 'Invalid commit message format.' && echo 'Expected: <type>(optional-scope): <description>' && echo 'Allowed types: feat|fix|docs|security|style|refactor|test|chore|perf|ci|build|revert' && echo 'Example: feat(cli): add custom destination support' && exit 1)"
