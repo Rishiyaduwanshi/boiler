@@ -135,6 +135,7 @@ bl add [resource] [destination] [flags]
 ```
   -f, --force             Force operation without confirmation
   -h, --help              help for add
+  -m, --name string       Rename snippet in destination
       --no-store          Fetch remote resource without saving to local store
       --registry string   Custom registry URL (overrides config)
   -r, --remote            Fetch from remote registry

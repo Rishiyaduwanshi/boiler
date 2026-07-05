@@ -16,4 +16,5 @@ type Options struct {
 	AsStack   bool   // --stack/-k: force stack mode
 	AsSnippet bool   // --snippet/-n: force snippet mode
 	Registry  string // --registry: custom registry URL override
+	Name      string // --name/-m: rename snippet or stack in destination directory
 }

@@ -44,6 +44,9 @@ func AddSnippet(st *store.Store, name, destPath string, opts Options, cfg *confi
 	// Extract base name without version: errorHandler@1.js -> errorHandler.js
 	baseName, _, ext := store.ParseResourceName(name)
 	destFileName := baseName + ext
+	if opts.Name != "" {
+		destFileName = opts.Name
+	}
 	destFile := filepath.Join(destPath, destFileName)
 
 	if utils.FileExists(destFile) && !opts.Force {
@@ -98,6 +101,9 @@ func copyStackToDestination(stackPath, stackName, destPath string, opts Options)
 	}
 
 	stackDir := stackDirectoryName(stackName)
+	if opts.Name != "" {
+		stackDir = opts.Name
+	}
 	finalDestPath := filepath.Join(destPath, stackDir)
 	if utils.FileExists(finalDestPath) && !opts.Force {
 		return "", fmt.Errorf(utils.ErrDestAlreadyExists, finalDestPath)

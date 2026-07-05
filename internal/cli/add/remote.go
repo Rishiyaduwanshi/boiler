@@ -71,6 +71,9 @@ func ResourceFromRemote(resource, destPath string, resourceType ResourceType, no
 			if targetFileName == "" {
 				targetFileName = filepath.Base(remoteFile)
 			}
+			if opts.Name != "" {
+				targetFileName = opts.Name
+			}
 			destFile := filepath.Join(destPath, targetFileName)
 			if utils.FileExists(destFile) && !opts.Force {
 				return fmt.Errorf(utils.ErrFileAlreadyExists, destFile)
@@ -244,6 +247,9 @@ func directRemoteResource(remotePath, destPath string, resourceType ResourceType
 
 		if noStore {
 			resourceName := filepath.Base(subPath)
+			if opts.Name != "" {
+				resourceName = opts.Name
+			}
 			destFile := filepath.Join(destPath, resourceName)
 			if utils.FileExists(destFile) && !opts.Force {
 				return fmt.Errorf(utils.ErrFileAlreadyExists, destFile)
@@ -360,6 +366,9 @@ func directRemoteURLResource(remotePath, destPath string, resourceType ResourceT
 		}
 
 		if noStore {
+			if opts.Name != "" {
+				resourceName = opts.Name
+			}
 			destFile := filepath.Join(destPath, resourceName)
 			if utils.FileExists(destFile) && !opts.Force {
 				return fmt.Errorf(utils.ErrFileAlreadyExists, destFile)

@@ -73,6 +73,7 @@ Stack placement:
 		opts := addcmd.Options{
 			Force:  useForce,
 			Spread: useSpread,
+			Name:   useName,
 		}
 
 		if err := addcmd.AddResource(resource, addcmd.ResolveDestination(positionalDest), true, true, opts, cfg, logger); err != nil {
@@ -84,10 +85,12 @@ Stack placement:
 
 var useForce bool
 var useSpread bool
+var useName string
 
 func init() {
 	Cmd.Flags().BoolVarP(&useForce, "force", "f", false, "Force operation without confirmation")
 	Cmd.Flags().BoolVar(&useSpread, "spread", false, "Spread stack contents directly into destination")
+	Cmd.Flags().StringVarP(&useName, "name", "m", "", "Rename snippet in destination")
 }
 
 var (

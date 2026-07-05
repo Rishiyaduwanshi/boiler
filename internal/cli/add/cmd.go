@@ -16,6 +16,7 @@ var (
 	addSpread    bool
 	addForce     bool
 	addRegistry  string
+	addName      string
 	addAsStack   bool
 	addAsSnippet bool
 	addNoStore   bool
@@ -181,6 +182,7 @@ Supported remote formats:
 				AsStack:   addAsStack,
 				AsSnippet: addAsSnippet,
 				Registry:  addRegistry,
+				Name:      addName,
 			}
 
 			if err := AddResource(resource, destPath, addRemote, addNoStore, opts, cfg, logger); err != nil {
@@ -197,6 +199,7 @@ Supported remote formats:
 	cmd.Flags().BoolVarP(&addAsStack, "stack", "k", false, "Treat resource as stack (overrides auto-detection)")
 	cmd.Flags().BoolVarP(&addAsSnippet, "snippet", "n", false, "Treat resource as snippet (overrides auto-detection)")
 	cmd.Flags().StringVar(&addRegistry, "registry", "", "Custom registry URL (overrides config)")
+	cmd.Flags().StringVarP(&addName, "name", "m", "", "Rename snippet in destination")
 
 	return cmd
 }

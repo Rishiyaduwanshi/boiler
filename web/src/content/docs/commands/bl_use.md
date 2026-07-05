@@ -60,9 +60,10 @@ bl use [resource] [destination] [flags]
 ### Options
 
 ```
-  -f, --force    Force operation without confirmation
-  -h, --help     help for use
-      --spread   Spread stack contents directly into destination
+  -f, --force         Force operation without confirmation
+  -h, --help          help for use
+  -m, --name string   Rename snippet in destination
+      --spread        Spread stack contents directly into destination
 ```
 
 ### Options inherited from parent commands
