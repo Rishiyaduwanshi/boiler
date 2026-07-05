@@ -24,35 +24,18 @@ func ResourceFromRemote(resource, destPath string, resourceType ResourceType, no
 		return err
 	}
 
-	baseName, _, ext := store.ParseResourceName(resource)
-	fetchAsSnippet := ext != ""
-
-	if resourceType == ResourceTypeSnippet {
-		fetchAsSnippet = true
+	resolvedName, fetchAsSnippet, err := ResolveStoreResource(remoteStore, resource, resourceType, true)
+	if err != nil {
+		return err
 	}
-
-	if resourceType == ResourceTypeStack {
-		fetchAsSnippet = false
-	}
+	resource = resolvedName
 
 	if fetchAsSnippet {
 		if opts.Spread {
 			return fmt.Errorf("--spread is only supported for stacks")
 		}
 
-		remotePath, exists := remoteStore.GetSnippet(resource)
-		if !exists {
-			matches := utils.FindMatchingResources(remoteStore.ListSnippets(), baseName, ext)
-			if len(matches) == 0 {
-				return fmt.Errorf("snippet '%s' not found in remote registry", resource)
-			}
-			selected, err := utils.PickFromList(baseName+ext, matches)
-			if err != nil {
-				return err
-			}
-			resource = selected
-			remotePath, exists = remoteStore.GetSnippet(resource)
-		}
+		remotePath, _ := remoteStore.GetSnippet(resource)
 
 		// Check if it's a remote path
 		if !store.IsRemotePath(remotePath) {
@@ -117,23 +100,7 @@ func ResourceFromRemote(resource, destPath string, resourceType ResourceType, no
 		return AddSnippet(st, resource, destPath, opts, cfg, logger)
 	}
 
-	if resourceType == ResourceTypeSnippet {
-		return fmt.Errorf("snippet '%s' not found in remote registry", resource)
-	}
-
-	remotePath, exists := remoteStore.GetStack(resource)
-	if !exists {
-		matches := utils.FindMatchingResources(remoteStore.ListStacks(), baseName, "")
-		if len(matches) == 0 {
-			return fmt.Errorf("resource '%s' not found in remote registry", resource)
-		}
-		selected, err := utils.PickFromList(baseName, matches)
-		if err != nil {
-			return err
-		}
-		resource = selected
-		remotePath, exists = remoteStore.GetStack(resource)
-	}
+	remotePath, _ := remoteStore.GetStack(resource)
 
 	// Check if it's a remote path
 	if !store.IsRemotePath(remotePath) {

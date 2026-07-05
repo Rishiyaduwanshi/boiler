@@ -6,7 +6,6 @@ import (
 	"path/filepath"
 
 	"github.com/rishiyaduwanshi/boiler/internal/config"
-	"github.com/rishiyaduwanshi/boiler/internal/store"
 	"github.com/rishiyaduwanshi/boiler/internal/utils"
 	"github.com/spf13/cobra"
 )
@@ -220,55 +219,6 @@ func resolveAddResourceType(opts Options) (ResourceType, error) {
 	return ResourceTypeAuto, nil
 }
 
-func resolveSnippetResource(st *store.Store, resource string) (string, error) {
-	baseName, version, ext := store.ParseResourceName(resource)
-
-	if version != "" && ext != "" {
-		return baseName + "@" + version + ext, nil
-	}
-
-	if _, ok := st.GetSnippet(resource); ok {
-		return resource, nil
-	}
-
-	matches := utils.FindMatchingResources(st.ListSnippets(), baseName, ext)
-	if len(matches) == 0 {
-		return "", fmt.Errorf(utils.ErrResourceNotFound, "snippet", resource)
-	}
-
-	lookupName := baseName
-	if ext != "" {
-		lookupName = baseName + ext
-	}
-
-	selected, err := utils.PickFromList(lookupName, matches)
-	if err != nil {
-		return "", err
-	}
-
-	return selected, nil
-}
-
-func resolveStackResource(st *store.Store, resource string) (string, error) {
-	baseName, _, _ := store.ParseResourceName(resource)
-
-	if _, ok := st.GetStack(resource); ok {
-		return resource, nil
-	}
-
-	matches := utils.FindMatchingResources(st.ListStacks(), baseName, "")
-	if len(matches) == 0 {
-		return "", fmt.Errorf(utils.ErrResourceNotFound, "stack", resource)
-	}
-
-	selected, err := utils.PickFromList(baseName, matches)
-	if err != nil {
-		return "", err
-	}
-
-	return selected, nil
-}
-
 func AddResource(resource, destPath string, remoteEnabled, noStore bool, opts Options, cfg *config.Config, logger *utils.Logger) error {
 	resourceType, err := resolveAddResourceType(opts)
 	if err != nil {
@@ -284,54 +234,17 @@ func AddResource(resource, destPath string, remoteEnabled, noStore bool, opts Op
 		return err
 	}
 
-	if resourceType == ResourceTypeSnippet {
-		if opts.Spread {
-			return fmt.Errorf("--spread is only supported for stacks")
-		}
-
-		selected, err := resolveSnippetResource(st, resource)
-		if err != nil {
-			return err
-		}
-		return AddSnippet(st, selected, destPath, opts, cfg, logger)
-	}
-
-	if resourceType == ResourceTypeStack {
-		selected, err := resolveStackResource(st, resource)
-		if err != nil {
-			return err
-		}
-		return AddStack(st, selected, destPath, opts, logger)
-	}
-
-	baseName, _, ext := store.ParseResourceName(resource)
-
-	if ext != "" {
-		if opts.Spread {
-			return fmt.Errorf("--spread is only supported for stacks")
-		}
-
-		selected, err := resolveSnippetResource(st, resource)
-		if err != nil {
-			return err
-		}
-		return AddSnippet(st, selected, destPath, opts, cfg, logger)
-	}
-
-	selectedStack, stackErr := resolveStackResource(st, resource)
-	if stackErr == nil {
-		return AddStack(st, selectedStack, destPath, opts, logger)
-	}
-
-	matches := utils.FindMatchingResources(st.ListSnippets(), baseName, "")
-	if len(matches) == 0 {
-		return fmt.Errorf(utils.ErrResourceNotFound, "stack or snippet", resource)
-	}
-
-	selectedSnippet, err := utils.PickFromList(baseName, matches)
+	resolvedName, isSnippet, err := ResolveStoreResource(st, resource, resourceType, false)
 	if err != nil {
 		return err
 	}
 
-	return AddSnippet(st, selectedSnippet, destPath, opts, cfg, logger)
+	if isSnippet {
+		if opts.Spread {
+			return fmt.Errorf("--spread is only supported for stacks")
+		}
+		return AddSnippet(st, resolvedName, destPath, opts, cfg, logger)
+	}
+
+	return AddStack(st, resolvedName, destPath, opts, logger)
 }
