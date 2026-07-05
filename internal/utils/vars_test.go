@@ -8,12 +8,13 @@ func TestIsCommandVarReference(t *testing.T) {
 		input string
 		want  bool
 	}{
-		{name: "valid variable reference", input: ":TEAM_REG", want: true},
-		{name: "hyphen allowed", input: ":team-reg", want: true},
+		{name: "valid variable reference", input: "bl__TEAM_REG", want: true},
+		{name: "hyphen allowed", input: "bl__team-reg", want: true},
 		{name: "email is not var", input: "alice@example.com", want: false},
 		{name: "version token is not var", input: "express@1", want: false},
 		{name: "legacy @ prefix is not var", input: "@TEAM_REG", want: false},
-		{name: "invalid chars", input: ":team.reg", want: false},
+		{name: "invalid chars", input: "bl__team.reg", want: true}, // 'bl__team' is the valid var part
+		{name: "embedded valid var", input: "github/repo/bl__file", want: true},
 	}
 
 	for _, tt := range tests {
@@ -35,7 +36,6 @@ func TestNormalizeVarKey(t *testing.T) {
 	}{
 		{name: "plain key", input: "API_URL", want: "api_url"},
 		{name: "snippet prefixed", input: "bl__API_URL", want: "api_url"},
-		{name: "command prefixed", input: ":TEAM_REG", want: "team_reg"},
 		{name: "hyphen preserved", input: "team-reg", want: "team-reg"},
 		{name: "empty key", input: "", wantErr: true},
 		{name: "invalid key", input: "api.url", wantErr: true},
@@ -102,12 +102,12 @@ func TestLookupVar(t *testing.T) {
 	}
 }
 
-func TestResolveCommandVarToken(t *testing.T) {
-	vars := map[string]string{"team_reg": "https://github.com/myorg/boiler"}
+func TestResolveInlineVars(t *testing.T) {
+	vars := map[string]string{"team_reg": "https://github.com/myorg/boiler", "lang": "Node"}
 
-	resolved, resolvedFromVar, err := ResolveCommandVarToken(":team_reg", vars)
+	resolved, resolvedFromVar, err := ResolveInlineVars("bl__team_reg", vars)
 	if err != nil {
-		t.Fatalf("ResolveCommandVarToken returned error: %v", err)
+		t.Fatalf("ResolveInlineVars returned error: %v", err)
 	}
 	if !resolvedFromVar {
 		t.Fatal("expected resolvedFromVar=true")
@@ -116,9 +116,9 @@ func TestResolveCommandVarToken(t *testing.T) {
 		t.Fatalf("resolved = %q", resolved)
 	}
 
-	resolved, resolvedFromVar, err = ResolveCommandVarToken("alice@example.com", vars)
+	resolved, resolvedFromVar, err = ResolveInlineVars("alice@example.com", vars)
 	if err != nil {
-		t.Fatalf("ResolveCommandVarToken returned error: %v", err)
+		t.Fatalf("ResolveInlineVars returned error: %v", err)
 	}
 	if resolvedFromVar {
 		t.Fatal("email token should not be treated as a variable reference")
@@ -127,14 +127,15 @@ func TestResolveCommandVarToken(t *testing.T) {
 		t.Fatalf("resolved = %q", resolved)
 	}
 
-	resolved, resolvedFromVar, err = ResolveCommandVarToken("@team_reg", vars)
+	// Test interpolation
+	resolved, resolvedFromVar, err = ResolveInlineVars("github/gitignore:bl__lang.gitignore", vars)
 	if err != nil {
-		t.Fatalf("ResolveCommandVarToken returned error: %v", err)
+		t.Fatalf("ResolveInlineVars returned error: %v", err)
 	}
-	if resolvedFromVar {
-		t.Fatal("legacy @ token should not be treated as a variable reference")
+	if !resolvedFromVar {
+		t.Fatal("expected resolvedFromVar=true")
 	}
-	if resolved != "@team_reg" {
+	if resolved != "github/gitignore:Node.gitignore" {
 		t.Fatalf("resolved = %q", resolved)
 	}
 }

@@ -12,13 +12,13 @@ const (
 )
 
 var (
-	commandVarTokenRe  = regexp.MustCompile(`^:[A-Za-z_][A-Za-z0-9_-]*$`)
+	cliVarReplaceRe    = regexp.MustCompile(`(?i)bl__([a-z_][a-z0-9_-]*)`)
 	normalizedVarKeyRe = regexp.MustCompile(`^[a-z_][a-z0-9_-]*$`)
 )
 
-// IsCommandVarReference reports whether token is a command variable reference (e.g. :TEAM_REG).
+// IsCommandVarReference reports whether token contains a command variable reference (e.g. bl__TEAM_REG).
 func IsCommandVarReference(token string) bool {
-	return commandVarTokenRe.MatchString(strings.TrimSpace(token))
+	return cliVarReplaceRe.MatchString(token)
 }
 
 // NormalizeVarKey converts a user-provided variable key to canonical form.
@@ -88,28 +88,40 @@ func LookupVar(vars map[string]string, rawKey string) (string, bool, error) {
 	return "", false, nil
 }
 
-// ResolveCommandVarToken resolves :VAR references to their configured values.
-// For non-: tokens, it returns the original token and resolved=false.
-func ResolveCommandVarToken(token string, vars map[string]string) (resolved string, resolvedFromVar bool, err error) {
+// ResolveInlineVars resolves bl__VAR references to their configured values inline.
+// It replaces all occurrences of bl__VAR in the string.
+func ResolveInlineVars(token string, vars map[string]string) (resolved string, resolvedFromVar bool, err error) {
 	trimmedToken := strings.TrimSpace(token)
 	if !IsCommandVarReference(trimmedToken) {
 		return token, false, nil
 	}
 
-	value, ok, err := LookupVar(vars, trimmedToken)
-	if err != nil {
-		return "", true, err
-	}
-	if !ok {
-		return "", true, fmt.Errorf("variable %q not found", trimmedToken)
+	var resolveErr error
+	resolvedString := cliVarReplaceRe.ReplaceAllStringFunc(trimmedToken, func(match string) string {
+		// match is e.g. bl__my_var. We pass it to LookupVar (which normalizes it and strips prefix).
+		value, ok, err := LookupVar(vars, match)
+		if err != nil {
+			resolveErr = err
+			return match
+		}
+		if !ok {
+			resolveErr = fmt.Errorf("variable %q not found", match)
+			return match
+		}
+		resolvedFromVar = true
+		return value
+	})
+
+	if resolveErr != nil {
+		return "", true, resolveErr
 	}
 
-	return value, true, nil
+	return resolvedString, resolvedFromVar, nil
 }
 
 // ResolveInputToken resolves :VAR references and returns field-specific errors.
 func ResolveInputToken(token, field string, vars map[string]string) (string, error) {
-	resolved, _, err := ResolveCommandVarToken(token, vars)
+	resolved, _, err := ResolveInlineVars(token, vars)
 	if err != nil {
 		return "", fmt.Errorf("invalid %s: %w", field, err)
 	}
