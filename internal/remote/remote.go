@@ -41,7 +41,6 @@ func (r *RemoteStore) LoadFromURL() (*store.Store, error) {
 		Snippets: make(map[string]string),
 	}
 	
-	// Parse json.Unmarshal
 	if err := json.Unmarshal(data, meta); err != nil {
 		return nil, fmt.Errorf("failed to parse remote metadata: %w", err)
 	}
