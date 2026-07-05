@@ -18,6 +18,10 @@ Store reusable code snippets and project templates locally. Automatic versioning
 
 </div>
 
+**Pre-release - v0.x.x** - Feel free to use it, break it, Every idea and bug report shapes what we build next.
+
+> Open an [issue](https://github.com/rishiyaduwanshi/boiler/issues) or start a [discussion](https://github.com/rishiyaduwanshi/boiler/discussions) anytime.
+
 ---
 
 ## Why Boiler?
