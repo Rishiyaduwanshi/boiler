@@ -63,7 +63,9 @@ bl use [resource] [destination] [flags]
   -f, --force         Force operation without confirmation
   -h, --help          help for use
   -m, --name string   Rename snippet in destination
+  -n, --snippet       Treat resource as snippet (overrides auto-detection)
       --spread        Spread stack contents directly into destination
+  -k, --stack         Treat resource as stack (overrides auto-detection)
 ```
 
 ### Options inherited from parent commands

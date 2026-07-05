@@ -204,6 +204,9 @@ func shouldTreatDirectRemotePathAsSnippet(subPath string, resourceType ResourceT
 	case ResourceTypeStack:
 		return false
 	default:
+		if subPath == "" || subPath == "." || strings.HasSuffix(subPath, "/") {
+			return false
+		}
 		return filepath.Ext(subPath) != ""
 	}
 }
