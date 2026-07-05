@@ -155,7 +155,15 @@ Supported remote formats:
 			os.Exit(1)
 		}
 
-		if err := addResource(resource, destPath, addRemote, addNoStore); err != nil {
+		opts := addOptions{
+			force:     addForce,
+			spread:    addSpread,
+			asStack:   addAsStack,
+			asSnippet: addAsSnippet,
+			registry:  addRegistry,
+		}
+
+		if err := addResource(resource, destPath, addRemote, addNoStore, opts); err != nil {
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 			os.Exit(1)
 		}
@@ -184,6 +192,17 @@ const (
 	addResourceTypeSnippet
 )
 
+// addOptions holds the execution context for add/use operations.
+// Constructed by each command from its own flags and passed explicitly
+// through the call chain - no package-level global reads inside functions.
+type addOptions struct {
+	force     bool   // --force: overwrite existing files without confirmation
+	spread    bool   // --spread: copy stack contents directly into destination
+	asStack   bool   // --stack/-k: force stack mode
+	asSnippet bool   // --snippet/-n: force snippet mode
+	registry  string // --registry: custom registry URL override
+}
+
 func resolveAddDestination(positionalDest string) string {
 	if positionalDest == "" {
 		return addDefaultDestination
@@ -191,16 +210,16 @@ func resolveAddDestination(positionalDest string) string {
 	return filepath.Clean(positionalDest)
 }
 
-func resolveAddResourceType() (addResourceType, error) {
-	if addAsStack && addAsSnippet {
+func resolveAddResourceType(opts addOptions) (addResourceType, error) {
+	if opts.asStack && opts.asSnippet {
 		return addResourceTypeAuto, fmt.Errorf("--%s and --%s cannot be used together", addStackFlag, addSnippetFlag)
 	}
 
-	if addAsStack {
+	if opts.asStack {
 		return addResourceTypeStack, nil
 	}
 
-	if addAsSnippet {
+	if opts.asSnippet {
 		return addResourceTypeSnippet, nil
 	}
 
@@ -256,14 +275,14 @@ func resolveStackResource(st *store.Store, resource string) (string, error) {
 	return selected, nil
 }
 
-func addResource(resource, destPath string, remoteEnabled bool, noStore bool) error {
-	resourceType, err := resolveAddResourceType()
+func addResource(resource, destPath string, remoteEnabled, noStore bool, opts addOptions) error {
+	resourceType, err := resolveAddResourceType(opts)
 	if err != nil {
 		return err
 	}
 
 	if remoteEnabled {
-		return addResourceFromRemote(resource, destPath, resourceType, noStore)
+		return addResourceFromRemote(resource, destPath, resourceType, noStore, opts)
 	}
 
 	st, err := utils.LoadStore(cfg.Paths.Store)
@@ -272,7 +291,7 @@ func addResource(resource, destPath string, remoteEnabled bool, noStore bool) er
 	}
 
 	if resourceType == addResourceTypeSnippet {
-		if addSpread {
+		if opts.spread {
 			return fmt.Errorf("--spread is only supported for stacks")
 		}
 
@@ -280,7 +299,7 @@ func addResource(resource, destPath string, remoteEnabled bool, noStore bool) er
 		if err != nil {
 			return err
 		}
-		return addSnippet(st, selected, destPath)
+		return addSnippet(st, selected, destPath, opts)
 	}
 
 	if resourceType == addResourceTypeStack {
@@ -288,13 +307,13 @@ func addResource(resource, destPath string, remoteEnabled bool, noStore bool) er
 		if err != nil {
 			return err
 		}
-		return addStack(st, selected, destPath)
+		return addStack(st, selected, destPath, opts)
 	}
 
 	baseName, _, ext := store.ParseResourceName(resource)
 
 	if ext != "" {
-		if addSpread {
+		if opts.spread {
 			return fmt.Errorf("--spread is only supported for stacks")
 		}
 
@@ -302,12 +321,12 @@ func addResource(resource, destPath string, remoteEnabled bool, noStore bool) er
 		if err != nil {
 			return err
 		}
-		return addSnippet(st, selected, destPath)
+		return addSnippet(st, selected, destPath, opts)
 	}
 
 	selectedStack, stackErr := resolveStackResource(st, resource)
 	if stackErr == nil {
-		return addStack(st, selectedStack, destPath)
+		return addStack(st, selectedStack, destPath, opts)
 	}
 
 	matches := utils.FindMatchingResources(st.ListSnippets(), baseName, "")
@@ -320,10 +339,10 @@ func addResource(resource, destPath string, remoteEnabled bool, noStore bool) er
 		return err
 	}
 
-	return addSnippet(st, selectedSnippet, destPath)
+	return addSnippet(st, selectedSnippet, destPath, opts)
 }
 
-func addSnippet(st *store.Store, name, destPath string) error {
+func addSnippet(st *store.Store, name, destPath string, opts addOptions) error {
 	snippetPath, ok := st.GetSnippet(name)
 	if !ok {
 		return fmt.Errorf(utils.ErrResourceNotFound, "snippet", name)
@@ -359,7 +378,7 @@ func addSnippet(st *store.Store, name, destPath string) error {
 	destFileName := baseName + ext
 	destFile := filepath.Join(destPath, destFileName)
 
-	if utils.FileExists(destFile) && !addForce {
+	if utils.FileExists(destFile) && !opts.force {
 		return fmt.Errorf(utils.ErrFileAlreadyExists, destFile)
 	}
 
@@ -373,7 +392,7 @@ func addSnippet(st *store.Store, name, destPath string) error {
 	return nil
 }
 
-func addStack(st *store.Store, name, destPath string) error {
+func addStack(st *store.Store, name, destPath string, opts addOptions) error {
 	stackPath, ok := st.GetStack(name)
 	if !ok {
 		return fmt.Errorf(utils.ErrResourceNotFound, "stack", name)
@@ -383,7 +402,7 @@ func addStack(st *store.Store, name, destPath string) error {
 		return fmt.Errorf(utils.ErrResourceNotFound, "stack directory", stackPath)
 	}
 
-	finalDestPath, err := copyStackToDestination(stackPath, name, destPath)
+	finalDestPath, err := copyStackToDestination(stackPath, name, destPath, opts)
 	if err != nil {
 		return err
 	}
@@ -393,11 +412,11 @@ func addStack(st *store.Store, name, destPath string) error {
 	return nil
 }
 
-func copyStackToDestination(stackPath, stackName, destPath string) (string, error) {
+func copyStackToDestination(stackPath, stackName, destPath string, opts addOptions) (string, error) {
 	ignorePatterns := utils.DefaultIgnorePatterns
 
-	if addSpread {
-		if err := validateSpreadDestination(stackPath, destPath, ignorePatterns); err != nil {
+	if opts.spread {
+		if err := validateSpreadDestination(stackPath, destPath, ignorePatterns, opts); err != nil {
 			return "", err
 		}
 		if err := utils.CopyDir(stackPath, destPath, ignorePatterns); err != nil {
@@ -408,7 +427,7 @@ func copyStackToDestination(stackPath, stackName, destPath string) (string, erro
 
 	stackDir := stackDirectoryName(stackName)
 	finalDestPath := filepath.Join(destPath, stackDir)
-	if utils.FileExists(finalDestPath) && !addForce {
+	if utils.FileExists(finalDestPath) && !opts.force {
 		return "", fmt.Errorf(utils.ErrDestAlreadyExists, finalDestPath)
 	}
 
@@ -419,8 +438,8 @@ func copyStackToDestination(stackPath, stackName, destPath string) (string, erro
 	return finalDestPath, nil
 }
 
-func validateSpreadDestination(stackPath, destPath string, ignorePatterns []string) error {
-	if addForce {
+func validateSpreadDestination(stackPath, destPath string, ignorePatterns []string, opts addOptions) error {
+	if opts.force {
 		return nil
 	}
 
@@ -472,16 +491,16 @@ func stackDirectoryName(resourceName string) string {
 }
 
 // addResourceFromRemote fetches and adds a resource from remote registry
-func addResourceFromRemote(resource, destPath string, resourceType addResourceType, noStore bool) error {
+func addResourceFromRemote(resource, destPath string, resourceType addResourceType, noStore bool, opts addOptions) error {
 	// Check if resource is direct GitHub path (owner/repo format)
 	if store.IsRemotePath(resource) {
-		return addDirectRemoteResource(resource, destPath, resourceType, noStore)
+		return addDirectRemoteResource(resource, destPath, resourceType, noStore, opts)
 	}
 
 	// Use custom registry if provided, otherwise use config
 	registryURL := cfg.Registry
-	if addRegistry != "" {
-		registryURL = addRegistry
+	if opts.registry != "" {
+		registryURL = opts.registry
 	}
 
 	resolvedRegistryURL, err := utils.ResolveInputToken(registryURL, "registry", cfg.Vars)
@@ -515,7 +534,7 @@ func addResourceFromRemote(resource, destPath string, resourceType addResourceTy
 	}
 
 	if fetchAsSnippet {
-		if addSpread {
+		if opts.spread {
 			return fmt.Errorf("--spread is only supported for stacks")
 		}
 
@@ -551,7 +570,7 @@ func addResourceFromRemote(resource, destPath string, resourceType addResourceTy
 				targetFileName = filepath.Base(remoteFile)
 			}
 			destFile := filepath.Join(destPath, targetFileName)
-			if utils.FileExists(destFile) && !addForce {
+			if utils.FileExists(destFile) && !opts.force {
 				return fmt.Errorf(utils.ErrFileAlreadyExists, destFile)
 			}
 
@@ -588,7 +607,7 @@ func addResourceFromRemote(resource, destPath string, resourceType addResourceTy
 			return err
 		}
 
-		return addSnippet(st, resource, destPath)
+		return addSnippet(st, resource, destPath, opts)
 	}
 
 	if resourceType == addResourceTypeSnippet {
@@ -625,7 +644,7 @@ func addResourceFromRemote(resource, destPath string, resourceType addResourceTy
 			return err
 		}
 
-		finalDestPath, err := copyStackToDestination(tempStackPath, resource, destPath)
+		finalDestPath, err := copyStackToDestination(tempStackPath, resource, destPath, opts)
 		if err != nil {
 			return err
 		}
@@ -655,7 +674,7 @@ func addResourceFromRemote(resource, destPath string, resourceType addResourceTy
 		return err
 	}
 
-	finalDestPath, err := copyStackToDestination(localStackPath, resource, destPath)
+	finalDestPath, err := copyStackToDestination(localStackPath, resource, destPath, opts)
 	if err != nil {
 		return err
 	}
@@ -688,9 +707,9 @@ func shouldTreatDirectURLAsSnippet(resource string, resourceType addResourceType
 	}
 }
 
-func addDirectRemoteResource(remotePath, destPath string, resourceType addResourceType, noStore bool) error {
+func addDirectRemoteResource(remotePath, destPath string, resourceType addResourceType, noStore bool, opts addOptions) error {
 	if isHTTPRemotePath(remotePath) {
-		return addDirectRemoteURLResource(remotePath, destPath, resourceType, noStore)
+		return addDirectRemoteURLResource(remotePath, destPath, resourceType, noStore, opts)
 	}
 
 	// Parse remote path
@@ -704,7 +723,7 @@ func addDirectRemoteResource(remotePath, destPath string, resourceType addResour
 	isSnippet := shouldTreatDirectRemotePathAsSnippet(subPath, resourceType)
 
 	if isSnippet {
-		if addSpread {
+		if opts.spread {
 			return fmt.Errorf("--spread is only supported for stacks")
 		}
 
@@ -715,7 +734,7 @@ func addDirectRemoteResource(remotePath, destPath string, resourceType addResour
 		if noStore {
 			resourceName := filepath.Base(subPath)
 			destFile := filepath.Join(destPath, resourceName)
-			if utils.FileExists(destFile) && !addForce {
+			if utils.FileExists(destFile) && !opts.force {
 				return fmt.Errorf(utils.ErrFileAlreadyExists, destFile)
 			}
 
@@ -754,7 +773,7 @@ func addDirectRemoteResource(remotePath, destPath string, resourceType addResour
 			return err
 		}
 
-		return addSnippet(st, resourceName, destPath)
+		return addSnippet(st, resourceName, destPath, opts)
 	}
 
 	if noStore {
@@ -769,7 +788,7 @@ func addDirectRemoteResource(remotePath, destPath string, resourceType addResour
 		}
 
 		resourceName := repo
-		finalDestPath, err := copyStackToDestination(tempStackPath, resourceName, destPath)
+		finalDestPath, err := copyStackToDestination(tempStackPath, resourceName, destPath, opts)
 		if err != nil {
 			return err
 		}
@@ -802,7 +821,7 @@ func addDirectRemoteResource(remotePath, destPath string, resourceType addResour
 		return err
 	}
 
-	finalDestPath, err := copyStackToDestination(localStackPath, resourceName, destPath)
+	finalDestPath, err := copyStackToDestination(localStackPath, resourceName, destPath, opts)
 	if err != nil {
 		return err
 	}
@@ -912,9 +931,9 @@ func stackNameFromRemoteURL(remotePath string) string {
 	return "remote-stack"
 }
 
-func addDirectRemoteURLResource(remotePath, destPath string, resourceType addResourceType, noStore bool) error {
+func addDirectRemoteURLResource(remotePath, destPath string, resourceType addResourceType, noStore bool, opts addOptions) error {
 	if shouldTreatDirectURLAsSnippet(remotePath, resourceType) {
-		if addSpread {
+		if opts.spread {
 			return fmt.Errorf("--spread is only supported for stacks")
 		}
 
@@ -925,7 +944,7 @@ func addDirectRemoteURLResource(remotePath, destPath string, resourceType addRes
 
 		if noStore {
 			destFile := filepath.Join(destPath, resourceName)
-			if utils.FileExists(destFile) && !addForce {
+			if utils.FileExists(destFile) && !opts.force {
 				return fmt.Errorf(utils.ErrFileAlreadyExists, destFile)
 			}
 			if err := remote.FetchSnippet(remotePath, destFile); err != nil {
@@ -956,7 +975,7 @@ func addDirectRemoteURLResource(remotePath, destPath string, resourceType addRes
 			return err
 		}
 
-		return addSnippet(st, resourceName, destPath)
+		return addSnippet(st, resourceName, destPath, opts)
 	}
 
 	resourceName := stackNameFromRemoteURL(remotePath)
@@ -971,7 +990,7 @@ func addDirectRemoteURLResource(remotePath, destPath string, resourceType addRes
 			return err
 		}
 
-		finalDestPath, err := copyStackToDestination(tempStackPath, resourceName, destPath)
+		finalDestPath, err := copyStackToDestination(tempStackPath, resourceName, destPath, opts)
 		if err != nil {
 			return err
 		}
@@ -998,7 +1017,7 @@ func addDirectRemoteURLResource(remotePath, destPath string, resourceType addRes
 		return err
 	}
 
-	finalDestPath, err := copyStackToDestination(localStackPath, resourceName, destPath)
+	finalDestPath, err := copyStackToDestination(localStackPath, resourceName, destPath, opts)
 	if err != nil {
 		return err
 	}

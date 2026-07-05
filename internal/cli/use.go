@@ -68,10 +68,12 @@ Stack placement:
 			}
 		}
 
-		addForce = useForce
-		addSpread = useSpread
+		opts := addOptions{
+			force:  useForce,
+			spread: useSpread,
+		}
 
-		if err := addResource(resource, resolveAddDestination(positionalDest), true, true); err != nil {
+		if err := addResource(resource, resolveAddDestination(positionalDest), true, true, opts); err != nil {
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 			os.Exit(1)
 		}
