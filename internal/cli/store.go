@@ -211,6 +211,10 @@ func storeStack(st *store.Store, path, name string) error {
 		return fmt.Errorf("stack must be a directory, not a file")
 	}
 
+	if storeName != "" {
+		return fmt.Errorf("--name is not supported for stacks; set the stack name via the \"id\" field in boiler.stack.json")
+	}
+
 	// Parse config (mandatory)
 	stackConfig, err := models.ParseStackConfig(path)
 	if err != nil {
@@ -225,7 +229,6 @@ func storeStack(st *store.Store, path, name string) error {
 		return fmt.Errorf("'version' field is required in boiler.stack.json")
 	}
 
-	// Use config ID as stack name (ignores passed-in name for stacks - ID in boiler.stack.json is canonical)
 	stackName := stackConfig.ID
 
 	// Parse version
