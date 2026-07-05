@@ -8,7 +8,7 @@ build/
 # Config and data
 boiler.conf.json
 .mise.local.toml
-store/
+/store/
 logs/
 
 # Dependencies
