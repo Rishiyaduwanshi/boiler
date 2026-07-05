@@ -13,6 +13,7 @@ import (
 )
 
 var aliasNameRe = regexp.MustCompile(`^[a-z][a-z0-9_-]*$`)
+var positionalVarRe = regexp.MustCompile(`(?i)bl__([0-9]+)`)
 
 const maxAliasExpansionDepth = 8
 
@@ -226,9 +227,55 @@ func ExpandFirstCommandAlias(args []string) []string {
 			return expanded
 		}
 
-		expanded = append(append([]string{}, targetTokens...), expanded[1:]...)
+		// Perform positional argument interpolation
+		maxN := -1
+		for i, token := range targetTokens {
+			if !positionalVarRe.MatchString(token) {
+				continue
+			}
+
+			targetTokens[i] = positionalVarRe.ReplaceAllStringFunc(token, func(match string) string {
+				// extract the number
+				submatches := positionalVarRe.FindStringSubmatch(match)
+				if len(submatches) < 2 {
+					return match
+				}
+				var idx int
+				fmt.Sscanf(submatches[1], "%d", &idx)
+
+				if idx > maxN {
+					maxN = idx
+				}
+
+				if idx < len(expanded) {
+					return expanded[idx]
+				}
+				return ""
+			})
+		}
+
+		// Filter out empty tokens that might have been created
+		var filteredTokens []string
+		for _, t := range targetTokens {
+			if t != "" {
+				filteredTokens = append(filteredTokens, t)
+			}
+		}
+
+		// If positional args were used, only append the remaining arguments
+		appendStartIdx := 1
+		if maxN >= 1 {
+			appendStartIdx = maxN + 1
+		}
+
+		var remainingArgs []string
+		if appendStartIdx < len(expanded) {
+			remainingArgs = expanded[appendStartIdx:]
+		}
+
+		expanded = append(append([]string{}, filteredTokens...), remainingArgs...)
 		if logger != nil {
-			logger.Info(fmt.Sprintf("Alias expanded: %s -> %s", firstToken, strings.Join(targetTokens, " ")))
+			logger.Info(fmt.Sprintf("Alias expanded: %s -> %s", firstToken, strings.Join(filteredTokens, " ")))
 		}
 	}
 

@@ -107,8 +107,10 @@ func DefaultConfig() *Config {
 			"toml":       "#  ",
 			"ini":        ";  ",
 		},
-		Aliases: make(map[string]string),
-		Vars:    make(map[string]string),
+		Aliases: map[string]string{
+			"gi": "add github/gitignore:bl__1.gitignore . -m .gitignore -r",
+		},
+		Vars: make(map[string]string),
 	}
 }
 
