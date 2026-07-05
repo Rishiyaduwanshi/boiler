@@ -51,10 +51,12 @@ changelog:
   sort: asc
   filters:
     exclude:
-      - '^docs:'
-      - '^test:'
-      - '^chore:'
-      - '^style:'
+      - '^docs(\(.*\))?:'
+      - '^test(\(.*\))?:'
+      - '^chore(\(.*\))?:'
+      - '^style(\(.*\))?:'
+      - '^Merge pull request'
+      - '^Merge branch'
 
 release:
   github:
