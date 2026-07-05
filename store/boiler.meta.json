@@ -3,6 +3,16 @@
         "express@1": "rishiyaduwanshi/boiler-express-js"
     },
     "snippets": {
-        "errorHandler@1.js": "rishiyaduwanshi/boiler-snippets:js/errorHandler.js"
+        "errorHandler@1.js": "rishiyaduwanshi/boiler-snippets:js/errorHandler.js",
+        "catchAsync@1.js": "rishiyaduwanshi/boiler-snippets:js/catchAsync.js",
+        "AppError@1.js": "rishiyaduwanshi/boiler-snippets:js/AppError.js",
+        "node.gitignore": "rishiyaduwanshi/boiler-snippets:gitignore/node.gitignore",
+        "go.gitignore": "rishiyaduwanshi/boiler-snippets:gitignore/go.gitignore",
+        "python.gitignore": "rishiyaduwanshi/boiler-snippets:gitignore/python.gitignore",
+        "postgres-compose@1.yml": "rishiyaduwanshi/boiler-snippets:yml/postgres-compose.yml",
+        "redis-compose@1.yml": "rishiyaduwanshi/boiler-snippets:yml/redis-compose.yml",
+        "mongo-compose@1.yml": "rishiyaduwanshi/boiler-snippets:yml/mongo-compose.yml",
+        "postgres@1.Dockerfile": "rishiyaduwanshi/boiler-snippets:Dockerfile/postgres.Dockerfile",
+        "recovery@1.go": "rishiyaduwanshi/boiler-snippets:go/recovery.go"
     }
 }
