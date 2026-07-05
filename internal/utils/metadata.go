@@ -116,13 +116,17 @@ func ParseSnippetMetadata(filePath string) (*SnippetMetadata, error) {
 	return meta, nil
 }
 
-// ValidateSnippetMetadata checks if required fields are present
+// ValidateSnippetMetadata fills in optional fields where possible and warns
+// when attribution data is missing. It does not block storing a snippet.
 func ValidateSnippetMetadata(meta *SnippetMetadata) error {
 	if meta.Author == "" {
-		return fmt.Errorf("missing required field: __author")
+		meta.Author = getGitAuthor()
 	}
-	// Name, Description, and Version are optional
-	// Version auto-increments based on existing versions in store
+	if meta.Author == "" {
+		fmt.Fprintln(os.Stderr, "warning: no __author found; add '// __author Your Name' for attribution")
+	}
+	// Name, Description, and Version are optional.
+	// Version auto-increments based on existing versions in store.
 	return nil
 }
 

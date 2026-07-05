@@ -129,7 +129,7 @@ func storeSnippet(st *store.Store, path, name string) error {
 	}
 
 	if err := utils.ValidateSnippetMetadata(meta); err != nil {
-		return fmt.Errorf("invalid snippet metadata: %w\n\nAdd required metadata comment:\n  // __author Your Name", err)
+		return fmt.Errorf("invalid snippet metadata: %w", err)
 	}
 
 	// Prefer metadata name, then fall back to the passed-in name
