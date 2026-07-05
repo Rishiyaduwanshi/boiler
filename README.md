@@ -119,7 +119,8 @@ bl add errorHandler
 
 - ✅ **Automatic Versioning** - `@1`, `@2`, etc.
 - ✅ **Template Variables** - `bl__VAR_NAME` syntax with prompts
-- ✅ **Reusable Config Vars** - `bl var KEY=value` and `:KEY` references in commands
+- ✅ **Reusable Config Vars** - `bl var KEY=value` and inline `bl__KEY` references in commands
+- ✅ **Powerful Aliases** - Support for positional arguments (`bl__1`, `bl__2`) and inline variables
 - ✅ **Remote Fetching** - GitHub, GitLab, Bitbucket, custom registries, direct URLs
 - ✅ **Language Agnostic** - JS, Python, Go, Java, TS, Rust, C++, etc.
 - ✅ **Stack Templates** - Store entire project folders
@@ -173,11 +174,11 @@ bl init              # Initialize stack/snippet config
 bl store [path]      # Store file/folder
 bl add <name> [path] # Add snippet/stack (default destination: ./boiler)
 bl add <name> --spread # Spread stack contents into destination
-bl alias [k|k=v]     # List, get, or set command aliases
+bl alias [k|k=v]     # List, get, or set command aliases (supports bl__N args)
 bl unalias <k>       # Remove a command alias
 bl var [k|k=v]       # List, get, or set reusable variables
 bl unvar <k>         # Remove a reusable variable
-bl use <resource> [path]  # One-shot remote fetch (no local store saved)
+bl use <resource> [path]  # One-shot remote fetch (e.g., bl use bl__ORG/repo)
 bl ls                # List all resources
 bl search <query>    # Search by name (-r to search remote)
 bl info <name>       # Show resource details
