@@ -413,6 +413,34 @@ For simple lists, use comma-separated strings:
 ALLOWED_ORIGINS = 'bl__ALLOWED_ORIGINS'.split(',')
 ```
 
+## CLI Variables & Aliases
+
+The magic of `bl__VAR_NAME` isn't limited to snippet files! Boiler unifies this syntax across its entire ecosystem. You can use the exact same variable format directly in your terminal commands and aliases.
+
+### Inline Variables
+
+If you configure a variable in Boiler (`bl var org=rishiyaduwanshi`), you can inject it inline into any CLI argument:
+
+```bash
+bl use github.com/bl__org/boiler-templates:auth
+```
+Boiler dynamically resolves `bl__org` to `rishiyaduwanshi` before executing the command, making it incredibly powerful for dynamic remote fetching.
+
+### Alias Positional Arguments
+
+Boiler aliases support dynamic positional arguments using the `bl__N` syntax (`bl__1`, `bl__2`, etc.):
+
+```bash
+# Define a powerful alias
+bl alias get-ignore="use github/gitignore:bl__1.gitignore"
+
+# Execute it with an argument
+bl get-ignore Node -m .gitignore
+```
+1. `bl__1` is replaced with your first argument (`Node`).
+2. Any remaining unconsumed arguments (like `-m .gitignore`) are safely appended to the end of the expanded command.
+3. The final executed command is: `bl use github/gitignore:Node.gitignore -m .gitignore`.
+
 ## Summary
 
 - **Metadata**: Use `__author` (required), `__desc`, `__version` (optional)
