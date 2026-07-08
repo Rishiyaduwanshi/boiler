@@ -11,6 +11,10 @@ func TestParseAndExecute(t *testing.T) {
 	tempDir := t.TempDir()
 	scriptPath := filepath.Join(tempDir, "test.bl")
 
+	dummyJsPath := filepath.Join(tempDir, "file.js")
+	// Create dummy file for injection
+	os.WriteFile(dummyJsPath, []byte("// bl__DETECTOR_START_test\n// bl__DETECTOR_END_test\n"), 0644)
+
 	scriptContent := `
 __desc = "Test Script"
 __var bl__name = bl__1.capitalize()
@@ -26,7 +30,7 @@ __var bl__is_ts = true
 #endif
 
 # Test backticks
-inject ./file.js --content ` + "`" + `
+inject ` + filepath.ToSlash(dummyJsPath) + ` -d test -a -c ` + "`" + `
 console.log("bl__name");
 ` + "`" + `
 `
