@@ -2,6 +2,9 @@ package engine
 
 import (
 	"fmt"
+	"os"
+	"os/exec"
+	"runtime"
 	"strings"
 )
 
@@ -12,15 +15,27 @@ func ExecuteCommand(commandLine string) error {
 
 	if strings.HasPrefix(commandLine, "inject ") {
 		return InjectCode(commandLine)
-	} else if strings.HasPrefix(commandLine, "use ") {
-		// TODO: Implement use command (copy files from repo)
-		fmt.Printf("[ENGINE EXEC] %s\n", commandLine)
-		return nil
 	} else if strings.HasPrefix(commandLine, "run ") {
-		// TODO: Implement run command (execute shell scripts or sub-boiler commands)
-		fmt.Printf("[ENGINE EXEC] %s\n", commandLine)
-		return nil
+		// Run an arbitrary OS command (e.g. npm install)
+		cmdStr := strings.TrimPrefix(commandLine, "run ")
+		cmdStr = strings.TrimSpace(cmdStr)
+		fmt.Printf("[ENGINE] Running OS command: %s\n", cmdStr)
+		return executeOSCommand(cmdStr)
+	} else {
+		// Assume it's a native Boiler command (use, add, var, alias, etc.)
+		fmt.Printf("[ENGINE] Running Boiler command: bl %s\n", commandLine)
+		return executeOSCommand("bl " + commandLine)
 	}
+}
 
-	return fmt.Errorf("unknown command: %s", commandLine)
+func executeOSCommand(cmdStr string) error {
+	var cmd *exec.Cmd
+	if runtime.GOOS == "windows" {
+		cmd = exec.Command("cmd", "/c", cmdStr)
+	} else {
+		cmd = exec.Command("sh", "-c", cmdStr)
+	}
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	return cmd.Run()
 }
