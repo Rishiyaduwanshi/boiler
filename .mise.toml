@@ -81,7 +81,12 @@ run = "boiler version"
 
 [tasks."winget:test"]
 description = "Run full local winget test flow"
-depends = ["winget:validate", "winget:uninstall", "winget:install", "winget:smoke"]
+depends = [
+  "winget:validate",
+  "winget:uninstall",
+  "winget:install",
+  "winget:smoke",
+]
 
 [tasks."winget:clean"]
 description = "Cleanup local winget installation"

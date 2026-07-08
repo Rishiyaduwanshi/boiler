@@ -1,13 +1,11 @@
 package config
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
 	"runtime"
 
-	"github.com/rishiyaduwanshi/boiler/internal/utils"
 	"github.com/rishiyaduwanshi/boiler/pkg/version"
 )
 
@@ -23,6 +21,7 @@ type Config struct {
 	Artifacts     map[string]string `json:"artifacts"`
 	Aliases       map[string]string `json:"aliases"`
 	Vars          map[string]string `json:"vars"`
+	Scope         string            `json:"scope,omitempty"`
 }
 
 type Paths struct {
@@ -114,170 +113,7 @@ func DefaultConfig() *Config {
 	}
 }
 
-// ConfigPath returns the path to the config file
-func ConfigPath() (string, error) {
-	rootPath := getRootPath()
-	return filepath.Join(rootPath, "boiler.conf.json"), nil
-}
-
-func BackupPath() (string, error) {
-	rootPath := getRootPath()
-	return filepath.Join(rootPath, "boiler.conf.json.bk"), nil
-}
-
-func Load() (*Config, error) {
-	configPath, err := ConfigPath()
-	if err != nil {
-		return nil, err
-	}
-
-	data, err := os.ReadFile(configPath)
-	if err != nil {
-		if os.IsNotExist(err) {
-			cfg := DefaultConfig()
-			if err := Save(cfg); err != nil {
-				return nil, fmt.Errorf("failed to create default config: %w", err)
-			}
-			return cfg, nil
-		}
-		return nil, fmt.Errorf("failed to read config: %w", err)
-	}
-
-	var cfg Config
-	if err := json.Unmarshal(data, &cfg); err != nil {
-		return nil, fmt.Errorf("failed to parse config: %w", err)
-	}
-
-	// Fill in any missing fields with defaults (handles config upgrades)
-	mergeWithDefaults(&cfg)
-
-	return &cfg, nil
-}
-
-// mergeWithDefaults fills zero-value fields in cfg with values from DefaultConfig.
-// This ensures existing users get new fields after a Boiler upgrade.
-func mergeWithDefaults(cfg *Config) {
-	defaults := DefaultConfig()
-
-	if cfg.DefaultEditor == "" {
-		cfg.DefaultEditor = defaults.DefaultEditor
-	}
-	if cfg.Registry == "" {
-		cfg.Registry = defaults.Registry
-	}
-	if cfg.Name == "" {
-		cfg.Name = defaults.Name
-	}
-	if cfg.Author == "" {
-		cfg.Author = defaults.Author
-	}
-	if cfg.Github == "" {
-		cfg.Github = defaults.Github
-	}
-	if cfg.Version == "" {
-		cfg.Version = defaults.Version
-	}
-
-	// Ensure paths are populated (in case root changed)
-	if cfg.Paths.Root == "" {
-		cfg.Paths = defaults.Paths
-	}
-
-	// Only add artifact keys that the user hasn't set.
-	// User's existing values are always respected.
-	if cfg.Artifacts == nil {
-		cfg.Artifacts = defaults.Artifacts
-	} else {
-		for k, v := range defaults.Artifacts {
-			if _, exists := cfg.Artifacts[k]; !exists {
-				cfg.Artifacts[k] = v
-			}
-		}
-	}
-
-	if cfg.Aliases == nil {
-		cfg.Aliases = make(map[string]string)
-	}
-
-	if cfg.Vars == nil {
-		cfg.Vars = make(map[string]string)
-	} else {
-		cfg.Vars = utils.NormalizeVarMap(cfg.Vars)
-	}
-}
-
-func Save(cfg *Config) error {
-	configPath, err := ConfigPath()
-	if err != nil {
-		return err
-	}
-
-	if err := os.MkdirAll(filepath.Dir(configPath), 0755); err != nil {
-		return fmt.Errorf("failed to create config directory: %w", err)
-	}
-
-	data, err := json.MarshalIndent(cfg, "", "    ")
-	if err != nil {
-		return fmt.Errorf("failed to marshal config: %w", err)
-	}
-
-	if err := os.WriteFile(configPath, data, 0644); err != nil {
-		return fmt.Errorf("failed to write config: %w", err)
-	}
-
-	return nil
-}
-
-func Reset() error {
-	backupPath, err := BackupPath()
-	if err != nil {
-		return err
-	}
-
-	configPath, err := ConfigPath()
-	if err != nil {
-		return err
-	}
-
-	if _, err := os.Stat(backupPath); err == nil {
-		data, err := os.ReadFile(backupPath)
-		if err != nil {
-			return fmt.Errorf("failed to read backup: %w", err)
-		}
-		if err := os.WriteFile(configPath, data, 0644); err != nil {
-			return fmt.Errorf("failed to restore backup: %w", err)
-		}
-		return nil
-	}
-
-	return Save(DefaultConfig())
-}
-
-func CreateBackup() error {
-	configPath, err := ConfigPath()
-	if err != nil {
-		return err
-	}
-
-	backupPath, err := BackupPath()
-	if err != nil {
-		return err
-	}
-
-	data, err := os.ReadFile(configPath)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return nil
-		}
-		return fmt.Errorf("failed to read config: %w", err)
-	}
-
-	if err := os.WriteFile(backupPath, data, 0644); err != nil {
-		return fmt.Errorf("failed to create backup: %w", err)
-	}
-
-	return nil
-}
+// Backup functionality should be re-implemented in the Manager if needed.
 
 func (cfg *Config) InitializeDirs() error {
 	dirs := []string{

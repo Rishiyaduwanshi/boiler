@@ -57,10 +57,8 @@ Configuration includes paths, preferences, and behavior settings.`,
 			return
 		}
 		if confReset {
-			if err := resetConfig(); err != nil {
-				fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-				os.Exit(1)
-			}
+			fmt.Fprintf(os.Stderr, "Error: reset is not supported in the new architecture yet\n")
+			os.Exit(1)
 			return
 		}
 		showConfig()
@@ -80,8 +78,21 @@ func init() {
 	Cmd.Flags().StringVar(&confSetRegistry, "set-registry", "", "Set custom registry URL")
 }
 
+func getActiveConfigPath() (string, error) {
+	if config.Ctx.Scope == config.ScopeLocal {
+		if config.Ctx.Manager.Local != nil && config.Ctx.Manager.Local.Path != "" {
+			return config.Ctx.Manager.Local.Path, nil
+		}
+		return "", fmt.Errorf("local config path not found")
+	}
+	if config.Ctx.Manager.Global != nil && config.Ctx.Manager.Global.Path != "" {
+		return config.Ctx.Manager.Global.Path, nil
+	}
+	return "", fmt.Errorf("global config path not found")
+}
+
 func showConfig() {
-	configPath, err := config.ConfigPath()
+	configPath, err := getActiveConfigPath()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error getting config path: %v\n", err)
 		return
@@ -93,11 +104,12 @@ func showConfig() {
 		return
 	}
 
+	fmt.Printf("Config File: %s\n\n", configPath)
 	fmt.Println(string(data))
 }
 
 func editConfig() error {
-	configPath, err := config.ConfigPath()
+	configPath, err := getActiveConfigPath()
 	if err != nil {
 		return fmt.Errorf("failed to get config path: %w", err)
 	}
@@ -129,36 +141,23 @@ func editConfig() error {
 	return nil
 }
 
-func resetConfig() error {
-	logger.Info("Resetting configuration to defaults")
-
-	if err := config.Reset(); err != nil {
-		return fmt.Errorf("failed to reset config: %w", err)
-	}
-
-	fmt.Println("Configuration reset to defaults")
-	return nil
-}
-
 func setRegistry(registryURL string) error {
 	// Validate URL format
 	if registryURL == "" {
 		return fmt.Errorf("registry URL cannot be empty")
 	}
 
-	// Load current config
-	currentCfg, err := config.Load()
-	if err != nil {
-		return fmt.Errorf("failed to load config: %w", err)
+	if config.Ctx.Manager.Global == nil || config.Ctx.Manager.Global.Config == nil {
+		return fmt.Errorf("global config not found")
 	}
 
-	// Update registry
-	oldRegistry := currentCfg.Registry
-	currentCfg.Registry = registryURL
+	// Update registry in global config (registry is inherently global)
+	oldRegistry := config.Ctx.Manager.Global.Config.Registry
+	config.Ctx.Manager.Global.Config.Registry = registryURL
 
-	// Save config
-	if err := config.Save(currentCfg); err != nil {
-		return fmt.Errorf("failed to save config: %w", err)
+	// Save global config
+	if err := config.Ctx.Manager.SaveGlobal(); err != nil {
+		return fmt.Errorf("failed to save global config: %w", err)
 	}
 
 	logger.Info(fmt.Sprintf("Registry changed from %s to %s", oldRegistry, registryURL))

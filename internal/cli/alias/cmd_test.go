@@ -26,8 +26,14 @@ func setupAliasCommandTest(t *testing.T) {
 	if err := cfg.InitializeDirs(); err != nil {
 		t.Fatalf("InitializeDirs: %v", err)
 	}
-	if err := config.Save(cfg); err != nil {
-		t.Fatalf("Save: %v", err)
+
+	globalPath, _ := config.GlobalConfigPath()
+	config.Ctx = &config.BoilerContext{
+		Manager: &config.Manager{
+			Global:  &config.ConfigFile{Path: globalPath, Config: cfg},
+			Runtime: cfg,
+		},
+		Scope: config.ScopeGlobal,
 	}
 
 	log, err := utils.NewLogger(cfg.Paths.Logs, false)
@@ -52,8 +58,8 @@ func TestSetAliasFromAssignment_NormalizesAndPersists(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Load: %v", err)
 	}
-	if got := loaded.Aliases["ll"]; got != "ls" {
-		t.Fatalf("loaded.Aliases[ll] = %q", got)
+	if got := loaded.Runtime.Aliases["ll"]; got != "ls" {
+		t.Fatalf("loaded.Runtime.Aliases[ll] = %q", got)
 	}
 }
 

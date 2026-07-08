@@ -113,6 +113,9 @@ bl add errorHandler
 # (metadata stripped, variables replaced)
 ```
 
+- Identifiers beginning with "bl__" are reserved for Boiler variables.
+
+
 ---
 
 ## Features

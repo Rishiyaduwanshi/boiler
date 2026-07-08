@@ -59,58 +59,7 @@ func TestDefaultConfig(t *testing.T) {
 	}
 }
 
-// ── Save / Load roundtrip ─────────────────────────────────────────────────────
-
-func TestSaveAndLoad(t *testing.T) {
-	redirectHome(t)
-
-	original := DefaultConfig()
-	original.DefaultEditor = "nano"
-	original.Registry = "https://github.com/test/repo"
-
-	if err := Save(original); err != nil {
-		t.Fatalf("Save: %v", err)
-	}
-
-	loaded, err := Load()
-	if err != nil {
-		t.Fatalf("Load: %v", err)
-	}
-
-	if loaded.DefaultEditor != "nano" {
-		t.Errorf("DefaultEditor: got %q, want %q", loaded.DefaultEditor, "nano")
-	}
-	if loaded.Registry != "https://github.com/test/repo" {
-		t.Errorf("Registry: got %q, want %q", loaded.Registry, "https://github.com/test/repo")
-	}
-	if loaded.Paths.Root != original.Paths.Root {
-		t.Errorf("Paths.Root changed after reload")
-	}
-}
-
-// ── Load on missing file creates default ─────────────────────────────────────
-
-func TestLoadCreatesDefaultOnMissing(t *testing.T) {
-	redirectHome(t)
-
-	// No config file exists yet
-	cfg, err := Load()
-	if err != nil {
-		t.Fatalf("Load on missing file: %v", err)
-	}
-	if cfg == nil {
-		t.Fatal("expected non-nil config")
-	}
-	if cfg.Name == "" {
-		t.Error("expected default name to be set")
-	}
-
-	// Config file should now exist on disk
-	configPath, _ := ConfigPath()
-	if _, err := os.Stat(configPath); err != nil {
-		t.Errorf("config file should have been created: %v", err)
-	}
-}
+// Save and Load logic is now tested via Manager in loader_test.go or manager_test.go
 
 // ── mergeWithDefaults fills missing fields ────────────────────────────────────
 
@@ -189,75 +138,7 @@ func TestMergeWithDefaults_ArtifactsPartial(t *testing.T) {
 	}
 }
 
-// ── CreateBackup + Reset ──────────────────────────────────────────────────────
-
-func TestCreateBackupAndResetFromBackup(t *testing.T) {
-	redirectHome(t)
-
-	// Save an initial config
-	original := DefaultConfig()
-	original.DefaultEditor = "vim-original"
-	if err := Save(original); err != nil {
-		t.Fatalf("Save: %v", err)
-	}
-
-	// Create backup
-	if err := CreateBackup(); err != nil {
-		t.Fatalf("CreateBackup: %v", err)
-	}
-	backupPath, _ := BackupPath()
-	if _, err := os.Stat(backupPath); err != nil {
-		t.Fatalf("backup file should exist: %v", err)
-	}
-
-	// Overwrite config with different value
-	modified := DefaultConfig()
-	modified.DefaultEditor = "nvim-modified"
-	if err := Save(modified); err != nil {
-		t.Fatalf("Save modified: %v", err)
-	}
-
-	// Reset should restore from backup
-	if err := Reset(); err != nil {
-		t.Fatalf("Reset: %v", err)
-	}
-
-	restored, err := Load()
-	if err != nil {
-		t.Fatalf("Load after reset: %v", err)
-	}
-	if restored.DefaultEditor != "vim-original" {
-		t.Errorf("Reset should restore from backup; got editor %q", restored.DefaultEditor)
-	}
-}
-
-func TestResetWithNoBackup(t *testing.T) {
-	redirectHome(t)
-
-	// No backup file - Reset should write default config
-	if err := Reset(); err != nil {
-		t.Fatalf("Reset with no backup: %v", err)
-	}
-
-	cfg, err := Load()
-	if err != nil {
-		t.Fatalf("Load after reset: %v", err)
-	}
-	defaults := DefaultConfig()
-	if cfg.Name != defaults.Name {
-		t.Errorf("Name after reset = %q, want %q", cfg.Name, defaults.Name)
-	}
-}
-
-// ── CreateBackup on missing config ───────────────────────────────────────────
-
-func TestCreateBackup_NoConfigFile(t *testing.T) {
-	redirectHome(t)
-	// Should not error when source doesn't exist - just a no-op
-	if err := CreateBackup(); err != nil {
-		t.Errorf("CreateBackup with no config should not error: %v", err)
-	}
-}
+// Backup and Reset logic will be handled by Manager in the future.
 
 // ── InitializeDirs ────────────────────────────────────────────────────────────
 
@@ -286,20 +167,6 @@ func TestInitializeDirs(t *testing.T) {
 		if !info.IsDir() {
 			t.Errorf("%q should be a directory", dir)
 		}
-	}
-}
-
-// ── ConfigPath / BackupPath use home dir ──────────────────────────────────────
-
-func TestConfigPath(t *testing.T) {
-	home := redirectHome(t)
-	path, err := ConfigPath()
-	if err != nil {
-		t.Fatalf("ConfigPath: %v", err)
-	}
-	expected := filepath.Join(home, ".boiler", "boiler.conf.json")
-	if path != expected {
-		t.Errorf("ConfigPath = %q, want %q", path, expected)
 	}
 }
 

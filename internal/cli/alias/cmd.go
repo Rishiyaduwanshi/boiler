@@ -92,8 +92,14 @@ func EnsureConfigAliases() {
 }
 
 func PersistConfigAliases() error {
-	if err := config.Save(cfg); err != nil {
-		return fmt.Errorf("failed to save config: %w", err)
+	if config.Ctx.Scope == config.ScopeLocal {
+		if err := config.Ctx.Manager.SaveLocal(); err != nil {
+			return fmt.Errorf("failed to save local config: %w", err)
+		}
+	} else {
+		if err := config.Ctx.Manager.SaveGlobal(); err != nil {
+			return fmt.Errorf("failed to save global config: %w", err)
+		}
 	}
 	return nil
 }

@@ -25,8 +25,14 @@ func setupVarCommandTest(t *testing.T) {
 	if err := cfg.InitializeDirs(); err != nil {
 		t.Fatalf("InitializeDirs: %v", err)
 	}
-	if err := config.Save(cfg); err != nil {
-		t.Fatalf("Save: %v", err)
+
+	globalPath, _ := config.GlobalConfigPath()
+	config.Ctx = &config.BoilerContext{
+		Manager: &config.Manager{
+			Global:  &config.ConfigFile{Path: globalPath, Config: cfg},
+			Runtime: cfg,
+		},
+		Scope: config.ScopeGlobal,
 	}
 
 	log, err := utils.NewLogger(cfg.Paths.Logs, false)
@@ -51,7 +57,7 @@ func TestSetVarFromAssignment_NormalizesAndPersists(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Load: %v", err)
 	}
-	if got := loaded.Vars["api_url"]; got != "https://api.example.com" {
-		t.Fatalf("loaded.Vars[api_url] = %q", got)
+	if got := loaded.Runtime.Vars["api_url"]; got != "https://api.example.com" {
+		t.Fatalf("loaded.Runtime.Vars[api_url] = %q", got)
 	}
 }

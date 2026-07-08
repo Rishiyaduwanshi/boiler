@@ -20,6 +20,8 @@ Commands for updating and uninstalling Boiler itself.
 ### Options inherited from parent commands
 
 ```
+      --global    Force global scope for this command
+      --local     Force local scope for this command
   -V, --verbose   Enable verbose debug output
 ```
 

@@ -28,9 +28,12 @@ import (
 )
 
 var (
-	cfg     *config.Config
-	logger  *utils.Logger
-	verbose bool
+	cfg      *config.Config
+	manager  *config.Manager
+	logger   *utils.Logger
+	verbose  bool
+	isGlobal bool
+	isLocal  bool
 )
 
 var normalizeCommandDocsOnce sync.Once
@@ -73,12 +76,19 @@ variations of the same snippet or stack.`,
 			logger.SetVerbose(verbose)
 		}
 		remote.SetVerbose(verbose)
+
+		// Create the BoilerContext by resolving the current Scope
+		config.Ctx = &config.BoilerContext{
+			Manager: manager,
+			Scope:   config.ResolveScope(manager, isGlobal, isLocal),
+		}
 	},
 }
 
 // Execute runs the CLI
-func Execute(config *config.Config, log *utils.Logger) error {
-	cfg = config
+func Execute(m *config.Manager, log *utils.Logger) error {
+	manager = m
+	cfg = m.Runtime // Zero-refactor read-path: pass the Runtime config
 	logger = log
 
 	// Inject config and logger into all subcommands
@@ -120,6 +130,10 @@ func init() {
 	// Add version flag
 	rootCmd.Flags().BoolP("version", "v", false, "Show version information")
 	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "V", false, "Enable verbose debug output")
+
+	// Add Scope flags
+	rootCmd.PersistentFlags().BoolVar(&isGlobal, "global", false, "Force global scope for this command")
+	rootCmd.PersistentFlags().BoolVar(&isLocal, "local", false, "Force local scope for this command")
 
 	// Add subcommands
 	rootCmd.AddCommand(versioncmd.Cmd)

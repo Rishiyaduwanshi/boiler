@@ -10,21 +10,21 @@ import (
 )
 
 func main() {
-	// Load configuration
-	cfg, err := config.Load()
+	// Load configuration manager
+	manager, err := config.Load()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error loading config: %v\n", err)
 		os.Exit(1)
 	}
 
 	// Initialize directories
-	if err := cfg.InitializeDirs(); err != nil {
+	if err := manager.Runtime.InitializeDirs(); err != nil {
 		fmt.Fprintf(os.Stderr, "Error initializing directories: %v\n", err)
 		os.Exit(1)
 	}
 
 	// Create logger
-	logger, err := utils.NewLogger(cfg.Paths.Logs, false)
+	logger, err := utils.NewLogger(manager.Runtime.Paths.Logs, false)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error creating logger: %v\n", err)
 		os.Exit(1)
@@ -33,7 +33,7 @@ func main() {
 	logger.Info("Boiler started")
 
 	// Execute CLI
-	if err := cli.Execute(cfg, logger); err != nil {
+	if err := cli.Execute(manager, logger); err != nil {
 		logger.Error(fmt.Sprintf("Execution error: %v", err))
 		os.Exit(1)
 	}
