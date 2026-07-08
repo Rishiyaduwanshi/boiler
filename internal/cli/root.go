@@ -11,6 +11,7 @@ import (
 	infocmd "github.com/rishiyaduwanshi/boiler/internal/cli/info"
 	initcmd "github.com/rishiyaduwanshi/boiler/internal/cli/init"
 	listcmd "github.com/rishiyaduwanshi/boiler/internal/cli/list"
+	newcmd "github.com/rishiyaduwanshi/boiler/internal/cli/new"
 	pathcmd "github.com/rishiyaduwanshi/boiler/internal/cli/path"
 	searchcmd "github.com/rishiyaduwanshi/boiler/internal/cli/search"
 	selfcmd "github.com/rishiyaduwanshi/boiler/internal/cli/self"
@@ -98,6 +99,7 @@ func Execute(m *config.Manager, log *utils.Logger) error {
 	infocmd.Setup(cfg, logger)
 	initcmd.Setup(cfg, logger)
 	listcmd.Setup(cfg, logger)
+	newcmd.Setup(cfg, logger)
 	pathcmd.Setup(cfg, logger)
 	searchcmd.Setup(cfg, logger)
 	selfcmd.Setup(cfg, logger)
@@ -149,6 +151,7 @@ func init() {
 	rootCmd.AddCommand(infocmd.Cmd)
 	rootCmd.AddCommand(searchcmd.Cmd)
 	rootCmd.AddCommand(initcmd.Cmd)
+	rootCmd.AddCommand(newcmd.Cmd)
 	rootCmd.AddCommand(pathcmd.Cmd)
 	rootCmd.AddCommand(selfcmd.Cmd)
 	rootCmd.AddCommand(usecmd.Cmd)
