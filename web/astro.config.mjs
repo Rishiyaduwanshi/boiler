@@ -47,7 +47,9 @@ export default defineConfig({
         {
           label: 'Guides',
           items: [
-            { label: 'Boiler Syntax', slug: 'guides/syntax' },
+            { label: 'Project Structure', slug: 'guides/project-structure', badge: { text: 'Core', variant: 'note' } },
+            { label: 'Boiler Scripts (.bl)', slug: 'guides/bl-scripts', badge: { text: 'Advanced', variant: 'danger' } },
+            { label: 'Snippet Syntax', slug: 'guides/syntax' },
             {
               label: 'Remote Fetching',
               badge: { text: 'New', variant: 'tip' },

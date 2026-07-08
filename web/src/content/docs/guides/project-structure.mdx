@@ -1,0 +1,78 @@
+---
+title: Project Structure & Architecture
+description: Understand how Boiler manages configurations, templates, and generated code in your projects.
+---
+
+Boiler is designed to be extremely flexible while keeping your project root clean. It distinguishes between **Global** settings (for your machine) and **Local** settings (specific to a project), and it strictly separates **Boiler internal assets** from **your generated code**.
+
+## Global vs Local Configuration
+
+Boiler uses a cascading configuration system. It first loads your Global config, then overrides it with your Local config if you are inside a project that has one.
+
+### Global Configuration (`~/.boiler/boiler.conf.json`)
+This is your machine-wide configuration. It contains your default author name, preferred text editor, and the default registry.
+- **Location:** `~/.boiler/boiler.conf.json`
+- **Global Store:** By default, all globally downloaded snippets and stacks are saved to `~/.boiler/store/`.
+
+### Local Configuration (`boiler.local.json`)
+If you want to define custom aliases, variables, or override the store path for a specific project, you can initialize a local configuration.
+- **Command:** Run `bl init -c` to generate this file.
+- **Location:** Project root (`./boiler.local.json`).
+
+> **Note:** A local config file is optional. If not found, Boiler will fall back to your Global config.
+
+---
+
+## Directory Structure
+
+To prevent collisions between your project's generated code and Boiler's internal custom templates, Boiler uses two distinct directories in your project:
+
+### 1. The `bl/` Directory (Boiler's Internal Assets)
+This is where you store your project-specific reusable components, snippets, and custom CLI commands. Because this folder is visible (no dot prefix), you can easily edit and manage your templates in your IDE.
+
+```text
+my-project/
+└── bl/
+    ├── commands/      # Custom .bl scripts (e.g., generate_route.bl)
+    ├── snippets/      # Local snippets
+    └── stacks/        # Local project scaffolds
+```
+
+When you run a command like `bl new`, Boiler automatically looks inside the `bl/commands/` folder to find the script.
+
+### 2. The `boiler/` Directory (Generated Code)
+By default, when you download or add a new snippet or stack to your project, Boiler places the generated code inside the `boiler/` folder in your project root. 
+
+```text
+my-project/
+└── boiler/
+    ├── user_auth_component/
+    └── utils.js
+```
+
+### Why the Separation?
+Imagine you scaffold a new component named `commands`. If Boiler's internal files and your generated code shared the same folder, your new component would overwrite or mix with Boiler's `.bl` scripts! 
+By keeping templates in `bl/` and generated code in `boiler/`, we guarantee zero collisions while keeping everything perfectly organized.
+
+---
+
+## Example Project Layout
+
+Here is what a fully configured project utilizing Boiler looks like:
+
+```text
+my-project/
+├── boiler.local.json      # Boiler config (aliases, vars)
+├── package.json
+│
+├── bl/                    # [Boiler Internals]
+│   ├── commands/
+│   │   └── api.bl     # Your custom generator script
+│   └── snippets/
+│       └── my-header.tsx  # Your custom reusable snippet
+│
+├── boiler/                # [Generated Output]
+│   └── (Generated code lands here by default)
+│
+└── src/                   # Your actual application code
+```

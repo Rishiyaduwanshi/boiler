@@ -142,23 +142,6 @@ DATABASE_CONFIG = {
 }
 ```
 
-## Comment Styles by Language
-
-Boiler automatically uses the correct comment style based on file extension:
-
-| Language/File | Extension | Comment Style | Example |
-|--------------|-----------|---------------|---------|
-| JavaScript/TypeScript | `.js`, `.ts` | `//` | `// __author Name` |
-| Python | `.py` | `#` | `# __author Name` |
-| HTML/XML | `.html`, `.xml` | `<!--` | `<!-- __author Name -->` |
-| CSS | `.css` | `/*` | `/* __author Name */` |
-| SQL | `.sql` | `--` | `-- __author Name` |
-| Shell Script | `.sh`, `.bash` | `#` | `# __author Name` |
-| PowerShell | `.ps1` | `#` | `# __author Name` |
-| Ruby | `.rb` | `#` | `# __author Name` |
-| YAML | `.yml`, `.yaml` | `#` | `# __author Name` |
-| INI/Config | `.ini`, `.env` | `;` or `#` | `# __author Name` |
-
 ### Custom Comment Styles
 
 For unsupported file types, add them to your config:
