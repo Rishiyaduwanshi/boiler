@@ -39,3 +39,23 @@ func ApplyModifiers(value string, modifiers []string) string {
 	}
 	return value
 }
+
+// ResolveVariable takes an expression like "bl__1.capitalize().snake_case()"
+// and a map of variables, looks up the base variable, and applies all modifiers.
+func ResolveVariable(expr string, vars map[string]string) string {
+	expr = strings.TrimSpace(expr)
+	parts := strings.Split(expr, ".")
+
+	baseVarName := parts[0]
+	val := vars[baseVarName]
+
+	if len(parts) > 1 {
+		// Remove empty parenthesis from modifiers if present (e.g., .capitalize() -> capitalize)
+		modifiers := make([]string, len(parts)-1)
+		for i, mod := range parts[1:] {
+			modifiers[i] = strings.TrimSuffix(mod, "()")
+		}
+		val = ApplyModifiers(val, modifiers)
+	}
+	return val
+}
