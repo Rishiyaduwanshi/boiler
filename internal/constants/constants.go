@@ -11,7 +11,7 @@ const (
 
 	// Config Files
 	GlobalConfigFileName = "boiler.conf.json"
-	LocalConfigFileName  = "config.json"
+	LocalConfigFileName  = "boiler.local.json"
 
 	// URLs & Schemes
 	SchemeHTTP  = "http://"

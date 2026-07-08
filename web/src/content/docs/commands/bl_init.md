@@ -11,6 +11,7 @@ Initialize a boiler configuration file in the current directory.
 
 For stacks (directories): Creates boiler.stack.json
 For snippets (files): Creates boiler.snippet.json with metadata
+For projects (local settings): Creates boiler.local.json
 
 Stack config includes:
 - Stack name and description
@@ -46,6 +47,9 @@ bl init [flags]
   bl init -n
   bl init -n -y
 
+  # Initialize local project config
+  bl init -c
+
   # After init, customize and store
   bl store
 ```
@@ -53,6 +57,7 @@ bl init [flags]
 ### Options
 
 ```
+  -c, --config    Initialize project local config (boiler.local.json)
   -h, --help      help for init
   -n, --snippet   Initialize as snippet
   -k, --stack     Initialize as stack

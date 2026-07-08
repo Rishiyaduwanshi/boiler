@@ -126,7 +126,7 @@ func mergeWithDefaults(cfg *Config) {
 	}
 
 	// Ensure paths are populated (in case root changed)
-	if cfg.Paths.Root == "" {
+	if cfg.Paths == nil || cfg.Paths.Root == "" {
 		cfg.Paths = defaults.Paths
 	}
 

@@ -11,15 +11,15 @@ import (
 )
 
 type Config struct {
-	Name          string            `json:"name"`
-	Version       string            `json:"version"`
-	Author        string            `json:"author"`
-	Github        string            `json:"github"`
-	Description   string            `json:"description"`
-	DefaultEditor string            `json:"defaultEditor"`
-	Registry      string            `json:"registry"`
-	Paths         Paths             `json:"paths"`
-	Artifacts     map[string]string `json:"artifacts"`
+	Name          string            `json:"name,omitempty"`
+	Version       string            `json:"version,omitempty"`
+	Author        string            `json:"author,omitempty"`
+	Github        string            `json:"github,omitempty"`
+	Description   string            `json:"description,omitempty"`
+	DefaultEditor string            `json:"defaultEditor,omitempty"`
+	Registry      string            `json:"registry,omitempty"`
+	Paths         *Paths            `json:"paths,omitempty"`
+	Artifacts     map[string]string `json:"artifacts,omitempty"`
 	Aliases       map[string]string `json:"aliases"`
 	Vars          map[string]string `json:"vars"`
 	Scope         string            `json:"scope,omitempty"`
@@ -67,7 +67,7 @@ func DefaultConfig() *Config {
 		Description:   "A CLI tool to manage reusable code snippets and stacks",
 		DefaultEditor: defaultEditor(),
 		Registry:      constants.DefaultRegistryURL,
-		Paths: Paths{
+		Paths: &Paths{
 			Root:     rootPath,
 			Store:    filepath.Join(rootPath, constants.StoreDirName),
 			Snippets: filepath.Join(rootPath, constants.StoreDirName, constants.SnippetsDirName),

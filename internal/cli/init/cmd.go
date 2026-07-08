@@ -20,6 +20,7 @@ var Cmd = &cobra.Command{
 
 For stacks (directories): Creates boiler.stack.json
 For snippets (files): Creates boiler.snippet.json with metadata
+For projects (local settings): Creates boiler.local.json
 
 Stack config includes:
   - Stack name and description
@@ -47,6 +48,9 @@ Similar to 'npm init', this helps you prepare projects for storing.`,
   bl init -n
   bl init -n -y
 
+  # Initialize local project config
+  bl init -c
+
   # After init, customize and store
   bl store`,
 	Run: func(cmd *cobra.Command, args []string) {
@@ -58,6 +62,10 @@ Similar to 'npm init', this helps you prepare projects for storing.`,
 }
 
 func initBoilerConfig() error {
+	if initAsConfig {
+		return createLocalConfig()
+	}
+
 	// Determine what to initialize
 	var isSnippet bool
 
@@ -203,16 +211,77 @@ func createSnippetConfig(path string) error {
 	return nil
 }
 
+func createLocalConfig() error {
+	cwd, err := os.Getwd()
+	if err != nil {
+		return fmt.Errorf("failed to get current directory: %w", err)
+	}
+
+	configPath := config.DefaultLocalConfigPath(cwd)
+	if utils.FileExists(configPath) {
+		return fmt.Errorf("local config %s already exists", filepath.Base(configPath))
+	}
+
+	defaultName := filepath.Base(cwd)
+	var projectName string
+	var scope string
+
+	if initYes {
+		projectName = defaultName
+		scope = string(config.ScopeLocal)
+	} else {
+		projectName = utils.PromptString("Project Name", defaultName)
+		scopeChoice := utils.PromptString("Scope (local/global)", string(config.ScopeLocal))
+		if scopeChoice == "global" || scopeChoice == "g" {
+			scope = string(config.ScopeGlobal)
+		} else {
+			scope = string(config.ScopeLocal)
+		}
+	}
+
+	// Fetch author from global config if available
+	author := ""
+	if cfg != nil {
+		author = cfg.Author
+	}
+
+	localCfg := config.Config{
+		Name:    projectName,
+		Author:  author,
+		Scope:   scope,
+		Aliases: make(map[string]string),
+		Vars:    make(map[string]string),
+	}
+
+	data, err := json.MarshalIndent(localCfg, "", "    ")
+	if err != nil {
+		return fmt.Errorf("failed to marshal local config: %w", err)
+	}
+
+	if err := os.WriteFile(configPath, data, 0644); err != nil {
+		return fmt.Errorf("failed to write config: %w", err)
+	}
+
+	fmt.Printf("✓ Created %s\n", filepath.Base(configPath))
+	fmt.Println("\nNext steps:")
+	fmt.Println("  1. Edit this file to add project-specific aliases and default variables")
+	fmt.Println("  2. Run 'bl conf' to see the combined active configuration")
+
+	return nil
+}
+
 var (
 	initYes       bool
 	initAsSnippet bool
 	initAsStack   bool
+	initAsConfig  bool
 )
 
 func init() {
 	Cmd.Flags().BoolVarP(&initYes, "yes", "y", false, "Skip prompts and use defaults")
 	Cmd.Flags().BoolVarP(&initAsSnippet, "snippet", "n", false, "Initialize as snippet")
 	Cmd.Flags().BoolVarP(&initAsStack, "stack", "k", false, "Initialize as stack")
+	Cmd.Flags().BoolVarP(&initAsConfig, "config", "c", false, "Initialize project local config (boiler.local.json)")
 }
 
 var (
