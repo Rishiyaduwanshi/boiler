@@ -16,13 +16,13 @@ A `.bl` file consists of metadata variables, Boiler CLI commands, and code injec
 ```bash
 # Define metadata and variables using __ (Double Underscore)
 __desc = "Generates a new API Route"
-__var bl__route_name = lowercase(bl__1)    # bl__1 is the first argument passed to the command
+__var bl__route_name = bl__1.lowercase()    # bl__1 is the first argument passed to the command
 
 # Run standard Boiler commands
 use github.com/my-org/repo:route.ts ./src/routes/bl__route_name.ts
 
-# Inject code into existing files
-inject ./src/routes.ts --detector api_routes --mode append --content `
+# Inject code into existing files using CLI flags (-d for detect, -a for append, -p for prepend, -c for content)
+inject ./src/routes.ts -d api_routes -a -c `
 import { bl__route_name } from './routes/bl__route_name';
 app.use('/api/bl__route_name', bl__route_name);
 `
@@ -32,12 +32,22 @@ app.use('/api/bl__route_name', bl__route_name);
 
 ## 1. Variables and Metadata
 All metadata and variables must start with a double underscore `__`. 
-Variables can access CLI arguments using `bl__1`, `bl__2`, etc. You can also use built-in transformers like `lowercase()`, `capitalize()`, etc.
+Variables can access CLI arguments using `bl__1`, `bl__2`, etc. You can also use built-in transformers like `.lowercase()`, `.capitalize()`, etc. using dot-notation.
 
 ```bash
 __desc = "This text shows up in the CLI help menu"
-__var bl__component = capitalize(bl__1)
+__var bl__component = bl__1.capitalize()
 ```
+
+**Supported Modifiers:**
+- `.lowercase()` / `.lower()`
+- `.uppercase()` / `.upper()`
+- `.capitalize()`
+- `.titleCase()`
+- `.camelCase()`
+- `.pascalCase()`
+- `.snake_case()`
+- `.kebab_case()` / `.kebabCase()`
 
 ---
 
@@ -48,12 +58,18 @@ When you need to inject complex or multi-line code blocks, always use backticks 
 > **No Escaping Needed:** Code inside backticks is protected. You can freely use double quotes (`"`), single quotes (`'`), or any special characters without needing to escape them.
 
 ```bash
-inject ./src/index.js --detector imports --mode append --content `
+inject ./src/index.js -d imports -a -c `
 const express = require('express');
 const app = express();
 console.log("Server initialized");
 `
 ```
+
+**Injection Flags:**
+- `-d` or `--detect`: The name of the detector (e.g. `imports` targets `// bl__DETECTOR_START_imports`).
+- `-a` or `--append`: Inserts the content right *above* the `END` marker. Ideal for adding items to the end of a list.
+- `-p` or `--prepend`: Inserts the content right *below* the `START` marker. Ideal for adding imports at the top of a block.
+- `-c` or `--content`: Followed by backticks containing the multiline code.
 
 ---
 

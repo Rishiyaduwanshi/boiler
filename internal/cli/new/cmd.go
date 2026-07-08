@@ -49,8 +49,8 @@ It looks for the script in the './bl/' folder of your current project.`,
 		}
 
 		scriptName := args[0]
-		// In Boiler, local scripts are in the `bl/` directory of the project
-		scriptPath := filepath.Join("bl", scriptName+".bl")
+		// In Boiler, local scripts are in the `bl/commands/` directory of the project
+		scriptPath := filepath.Join("bl", "commands", scriptName+".bl")
 
 		if _, err := os.Stat(scriptPath); os.IsNotExist(err) {
 			return fmt.Errorf("script '%s' not found. Ensure '%s' exists in your project", scriptName, scriptPath)
