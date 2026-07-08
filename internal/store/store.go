@@ -8,6 +8,8 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+
+	"github.com/rishiyaduwanshi/boiler/internal/constants"
 )
 
 type Meta struct {
@@ -195,9 +197,9 @@ func IsSnippet(resource string) bool {
 
 func isProviderPrefix(prefix string) bool {
 	switch strings.ToLower(prefix) {
-	case "github", "github.com", "www.github.com",
-		"gitlab", "gitlab.com", "www.gitlab.com",
-		"bitbucket", "bitbucket.org", "www.bitbucket.org":
+	case constants.ProviderGithubAlias, constants.ProviderGithubHost, constants.ProviderGithubWWW,
+		constants.ProviderGitlabAlias, constants.ProviderGitlabHost, constants.ProviderGitlabWWW,
+		constants.ProviderBitbucketAlias, constants.ProviderBitbucketHost, constants.ProviderBitbucketWWW:
 		return true
 	default:
 		return false
@@ -231,7 +233,7 @@ func parseOwnerRepoPath(value string) (owner, repo, subPath string, ok bool) {
 
 func isURL(value string) bool {
 	lower := strings.ToLower(strings.TrimSpace(value))
-	return strings.HasPrefix(lower, "http://") || strings.HasPrefix(lower, "https://")
+	return strings.HasPrefix(lower, constants.SchemeHTTP) || strings.HasPrefix(lower, constants.SchemeHTTPS)
 }
 
 // IsRemotePath checks if a path is a remote GitHub location or URL

@@ -5,6 +5,8 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/rishiyaduwanshi/boiler/internal/constants"
 )
 
 // redirectHome points os.UserHomeDir() at a temp dir for the duration of the test.
@@ -35,17 +37,17 @@ func TestDefaultConfig(t *testing.T) {
 		t.Error("Version should not be empty")
 	}
 
-	expectedRoot := filepath.Join(home, ".boiler")
+	expectedRoot := filepath.Join(home, constants.BoilerDirName)
 	if cfg.Paths.Root != expectedRoot {
 		t.Errorf("Paths.Root = %q, want %q", cfg.Paths.Root, expectedRoot)
 	}
-	if cfg.Paths.Snippets != filepath.Join(expectedRoot, "store", "snippets") {
+	if cfg.Paths.Snippets != filepath.Join(expectedRoot, constants.StoreDirName, constants.SnippetsDirName) {
 		t.Errorf("Paths.Snippets = %q", cfg.Paths.Snippets)
 	}
-	if cfg.Paths.Stacks != filepath.Join(expectedRoot, "store", "stacks") {
+	if cfg.Paths.Stacks != filepath.Join(expectedRoot, constants.StoreDirName, constants.StacksDirName) {
 		t.Errorf("Paths.Stacks = %q", cfg.Paths.Stacks)
 	}
-	if cfg.Paths.Logs != filepath.Join(expectedRoot, "logs") {
+	if cfg.Paths.Logs != filepath.Join(expectedRoot, constants.LogsDirName) {
 		t.Errorf("Paths.Logs = %q", cfg.Paths.Logs)
 	}
 	if len(cfg.Artifacts) == 0 {

@@ -4,16 +4,17 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+
+	"github.com/rishiyaduwanshi/boiler/internal/constants"
 )
 
 const (
-	SnippetVarPrefix = "bl__"
 	CommandVarPrefix = ":"
 )
 
 var (
-	cliVarReplaceRe    = regexp.MustCompile(`(?i)bl__([a-z_][a-z0-9_-]*)`)
-	normalizedVarKeyRe = regexp.MustCompile(`^[a-z_][a-z0-9_-]*$`)
+	cliVarReplaceRe    = regexp.MustCompile(fmt.Sprintf(`(?i)%s([a-z_][a-z0-9_-]*)`, constants.VarPrefix))
+	normalizedVarKeyRe = regexp.MustCompile(constants.VarKeyPattern)
 )
 
 // IsCommandVarReference reports whether token contains a command variable reference (e.g. bl__TEAM_REG).
@@ -36,8 +37,8 @@ func NormalizeVarKey(raw string) (string, error) {
 	if strings.HasPrefix(key, CommandVarPrefix) {
 		key = strings.TrimPrefix(key, CommandVarPrefix)
 	}
-	if hasPrefixFold(key, SnippetVarPrefix) {
-		key = key[len(SnippetVarPrefix):]
+	if hasPrefixFold(key, constants.VarPrefix) {
+		key = key[len(constants.VarPrefix):]
 	}
 
 	key = strings.TrimSpace(key)

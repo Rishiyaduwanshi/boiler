@@ -14,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/rishiyaduwanshi/boiler/internal/constants"
 	"github.com/rishiyaduwanshi/boiler/internal/store"
 	"github.com/rishiyaduwanshi/boiler/internal/utils"
 )
@@ -235,11 +236,11 @@ func providerForRemotePath(remotePath string) Provider {
 	}
 
 	switch prefix {
-	case "github", "github.com", "www.github.com":
+	case constants.ProviderGithubAlias, constants.ProviderGithubHost, constants.ProviderGithubWWW:
 		return githubProvider{}
-	case "gitlab", "gitlab.com", "www.gitlab.com":
-		return gitlabProvider{host: "gitlab.com"}
-	case "bitbucket", "bitbucket.org", "www.bitbucket.org":
+	case constants.ProviderGitlabAlias, constants.ProviderGitlabHost, constants.ProviderGitlabWWW:
+		return gitlabProvider{host: constants.ProviderGitlabHost}
+	case constants.ProviderBitbucketAlias, constants.ProviderBitbucketHost, constants.ProviderBitbucketWWW:
 		return bitbucketProvider{}
 	default:
 		// owner/repo and owner/repo:path default to GitHub.
@@ -257,7 +258,7 @@ func normalizeDirectFileURL(rawURL string) string {
 	segments := strings.Split(strings.Trim(parsed.Path, "/"), "/")
 
 	switch host {
-	case "github.com", "www.github.com":
+	case constants.ProviderGithubHost, constants.ProviderGithubWWW:
 		if len(segments) >= 5 && segments[2] == "blob" {
 			owner := segments[0]
 			repo := segments[1]
@@ -285,7 +286,7 @@ func normalizeDirectFileURL(rawURL string) string {
 			}
 		}
 
-	case "gitlab.com", "www.gitlab.com":
+	case constants.ProviderGitlabHost, constants.ProviderGitlabWWW:
 		if len(segments) >= 6 && segments[2] == "-" && segments[3] == "blob" {
 			owner := segments[0]
 			repo := segments[1]
@@ -296,7 +297,7 @@ func normalizeDirectFileURL(rawURL string) string {
 			}
 		}
 
-	case "bitbucket.org", "www.bitbucket.org":
+	case constants.ProviderBitbucketHost, constants.ProviderBitbucketWWW:
 		if len(segments) >= 5 && segments[2] == "src" {
 			owner := segments[0]
 			repo := segments[1]
@@ -321,7 +322,7 @@ func parseHostedStackRefAndSubPath(rawURL string) (ref, subPath string, ok bool)
 	segments := strings.Split(strings.Trim(parsed.Path, "/"), "/")
 
 	switch host {
-	case "github.com", "www.github.com":
+	case constants.ProviderGithubHost, constants.ProviderGithubWWW:
 		if len(segments) >= 4 && (segments[2] == "tree" || segments[2] == "blob") {
 			ref = segments[3]
 			if len(segments) > 4 {
@@ -332,7 +333,7 @@ func parseHostedStackRefAndSubPath(rawURL string) (ref, subPath string, ok bool)
 			return ref, subPath, true
 		}
 
-	case "gitlab.com", "www.gitlab.com":
+	case constants.ProviderGitlabHost, constants.ProviderGitlabWWW:
 		if len(segments) >= 5 && segments[2] == "-" && (segments[3] == "tree" || segments[3] == "blob") {
 			ref = segments[4]
 			if len(segments) > 5 {
@@ -343,7 +344,7 @@ func parseHostedStackRefAndSubPath(rawURL string) (ref, subPath string, ok bool)
 			return ref, subPath, true
 		}
 
-	case "bitbucket.org", "www.bitbucket.org":
+	case constants.ProviderBitbucketHost, constants.ProviderBitbucketWWW:
 		if len(segments) >= 4 && segments[2] == "src" {
 			ref = segments[3]
 			if len(segments) > 4 {

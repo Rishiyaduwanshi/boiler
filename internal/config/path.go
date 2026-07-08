@@ -3,6 +3,8 @@ package config
 import (
 	"os"
 	"path/filepath"
+
+	"github.com/rishiyaduwanshi/boiler/internal/constants"
 )
 
 // FindNearestConfig walks up the directory tree from cwd until it finds a `.boiler/config.json`
@@ -11,7 +13,7 @@ func FindNearestConfig(cwd string) (string, error) {
 	currentDir := cwd
 
 	for {
-		configPath := filepath.Join(currentDir, ".boiler", "config.json")
+		configPath := filepath.Join(currentDir, constants.BoilerDirName, constants.LocalConfigFileName)
 		if _, err := os.Stat(configPath); err == nil {
 			return configPath, nil
 		}
@@ -32,11 +34,11 @@ func FindNearestConfig(cwd string) (string, error) {
 // GlobalConfigPath returns the path to the global config file (~/.boiler/boiler.conf.json).
 func GlobalConfigPath() (string, error) {
 	rootPath := getRootPath()
-	return filepath.Join(rootPath, "boiler.conf.json"), nil
+	return filepath.Join(rootPath, constants.GlobalConfigFileName), nil
 }
 
 // DefaultLocalConfigPath returns the path where a local config SHOULD be created
 // if the user is in a project that doesn't have one yet.
 func DefaultLocalConfigPath(cwd string) string {
-	return filepath.Join(cwd, ".boiler", "config.json")
+	return filepath.Join(cwd, constants.BoilerDirName, constants.LocalConfigFileName)
 }

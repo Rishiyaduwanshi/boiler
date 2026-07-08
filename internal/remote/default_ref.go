@@ -6,6 +6,8 @@ import (
 	"net/url"
 	"regexp"
 	"strings"
+
+	"github.com/rishiyaduwanshi/boiler/internal/constants"
 )
 
 const defaultRemoteRef = "main"
@@ -29,7 +31,7 @@ func resolveProviderRef(p Provider, owner, repo, fallback string) string {
 	case gitlabProvider:
 		host := provider.host
 		if host == "" {
-			host = "gitlab.com"
+			host = constants.ProviderGitlabHost
 		}
 		ref, err := gitlabDefaultBranch(host, owner, repo)
 		if err == nil && ref != "" {
@@ -56,7 +58,7 @@ func resolveProviderRef(p Provider, owner, repo, fallback string) string {
 }
 
 func githubDefaultBranch(owner, repo string) (string, error) {
-	endpoint := fmt.Sprintf("https://api.github.com/repos/%s/%s", owner, repo)
+	endpoint := fmt.Sprintf("%s%s/repos/%s/%s", constants.SchemeHTTPS, constants.ProviderGithubAPI, owner, repo)
 	data, err := downloadFile(endpoint)
 	if err == nil {
 		ref, parseErr := parseGitHubDefaultBranch(data)
@@ -71,7 +73,7 @@ func githubDefaultBranch(owner, repo string) (string, error) {
 }
 
 func githubDefaultBranchFromHTML(owner, repo string) (string, error) {
-	url := fmt.Sprintf("https://github.com/%s/%s", owner, repo)
+	url := fmt.Sprintf("%s%s/%s/%s", constants.SchemeHTTPS, constants.ProviderGithubHost, owner, repo)
 	data, err := downloadFile(url)
 	if err != nil {
 		return "", err
@@ -100,7 +102,7 @@ func parseGitHubDefaultBranchFromHTML(data []byte) (string, error) {
 
 func gitlabDefaultBranch(host, owner, repo string) (string, error) {
 	projectID := url.QueryEscape(owner + "/" + repo)
-	endpoint := fmt.Sprintf("https://%s/api/v4/projects/%s", host, projectID)
+	endpoint := fmt.Sprintf("%s%s/%s/%s", constants.SchemeHTTPS, host, constants.ProviderGitlabAPI, projectID)
 	data, err := downloadFile(endpoint)
 	if err != nil {
 		return "", err
@@ -109,7 +111,7 @@ func gitlabDefaultBranch(host, owner, repo string) (string, error) {
 }
 
 func bitbucketDefaultBranch(owner, repo string) (string, error) {
-	endpoint := fmt.Sprintf("https://api.bitbucket.org/2.0/repositories/%s/%s", owner, repo)
+	endpoint := fmt.Sprintf("%s%s/repositories/%s/%s", constants.SchemeHTTPS, constants.ProviderBitbucketAPI, owner, repo)
 	data, err := downloadFile(endpoint)
 	if err != nil {
 		return "", err

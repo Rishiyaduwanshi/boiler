@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"runtime"
 
+	"github.com/rishiyaduwanshi/boiler/internal/constants"
 	"github.com/rishiyaduwanshi/boiler/pkg/version"
 )
 
@@ -45,9 +46,9 @@ func defaultEditor() string {
 func getRootPath() string {
 	home, err := os.UserHomeDir()
 	if err != nil {
-		return ".boiler"
+		return constants.BoilerDirName
 	}
-	return filepath.Join(home, ".boiler")
+	return filepath.Join(home, constants.BoilerDirName)
 }
 
 func DefaultConfig() *Config {
@@ -65,14 +66,14 @@ func DefaultConfig() *Config {
 		Github:        "github.com/rishiyaduwanshi/boiler",
 		Description:   "A CLI tool to manage reusable code snippets and stacks",
 		DefaultEditor: defaultEditor(),
-		Registry:      "https://github.com/rishiyaduwanshi/boiler",
+		Registry:      constants.DefaultRegistryURL,
 		Paths: Paths{
 			Root:     rootPath,
-			Store:    filepath.Join(rootPath, "store"),
-			Snippets: filepath.Join(rootPath, "store", "snippets"),
-			Stacks:   filepath.Join(rootPath, "store", "stacks"),
-			Logs:     filepath.Join(rootPath, "logs"),
-			Bin:      filepath.Join(rootPath, "bin"),
+			Store:    filepath.Join(rootPath, constants.StoreDirName),
+			Snippets: filepath.Join(rootPath, constants.StoreDirName, constants.SnippetsDirName),
+			Stacks:   filepath.Join(rootPath, constants.StoreDirName, constants.StacksDirName),
+			Logs:     filepath.Join(rootPath, constants.LogsDirName),
+			Bin:      filepath.Join(rootPath, constants.BinDirName),
 		},
 		Artifacts: map[string]string{
 			"default":    "//  ",

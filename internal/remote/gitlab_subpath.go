@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"net/url"
 	"strings"
+
+	"github.com/rishiyaduwanshi/boiler/internal/constants"
 )
 
 type gitLabTreeEntry struct {
@@ -19,7 +21,7 @@ func fetchGitLabSubPath(host, owner, repo, ref, subPath, destPath string) error 
 	}
 
 	if host == "" {
-		host = "gitlab.com"
+		host = constants.ProviderGitlabHost
 	}
 
 	debugf("gitlab subtree fetch started host=%s owner=%s repo=%s ref=%s path=%s", host, owner, repo, ref, cleanSubPath)
@@ -63,7 +65,7 @@ func listGitLabTree(host, owner, repo, ref, subPath string) ([]gitLabTreeEntry, 
 	all := make([]gitLabTreeEntry, 0)
 
 	for {
-		endpoint := fmt.Sprintf("https://%s/api/v4/projects/%s/repository/tree?path=%s&recursive=true&per_page=%d&page=%d&ref=%s", host, projectID, pathQuery, perPage, page, refQuery)
+		endpoint := fmt.Sprintf("%s%s/%s/%s/repository/tree?path=%s&recursive=true&per_page=%d&page=%d&ref=%s", constants.SchemeHTTPS, host, constants.ProviderGitlabAPI, projectID, pathQuery, perPage, page, refQuery)
 		debugf("gitlab tree endpoint=%s", endpoint)
 
 		data, err := downloadFile(endpoint)
@@ -95,7 +97,7 @@ func downloadGitLabRawFile(host, owner, repo, ref, filePath string) ([]byte, err
 	projectID := url.QueryEscape(owner + "/" + repo)
 	fileID := url.QueryEscape(strings.TrimPrefix(filePath, "/"))
 	refQuery := url.QueryEscape(ref)
-	endpoint := fmt.Sprintf("https://%s/api/v4/projects/%s/repository/files/%s/raw?ref=%s", host, projectID, fileID, refQuery)
+	endpoint := fmt.Sprintf("%s%s/%s/%s/repository/files/%s/raw?ref=%s", constants.SchemeHTTPS, host, constants.ProviderGitlabAPI, projectID, fileID, refQuery)
 	debugf("gitlab raw file endpoint=%s", endpoint)
 
 	data, err := downloadFile(endpoint)

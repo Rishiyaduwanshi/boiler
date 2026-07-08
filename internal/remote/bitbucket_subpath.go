@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+
+	"github.com/rishiyaduwanshi/boiler/internal/constants"
 )
 
 type bitbucketSourcePage struct {
@@ -64,7 +66,7 @@ func fetchBitbucketSubPath(owner, repo, ref, subPath, destPath string) error {
 }
 
 func listBitbucketTree(owner, repo, ref, subPath string) ([]bitbucketSourceEntry, error) {
-	endpoint := fmt.Sprintf("https://api.bitbucket.org/2.0/repositories/%s/%s/src/%s/%s", owner, repo, ref, subPath)
+	endpoint := fmt.Sprintf("%s%s/repositories/%s/%s/src/%s/%s", constants.SchemeHTTPS, constants.ProviderBitbucketAPI, owner, repo, ref, subPath)
 	all := make([]bitbucketSourceEntry, 0)
 
 	for endpoint != "" {

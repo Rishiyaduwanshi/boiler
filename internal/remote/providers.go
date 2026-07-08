@@ -2,8 +2,10 @@ package remote
 
 import (
 	"fmt"
+	"net/url"
 	"strings"
 
+	"github.com/rishiyaduwanshi/boiler/internal/constants"
 	"github.com/rishiyaduwanshi/boiler/internal/utils"
 )
 
@@ -39,11 +41,11 @@ type githubProvider struct{}
 func (githubProvider) Name() string { return "GitHub" }
 
 func (githubProvider) RawFileURL(owner, repo, ref, filePath string) string {
-	return fmt.Sprintf("https://raw.githubusercontent.com/%s/%s/%s/%s", owner, repo, ref, filePath)
+	return fmt.Sprintf("%s%s/%s/%s/%s/%s", constants.SchemeHTTPS, constants.ProviderGithubRawHost, owner, repo, ref, filePath)
 }
 
 func (githubProvider) ArchiveURL(owner, repo, ref, _ string) string {
-	return fmt.Sprintf("https://api.github.com/repos/%s/%s/tarball/%s", owner, repo, ref)
+	return fmt.Sprintf("%s%s/repos/%s/%s/tarball/%s", constants.SchemeHTTPS, constants.ProviderGithubAPI, owner, repo, ref)
 }
 
 func (githubProvider) ArchiveFormat() string { return "tar.gz" }
@@ -57,13 +59,12 @@ type gitlabProvider struct{ host string }
 func (p gitlabProvider) Name() string { return "GitLab" }
 
 func (p gitlabProvider) RawFileURL(owner, repo, ref, filePath string) string {
-	return fmt.Sprintf("https://%s/%s/%s/-/raw/%s/%s", p.host, owner, repo, ref, filePath)
+	return fmt.Sprintf("%s%s/%s/%s/-/raw/%s/%s", constants.SchemeHTTPS, p.host, owner, repo, ref, filePath)
 }
 
 func (p gitlabProvider) ArchiveURL(owner, repo, ref, _ string) string {
-	// URL-encode the namespace/project as required by GitLab API
-	project := strings.ReplaceAll(owner+"%2F"+repo, "/", "%2F")
-	return fmt.Sprintf("https://%s/api/v4/projects/%s/repository/archive.tar.gz?sha=%s", p.host, project, ref)
+	project := url.QueryEscape(owner + "/" + repo)
+	return fmt.Sprintf("%s%s/%s/%s/repository/archive.tar.gz?sha=%s", constants.SchemeHTTPS, p.host, constants.ProviderGitlabAPI, project, ref)
 }
 
 func (gitlabProvider) ArchiveFormat() string { return "tar.gz" }
@@ -77,11 +78,11 @@ type bitbucketProvider struct{}
 func (bitbucketProvider) Name() string { return "Bitbucket" }
 
 func (bitbucketProvider) RawFileURL(owner, repo, ref, filePath string) string {
-	return fmt.Sprintf("https://bitbucket.org/%s/%s/raw/%s/%s", owner, repo, ref, filePath)
+	return fmt.Sprintf("%s%s/%s/%s/raw/%s/%s", constants.SchemeHTTPS, constants.ProviderBitbucketHost, owner, repo, ref, filePath)
 }
 
 func (bitbucketProvider) ArchiveURL(owner, repo, ref, _ string) string {
-	return fmt.Sprintf("https://bitbucket.org/%s/%s/get/%s.zip", owner, repo, ref)
+	return fmt.Sprintf("%s%s/%s/%s/get/%s.zip", constants.SchemeHTTPS, constants.ProviderBitbucketHost, owner, repo, ref)
 }
 
 func (bitbucketProvider) ArchiveFormat() string { return "zip" }
@@ -127,24 +128,24 @@ func Detect(registryURL string) Provider {
 	// Normalize
 	u := strings.ToLower(strings.TrimSuffix(registryURL, "/"))
 	if !utils.IsURL(u) {
-		u = "https://" + u
+		u = constants.SchemeHTTPS + u
 	}
 
 	switch {
-	case strings.Contains(u, "github.com") || strings.Contains(u, "raw.githubusercontent.com"):
+	case strings.Contains(u, constants.ProviderGithubHost) || strings.Contains(u, constants.ProviderGithubRawHost):
 		return githubProvider{}
 
-	case strings.Contains(u, "gitlab.com"):
-		return gitlabProvider{host: "gitlab.com"}
+	case strings.Contains(u, constants.ProviderGitlabHost):
+		return gitlabProvider{host: constants.ProviderGitlabHost}
 
-	case strings.Contains(u, "bitbucket.org"):
+	case strings.Contains(u, constants.ProviderBitbucketHost):
 		return bitbucketProvider{}
 
 	default:
 		// Strip scheme for generic base URL construction
 		base := registryURL
 		if !utils.IsURL(base) {
-			base = "https://" + base
+			base = constants.SchemeHTTPS + base
 		}
 		base = strings.TrimSuffix(base, "/")
 		return genericProvider{base: base}
@@ -161,12 +162,12 @@ func Detect(registryURL string) Provider {
 func parseOwnerRepo(registryURL string) (owner, repo string) {
 	// Strip common prefixes
 	for _, prefix := range []string{
-		"https://github.com/",
-		"http://github.com/",
-		"https://gitlab.com/",
-		"http://gitlab.com/",
-		"https://bitbucket.org/",
-		"http://bitbucket.org/",
+		constants.SchemeHTTPS + constants.ProviderGithubHost + "/",
+		constants.SchemeHTTP + constants.ProviderGithubHost + "/",
+		constants.SchemeHTTPS + constants.ProviderGitlabHost + "/",
+		constants.SchemeHTTP + constants.ProviderGitlabHost + "/",
+		constants.SchemeHTTPS + constants.ProviderBitbucketHost + "/",
+		constants.SchemeHTTP + constants.ProviderBitbucketHost + "/",
 	} {
 		if strings.HasPrefix(registryURL, prefix) {
 			rest := strings.TrimPrefix(registryURL, prefix)

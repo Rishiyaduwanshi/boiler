@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"net/url"
 	"strings"
+
+	"github.com/rishiyaduwanshi/boiler/internal/constants"
 )
 
 type gitHubContentEntry struct {
@@ -56,7 +58,7 @@ func downloadGitHubDirectory(owner, repo, ref, currentPath, basePath, destRoot s
 
 func fetchGitHubEntries(owner, repo, ref, subPath string) ([]gitHubContentEntry, error) {
 	encodedPath := encodePathSegments(subPath)
-	endpoint := fmt.Sprintf("https://api.github.com/repos/%s/%s/contents/%s?ref=%s", owner, repo, encodedPath, url.QueryEscape(ref))
+	endpoint := fmt.Sprintf("%s%s/repos/%s/%s/contents/%s?ref=%s", constants.SchemeHTTPS, constants.ProviderGithubAPI, owner, repo, encodedPath, url.QueryEscape(ref))
 	debugf("github contents endpoint=%s", endpoint)
 
 	data, err := downloadFile(endpoint)

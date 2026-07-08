@@ -5,11 +5,13 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
+
+	"github.com/rishiyaduwanshi/boiler/internal/constants"
 )
 
 func IsURL(value string) bool {
 	lower := strings.ToLower(strings.TrimSpace(value))
-	return strings.HasPrefix(lower, "http://") || strings.HasPrefix(lower, "https://")
+	return strings.HasPrefix(lower, constants.SchemeHTTP) || strings.HasPrefix(lower, constants.SchemeHTTPS)
 }
 
 // IsDirectRemoteFileURL reports whether a URL points to a single file
@@ -25,14 +27,14 @@ func IsDirectRemoteFileURL(resource string) bool {
 		segments := strings.Split(strings.Trim(parsed.Path, "/"), "/")
 
 		switch host {
-		case "github.com", "www.github.com":
+		case constants.ProviderGithubHost, constants.ProviderGithubWWW:
 			if len(segments) >= 4 && segments[2] == "blob" {
 				if filepath.Ext(segments[len(segments)-1]) == "" {
 					return false
 				}
 				return true
 			}
-		case "gitlab.com", "www.gitlab.com":
+		case constants.ProviderGitlabHost, constants.ProviderGitlabWWW:
 			if len(segments) >= 5 && segments[2] == "-" && segments[3] == "blob" {
 				if filepath.Ext(segments[len(segments)-1]) == "" {
 					return false
@@ -42,7 +44,7 @@ func IsDirectRemoteFileURL(resource string) bool {
 		}
 	}
 
-	if strings.Contains(lower, "raw.githubusercontent.com/") ||
+	if strings.Contains(lower, constants.ProviderGithubRawHost+"/") ||
 		strings.Contains(lower, "/-/raw/") {
 		return true
 	}
@@ -95,7 +97,7 @@ func StackNameFromRemoteURL(remotePath string) string {
 		host := strings.ToLower(parsed.Hostname())
 		segments := strings.Split(strings.Trim(parsed.Path, "/"), "/")
 
-		if (host == "github.com" || host == "gitlab.com" || host == "bitbucket.org") && len(segments) >= 2 {
+		if (host == constants.ProviderGithubHost || host == constants.ProviderGitlabHost || host == constants.ProviderBitbucketHost) && len(segments) >= 2 {
 			repo := strings.TrimSuffix(segments[1], ".git")
 			if repo != "" {
 				return repo
