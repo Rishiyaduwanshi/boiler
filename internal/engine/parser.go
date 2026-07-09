@@ -194,7 +194,7 @@ func executeLine(state *ScriptState, line string, lineNumber int) error {
 	}
 
 	// Execute command
-	if err := ExecuteCommand(line); err != nil {
+	if err := ExecuteCommand(state, line); err != nil {
 		return fmt.Errorf("error at line %d: %w", lineNumber, err)
 	}
 	return nil

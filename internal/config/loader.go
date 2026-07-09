@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"maps"
 	"os"
+	"strings"
 
 	"github.com/rishiyaduwanshi/boiler/internal/utils"
 )
@@ -97,6 +98,21 @@ func mergeIntoRuntime(m *Manager) {
 				m.Runtime.Artifacts = make(map[string]string)
 			}
 			maps.Copy(m.Runtime.Artifacts, m.Local.Config.Artifacts)
+		}
+	}
+
+	// 4. Inject Environment Variables passed by scripts (e.g. BOILER_VAR_bl__name)
+	// We do this after loading from files so env vars take highest precedence
+	for _, envStr := range os.Environ() {
+		if strings.HasPrefix(envStr, "BOILER_VAR_") {
+			parts := strings.SplitN(envStr, "=", 2)
+			if len(parts) == 2 {
+				varName := strings.TrimPrefix(parts[0], "BOILER_VAR_")
+				if m.Runtime.Vars == nil {
+					m.Runtime.Vars = make(map[string]string)
+				}
+				m.Runtime.Vars[varName] = parts[1]
+			}
 		}
 	}
 }

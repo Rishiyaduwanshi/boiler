@@ -11,7 +11,7 @@ import (
 
 // ExecuteCommand routes parsed Boiler commands to their respective actions.
 // Supports: use, run, inject
-func ExecuteCommand(commandLine string) error {
+func ExecuteCommand(state *ScriptState, commandLine string) error {
 	commandLine = strings.TrimSpace(commandLine)
 
 	if strings.HasPrefix(commandLine, "inject ") {
@@ -36,8 +36,22 @@ func ExecuteCommand(commandLine string) error {
 		// Bypass OS shell entirely for native commands to avoid quoting issues
 		args := parseArgs(commandLine)
 		cmd := exec.Command(exePath, args...)
+
+		// Attach standard streams so prompts and outputs work normally
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
+		cmd.Stdin = os.Stdin
+
+		// Pass ALL script variables to the child process via Environment Variables
+		// We prefix them with BOILER_VAR_ so the child process's config loader can pick them up.
+		cmd.Env = os.Environ()
+		if state != nil && state.Vars != nil {
+			for k, v := range state.Vars {
+				envKey := fmt.Sprintf("BOILER_VAR_%s", k)
+				cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", envKey, v))
+			}
+		}
+
 		return cmd.Run()
 	}
 }
