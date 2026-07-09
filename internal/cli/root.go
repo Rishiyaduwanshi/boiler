@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"sync"
@@ -88,12 +89,21 @@ variations of the same snippet or stack.`,
 			Scope:   scope,
 		}
 
-		// Dynamically override paths to point to the local project store if scope is Local
+		// Dynamically override paths to point to the local project store if scope is Local.
+		// If a boiler.local.json is found, use its directory as the project root.
+		// Otherwise fall back to cwd/bl/ so that --local works even in projects without
+		// a local config file — but never silently reuse the global ~/.boiler paths.
 		if scope == config.ScopeLocal {
-			cwd, _ := os.Getwd()
-			nearestConfig, err := config.FindNearestConfig(cwd)
-			if err == nil && nearestConfig != "" {
-				projectRoot := filepath.Dir(nearestConfig)
+			cwd, err := os.Getwd()
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "warning: could not determine working directory for local scope: %v\n", err)
+			} else {
+				projectRoot := cwd // default: treat cwd as project root
+				nearestConfig, cfgErr := config.FindNearestConfig(cwd)
+				if cfgErr == nil && nearestConfig != "" {
+					projectRoot = filepath.Dir(nearestConfig)
+				}
+
 				localBoilerDir := filepath.Join(projectRoot, constants.LocalBoilerDirName) // <ProjectRoot>/bl
 
 				// Update runtime paths for this command execution
