@@ -67,7 +67,7 @@ func TestInterpolateVariables(t *testing.T) {
 		{"run echo bl__foo", "run echo hello world"},
 		{"run echo bl__foo.capitalize()", "run echo Hello world"},
 		{"run echo bl__foo.snake_case()", "run echo hello_world"},
-		{"run echo bl__foo.snake_case().uppercase()", "run echo HELLO_WORLD"},
+		{"run echo bl__foo.snake_case().upperCase()", "run echo HELLO_WORLD"},
 		{"use repo:file.js ./src/bl__foo.snake_case().js", "use repo:file.js ./src/hello_world.js"},
 	}
 

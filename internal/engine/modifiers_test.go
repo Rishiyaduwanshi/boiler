@@ -20,13 +20,13 @@ func TestApplyModifiers(t *testing.T) {
 		{
 			name:      "Lowercase",
 			value:     "Hello World",
-			modifiers: []string{"lowercase"},
+			modifiers: []string{"lowerCase"},
 			expected:  "hello world",
 		},
 		{
 			name:      "Uppercase",
 			value:     "hello world",
-			modifiers: []string{"uppercase"},
+			modifiers: []string{"upperCase"},
 			expected:  "HELLO WORLD",
 		},
 		{
@@ -74,7 +74,7 @@ func TestApplyModifiers(t *testing.T) {
 		{
 			name:      "Multiple Modifiers (snake_case -> uppercase)",
 			value:     "myAwesomeRoute",
-			modifiers: []string{"snake_case", "uppercase"},
+			modifiers: []string{"snake_case", "upperCase"},
 			expected:  "MY_AWESOME_ROUTE",
 		},
 		{

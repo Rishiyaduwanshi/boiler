@@ -31,8 +31,8 @@ func TestEvaluateCondition(t *testing.T) {
 		{"OR condition (true)", "bl__is_js || bl__db == mongodb", true},
 		{"OR condition (false)", "bl__is_js || bl__db == postgres", false},
 		{"Complex AND/OR", "bl__is_js && bl__port == 8080 || bl__db == mongodb", true}, // (false AND true) OR true = true
-		{"Variable with modifier", "bl__name.lowercase() == user", true},
-		{"Variable with modifier equality", "bl__name.lowercase() == bl__name.lowercase()", true},
+		{"Variable with modifier", "bl__name.lowerCase() == user", true},
+		{"Variable with modifier equality", "bl__name.lowerCase() == bl__name.lowerCase()", true},
 	}
 
 	for _, tt := range tests {
