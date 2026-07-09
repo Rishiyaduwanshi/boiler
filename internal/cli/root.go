@@ -94,7 +94,7 @@ variations of the same snippet or stack.`,
 			nearestConfig, err := config.FindNearestConfig(cwd)
 			if err == nil && nearestConfig != "" {
 				projectRoot := filepath.Dir(nearestConfig)
-				localBoilerDir := filepath.Join(projectRoot, constants.BoilerDirName) // <ProjectRoot>/bl
+				localBoilerDir := filepath.Join(projectRoot, constants.LocalBoilerDirName) // <ProjectRoot>/bl
 
 				// Update runtime paths for this command execution
 				manager.Runtime.Paths.Root = localBoilerDir
