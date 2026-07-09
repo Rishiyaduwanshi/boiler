@@ -2,7 +2,7 @@ package constants
 
 const (
 	// Boiler Directories
-	BoilerDirName   = ".boiler"
+	BoilerDirName   = "bl"
 	StoreDirName    = "store"
 	SnippetsDirName = "snippets"
 	StacksDirName   = "stacks"

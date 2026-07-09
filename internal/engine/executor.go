@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"runtime"
 	"strings"
 )
@@ -15,6 +16,8 @@ func ExecuteCommand(commandLine string) error {
 
 	if strings.HasPrefix(commandLine, "inject ") {
 		return InjectCode(commandLine)
+	} else if strings.HasPrefix(commandLine, "create ") {
+		return CreateFile(commandLine)
 	} else if strings.HasPrefix(commandLine, "run ") {
 		// Run an arbitrary OS command (e.g. npm install)
 		cmdStr := strings.TrimPrefix(commandLine, "run ")
@@ -23,9 +26,43 @@ func ExecuteCommand(commandLine string) error {
 		return executeOSCommand(cmdStr)
 	} else {
 		// Assume it's a native Boiler command (use, add, var, alias, etc.)
-		fmt.Printf("[ENGINE] Running Boiler command: bl %s\n", commandLine)
-		return executeOSCommand("bl " + commandLine)
+		exePath, err := os.Executable()
+		if err != nil {
+			return fmt.Errorf("failed to resolve boiler executable: %w", err)
+		}
+
+		fmt.Printf("[ENGINE] Running Boiler command: %s %s\n", filepath.Base(exePath), commandLine)
+
+		// Bypass OS shell entirely for native commands to avoid quoting issues
+		args := parseArgs(commandLine)
+		cmd := exec.Command(exePath, args...)
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		return cmd.Run()
 	}
+}
+
+// parseArgs safely splits a command string by spaces, respecting double quotes.
+func parseArgs(s string) []string {
+	var args []string
+	var current []rune
+	inQuote := false
+	for _, r := range s {
+		if r == '"' {
+			inQuote = !inQuote
+		} else if r == ' ' && !inQuote {
+			if len(current) > 0 {
+				args = append(args, string(current))
+				current = []rune{}
+			}
+		} else {
+			current = append(current, r)
+		}
+	}
+	if len(current) > 0 {
+		args = append(args, string(current))
+	}
+	return args
 }
 
 func executeOSCommand(cmdStr string) error {
@@ -38,4 +75,31 @@ func executeOSCommand(cmdStr string) error {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	return cmd.Run()
+}
+
+// CreateFile parses a create command and writes the multiline content to a new file.
+func CreateFile(cmd string) error {
+	// Extract content from backticks
+	parts := strings.SplitN(cmd, "`", 3)
+	if len(parts) != 3 {
+		return fmt.Errorf("invalid create command: missing or unclosed backticks for content")
+	}
+	content := parts[1]
+
+	// Parse the rest of the command
+	cmdWithoutContent := strings.TrimSpace(parts[0])
+	tokens := strings.Fields(cmdWithoutContent)
+	if len(tokens) < 2 {
+		return fmt.Errorf("invalid create command: missing target file")
+	}
+
+	filePath := tokens[1]
+
+	// Create directory if it doesn't exist
+	dir := filepath.Dir(filePath)
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return fmt.Errorf("failed to create directories for %s: %w", filePath, err)
+	}
+
+	return os.WriteFile(filePath, []byte(strings.TrimPrefix(content, "\n")), 0644)
 }
