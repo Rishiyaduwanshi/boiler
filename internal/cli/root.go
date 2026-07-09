@@ -75,7 +75,7 @@ variations of the same snippet or stack.`,
 		utils.ShowBanner()
 		utils.ShowQuickHelp()
 	},
-	PersistentPreRun: func(cmd *cobra.Command, args []string) {
+	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 		if logger != nil {
 			logger.SetVerbose(verbose)
 		}
@@ -96,23 +96,24 @@ variations of the same snippet or stack.`,
 		if scope == config.ScopeLocal {
 			cwd, err := os.Getwd()
 			if err != nil {
-				fmt.Fprintf(os.Stderr, "warning: could not determine working directory for local scope: %v\n", err)
-			} else {
-				projectRoot := cwd // default: treat cwd as project root
-				nearestConfig, cfgErr := config.FindNearestConfig(cwd)
-				if cfgErr == nil && nearestConfig != "" {
-					projectRoot = filepath.Dir(nearestConfig)
-				}
-
-				localBoilerDir := filepath.Join(projectRoot, constants.LocalBoilerDirName) // <ProjectRoot>/bl
-
-				// Update runtime paths for this command execution
-				manager.Runtime.Paths.Root = localBoilerDir
-				manager.Runtime.Paths.Store = filepath.Join(localBoilerDir, constants.StoreDirName)
-				manager.Runtime.Paths.Snippets = filepath.Join(manager.Runtime.Paths.Store, constants.SnippetsDirName)
-				manager.Runtime.Paths.Stacks = filepath.Join(manager.Runtime.Paths.Store, constants.StacksDirName)
+				return fmt.Errorf("cannot resolve local scope: failed to determine working directory: %w", err)
 			}
+
+			projectRoot := cwd // default: treat cwd as project root
+			nearestConfig, cfgErr := config.FindNearestConfig(cwd)
+			if cfgErr == nil && nearestConfig != "" {
+				projectRoot = filepath.Dir(nearestConfig)
+			}
+
+			localBoilerDir := filepath.Join(projectRoot, constants.LocalBoilerDirName) // <ProjectRoot>/bl
+
+			// Update runtime paths for this command execution
+			manager.Runtime.Paths.Root = localBoilerDir
+			manager.Runtime.Paths.Store = filepath.Join(localBoilerDir, constants.StoreDirName)
+			manager.Runtime.Paths.Snippets = filepath.Join(manager.Runtime.Paths.Store, constants.SnippetsDirName)
+			manager.Runtime.Paths.Stacks = filepath.Join(manager.Runtime.Paths.Store, constants.StacksDirName)
 		}
+		return nil
 	},
 }
 
