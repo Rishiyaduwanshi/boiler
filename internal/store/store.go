@@ -111,6 +111,9 @@ func fileExists(path string) bool {
 func (s *Store) GetSnippet(name string) (string, bool) {
 	path, ok := s.meta.Snippets[name]
 	if ok {
+		if IsRemotePath(path) {
+			return path, true
+		}
 		resolved := s.resolvePath(path)
 		if fileExists(resolved) {
 			return resolved, true
@@ -134,6 +137,9 @@ func (s *Store) GetSnippet(name string) (string, bool) {
 func (s *Store) GetStack(name string) (string, bool) {
 	path, ok := s.meta.Stacks[name]
 	if ok {
+		if IsRemotePath(path) {
+			return path, true
+		}
 		resolved := s.resolvePath(path)
 		if fileExists(resolved) {
 			return resolved, true
