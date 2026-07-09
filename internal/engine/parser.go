@@ -185,6 +185,16 @@ func executeLine(state *ScriptState, line string, lineNumber int) error {
 		return nil
 	}
 
+	// For 'run' commands, skip pre-interpolation so each token is interpolated
+	// individually inside executeOSCommand. This prevents user-supplied variable
+	// values from being re-tokenized and injecting extra flags.
+	if strings.HasPrefix(line, "run ") {
+		if err := ExecuteCommand(state, line); err != nil {
+			return fmt.Errorf("error at line %d: %w", lineNumber, err)
+		}
+		return nil
+	}
+
 	// Interpolate variables for all other executable lines
 	line = state.InterpolateVariables(line)
 

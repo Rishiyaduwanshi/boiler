@@ -18,11 +18,10 @@ func ExecuteCommand(state *ScriptState, commandLine string) error {
 	} else if strings.HasPrefix(commandLine, "create ") {
 		return CreateFile(commandLine)
 	} else if strings.HasPrefix(commandLine, "run ") {
-		// Run an arbitrary OS command (e.g. npm install)
-		cmdStr := strings.TrimPrefix(commandLine, "run ")
-		cmdStr = strings.TrimSpace(cmdStr)
+		// Raw (non-interpolated) run line: tokenize first, then interpolate per-token
+		cmdStr := strings.TrimSpace(strings.TrimPrefix(commandLine, "run "))
 		fmt.Printf("[ENGINE] Running OS command: %s\n", cmdStr)
-		return executeOSCommand(cmdStr)
+		return executeOSCommand(state, cmdStr)
 	} else {
 		// Assume it's a native Boiler command (use, add, var, alias, etc.)
 		exePath, err := os.Executable()
@@ -106,13 +105,28 @@ func parseArgs(s string) []string {
 // user-supplied template variables can never be interpreted as shell
 // metacharacters because no shell is involved in the execution.
 //
+// Variable values are interpolated PER TOKEN (after tokenization), so a value
+// like "left-pad --save-dev" remains a single argv entry and cannot inject flags.
+//
 // Note: shell built-ins (e.g. echo, dir, cd) are intentionally not supported.
 // .bl scripts should call real executables available in PATH (npm, git, go, etc.).
-func executeOSCommand(cmdStr string) error {
-	args := parseArgs(cmdStr)
-	if len(args) == 0 {
+func executeOSCommand(state *ScriptState, cmdStr string) error {
+	// Tokenize the template BEFORE variable substitution
+	templateArgs := parseArgs(cmdStr)
+	if len(templateArgs) == 0 {
 		return fmt.Errorf("run: empty command")
 	}
+
+	// Interpolate each token individually — variable values stay atomic
+	args := make([]string, len(templateArgs))
+	for i, arg := range templateArgs {
+		if state != nil {
+			args[i] = state.InterpolateVariables(arg)
+		} else {
+			args[i] = arg
+		}
+	}
+
 	exe, err := exec.LookPath(args[0])
 	if err != nil {
 		return fmt.Errorf("run: executable %q not found in PATH: %w", args[0], err)
