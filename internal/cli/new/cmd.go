@@ -103,10 +103,20 @@ It looks for the script in the './bl/' folder of your current project.`,
 			fmt.Printf("Executing Boiler script: %s from %s\n", scriptPath, projectRoot)
 		}
 
-		// Change directory to project root before execution so relative paths work properly
-		originalDir, _ := os.Getwd()
-		os.Chdir(projectRoot)
-		defer os.Chdir(originalDir)
+		// Change directory to project root before execution so relative paths work properly.
+		// Both the switch and the restore must succeed to prevent files landing in the wrong tree.
+		originalDir, err := os.Getwd()
+		if err != nil {
+			return fmt.Errorf("failed to determine current directory: %w", err)
+		}
+		if err := os.Chdir(projectRoot); err != nil {
+			return fmt.Errorf("failed to switch to project root %q: %w", projectRoot, err)
+		}
+		defer func() {
+			if restoreErr := os.Chdir(originalDir); restoreErr != nil {
+				fmt.Fprintf(os.Stderr, "warning: failed to restore working directory to %q: %v\n", originalDir, restoreErr)
+			}
+		}()
 
 		err = engine.ParseAndExecute(scriptPath, vars)
 		if err != nil {
