@@ -81,6 +81,10 @@ It looks for the script in the './bl/' folder of your current project.`,
 				continue // skip global verbose flag
 			}
 
+			if arg == "--global" || arg == "--local" {
+				continue
+			}
+
 			if strings.HasPrefix(arg, "--") || strings.HasPrefix(arg, "-") {
 				// It's a flag
 				flagRaw := strings.TrimLeft(arg, "-")
