@@ -5,6 +5,9 @@ description: Learn how to write powerful, AST-less automation scripts using .bl 
 
 Boiler allows you to create powerful automation workflows using `.bl` script files. These files live in your project's `bl/commands/` directory and can be executed using the `bl new` command.
 
+> [!TIP]
+> **Dynamic Project Root:** You can run `bl new` from *any* subdirectory inside your project. Boiler automatically discovers your `boiler.local.json` file and executes the script relative to your project root. Path references like `./src/` will always point to the correct location!
+
 `.bl` scripts are designed to be extremely fast and lightweight. They use a **Pure Command-Driven** syntax that is executed line-by-line, without the overhead of a complex Abstract Syntax Tree (AST).
 
 ---
@@ -18,8 +21,8 @@ A `.bl` file consists of metadata variables, Boiler CLI commands, and code injec
 __desc = "Generates a new API Route"
 __var bl__route_name = bl__1.lowercase()    # bl__1 is the first argument passed to the command
 
-# Run standard Boiler commands
-use github.com/my-org/repo:route.ts ./src/routes/bl__route_name.ts
+# Run standard Boiler commands (like adding a snippet)
+add route.ts ./src/routes/bl__route_name.ts --local
 
 # Inject code into existing files using CLI flags (-d for detect, -a for append, -p for prepend, -c for content)
 inject ./src/routes.ts -d api_routes -a -c `
@@ -48,6 +51,9 @@ __var bl__component = bl__1.capitalize()
 - `.pascalCase()`
 - `.snake_case()`
 - `.kebab_case()` / `.kebabCase()`
+
+> [!IMPORTANT]
+> **Silent Scaffolding Pipeline:** When your script defines variables, they are automatically injected into the Boiler engine's runtime environment (`BOILER_VAR_`). If a subsequent command (like `bl add`) needs those variables to scaffold a file, **it will automatically consume the environment variables and skip the interactive prompts!**.
 
 ---
 
