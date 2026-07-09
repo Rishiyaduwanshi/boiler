@@ -61,8 +61,8 @@ Template Variables:
 - Variables are replaced and metadata comments are removed in the final file.
 
 Command Variables:
-- Use :name to resolve values from config vars (set via 'bl var').
-- Example: bl add express@1 -r --registry :team_reg
+- Use bl__varname to resolve values from config vars (set via 'bl var').
+- Example: bl add express@1 -r --registry bl__team_reg
 
 Stacks are also versioned and can be added by name or with explicit version.
 
@@ -142,8 +142,8 @@ Supported remote formats:
   # Remote: one-time registry override
   bl add express@1 -r --registry https://github.com/myorg/boiler
 
-	# Remote: registry from config variable
-	bl add express@1 -r --registry :team_reg
+	# Remote: registry from config variable (set via: bl var team_reg=<url>)
+	bl add express@1 -r --registry bl__team_reg
 
 	# One-shot fetch without saving to store
 	bl add alice/my-stack -r --no-store`,
