@@ -2,6 +2,7 @@ package config
 
 import (
 	"encoding/json"
+	"fmt"
 	"maps"
 	"os"
 	"strings"
@@ -23,10 +24,11 @@ func Load() (*Manager, error) {
 		manager.Global.Path = globalPath
 		if data, err := os.ReadFile(globalPath); err == nil {
 			var globalCfg Config
-			if err := json.Unmarshal(data, &globalCfg); err == nil {
-				manager.Global.Config = &globalCfg
-				manager.Global.Exists = true
+			if err := json.Unmarshal(data, &globalCfg); err != nil {
+				return nil, fmt.Errorf("failed to parse global config at %s: %w", globalPath, err)
 			}
+			manager.Global.Config = &globalCfg
+			manager.Global.Exists = true
 		}
 	}
 
@@ -38,10 +40,11 @@ func Load() (*Manager, error) {
 			manager.Local.Path = localPath
 			if data, err := os.ReadFile(localPath); err == nil {
 				var localCfg Config
-				if err := json.Unmarshal(data, &localCfg); err == nil {
-					manager.Local.Config = &localCfg
-					manager.Local.Exists = true
+				if err := json.Unmarshal(data, &localCfg); err != nil {
+					return nil, fmt.Errorf("failed to parse local config at %s: %w", localPath, err)
 				}
+				manager.Local.Config = &localCfg
+				manager.Local.Exists = true
 			}
 		} else {
 			// Initialize empty local config path for default saving
