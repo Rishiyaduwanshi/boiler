@@ -50,6 +50,7 @@ export default defineConfig({
             { label: 'Project Structure', slug: 'guides/project-structure', badge: { text: 'Core', variant: 'note' } },
             { label: 'Boiler Scripts (.bl)', slug: 'guides/bl-scripts', badge: { text: 'Advanced', variant: 'danger' } },
             { label: 'Snippet Syntax', slug: 'guides/syntax' },
+            { label: 'Best Practices', slug: 'guides/best-practices' },
             {
               label: 'Remote Fetching',
               badge: { text: 'New', variant: 'tip' },

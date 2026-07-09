@@ -127,7 +127,7 @@ bl add errorHandler
 
 ## Remote Fetching
 
-Pull snippets and stacks from anywhere — provider is auto-detected from the URL:
+Pull snippets and stacks from anywhere - provider is auto-detected from the URL:
 
 ```bash
 # GitHub (short format)

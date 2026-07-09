@@ -1,0 +1,165 @@
+---
+title: Best Practices
+description: Tips, conventions, and recommended workflows for getting the most out of Boiler
+---
+
+## Snippet Conventions
+
+### Always Add Metadata Before Storing
+Run `bl init -n` to generate a properly formatted snippet file with metadata headers filled in. This keeps your store organized and readable.
+
+```bash
+bl init -n
+# Prompts: filename, author, description, version
+```
+
+### Use Descriptive, Specific Names
+
+```bash
+# ❌ Too generic
+bl store helper.js
+
+# ✅ Specific and searchable
+bl store jwtTokenHelper.js
+bl store mongoConnectionRetry.js
+```
+
+### Use `bl__` Variables for Configurable Values
+
+Instead of hardcoding values, use template variables so the snippet adapts when added:
+
+```javascript
+// __var bl__PORT = 3000
+// __var bl__DB_URL = mongodb://localhost:27017/mydb
+
+const app = express();
+app.listen(bl__PORT);
+mongoose.connect('bl__DB_URL');
+```
+
+---
+
+## Versioning
+
+### Version Strategically
+
+- Increment version (update `__version` in the file) only for **breaking changes**
+- Keep old versions around - legacy projects may depend on them
+- Use `bl add name@1` or `bl add name@2` to be explicit
+
+```bash
+bl add emailService@1    # Old projects - stays compatible
+bl add emailService@2    # New projects - gets the new API
+```
+
+### Search Before Creating
+
+```bash
+bl search jwt
+bl search validation
+# Check if a similar snippet already exists before adding another
+```
+
+---
+
+## Stacks (Project Templates)
+
+### Use Proper Ignore Patterns
+
+Before storing a directory as a stack, edit `boiler.stack.json` to exclude generated and secret files:
+
+```json
+{
+  "name": "express-api",
+  "ignore": [
+    "node_modules",
+    ".env",
+    "dist",
+    ".git",
+    "*.log"
+  ]
+}
+```
+
+### Use `--spread` for Root-Level Templates
+
+When you want the stack contents to land directly in the current directory (not inside a subdirectory):
+
+```bash
+bl add express-starter --spread
+# Contents land in ./ instead of ./express-starter/
+```
+
+---
+
+## Aliases & Variables
+
+### Build Short Commands for Repetitive Tasks
+
+```bash
+# Set a reusable alias
+bl alias gi = add github/gitignore:bl__1.gitignore . -m .gitignore -r
+
+# Now use it everywhere
+bl gi Node
+bl gi Python
+bl gi Go
+```
+
+### Use Vars as Registry Shortcuts
+
+Store a registry URL once, reference it anywhere with `bl__varname`:
+
+```bash
+# Save the registry URL as a var
+bl var team_reg = https://github.com/mycompany/boiler-snippets
+
+# Reference it with bl__varname prefix
+bl add errorHandler -r --registry bl__team_reg
+bl add rateLimiter -r --registry bl__team_reg
+```
+
+> `bl var` stores key-value pairs. Use `bl__varname` anywhere in a command to have Boiler substitute the stored value at runtime.
+
+---
+
+## Local Scoped Projects
+
+### Use `boiler.local.json` for Project-Specific Templates
+
+For components, controllers, or routes that are specific to one project and shouldn't pollute your global `~/.boiler` store:
+
+```bash
+bl init -c          # Creates boiler.local.json with scope: local
+```
+
+Then keep your project templates inside `bl/snippets/` and your automation scripts in `bl/commands/`.
+
+### Check Info Before Adding
+
+```bash
+bl info errorHandler@2
+# Shows: author, description, version, variables
+```
+
+This helps avoid surprises - especially with template variables.
+
+---
+
+## Cleaning Up
+
+```bash
+bl clean -n              # Remove all snippets
+bl clean -k              # Remove all stacks
+bl clean --snippets      # Same as -n
+bl clean --stacks        # Same as -k
+bl search <name>         # Find before removing a specific one
+```
+
+---
+
+## Next Steps
+
+- [Use Cases](/guides/usecases/) - Real-world workflows
+- [Boiler Scripts (.bl)](/guides/bl-scripts/) - Full automation pipelines
+- [Remote Fetching](/guides/remote-fetching/) - Fetch from GitHub/GitLab/anywhere
