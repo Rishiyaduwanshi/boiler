@@ -31,6 +31,12 @@ func AddSnippet(st *store.Store, name, destPath string, opts Options, cfg *confi
 	if len(meta.Variables) > 0 {
 		fmt.Println("Template variables found:")
 		for varName, defaultValue := range meta.Variables {
+			// If value is provided via Env or Config, skip the prompt and use it silently
+			if val, ok, _ := utils.LookupVar(cfg.Vars, varName); ok && val != "" {
+				varReplacements[varName] = val
+				continue
+			}
+
 			defaultValue = utils.ResolveSnippetVarDefault(varName, defaultValue, cfg.Vars)
 			prompt := fmt.Sprintf("  %s", varName)
 			value, err := utils.PromptWithDefault(prompt, defaultValue)
