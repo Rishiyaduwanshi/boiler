@@ -49,11 +49,24 @@ It looks for the script in the './bl/' folder of your current project.`,
 		}
 
 		scriptName := args[0]
+
+		// Find project root automatically like npm/mise
+		cwd, err := os.Getwd()
+		if err != nil {
+			return fmt.Errorf("failed to get current directory: %w", err)
+		}
+
+		projectRoot := cwd
+		nearestConfig, err := config.FindNearestConfig(cwd)
+		if err == nil && nearestConfig != "" {
+			projectRoot = filepath.Dir(nearestConfig)
+		}
+
 		// In Boiler, local scripts are in the `bl/commands/` directory of the project
-		scriptPath := filepath.Join("bl", "commands", scriptName+".bl")
+		scriptPath := filepath.Join(projectRoot, "bl", "commands", scriptName+".bl")
 
 		if _, err := os.Stat(scriptPath); os.IsNotExist(err) {
-			return fmt.Errorf("script '%s' not found. Ensure '%s' exists in your project", scriptName, scriptPath)
+			return fmt.Errorf("script '%s' not found. Looked for it at: %s", scriptName, scriptPath)
 		}
 
 		// Parse dynamic arguments and flags
@@ -85,12 +98,17 @@ It looks for the script in the './bl/' folder of your current project.`,
 		}
 
 		if logger != nil {
-			logger.Info(fmt.Sprintf("Executing Boiler script: %s", scriptPath))
+			logger.Info(fmt.Sprintf("Executing Boiler script: %s from %s", scriptPath, projectRoot))
 		} else {
-			fmt.Printf("Executing Boiler script: %s\n", scriptPath)
+			fmt.Printf("Executing Boiler script: %s from %s\n", scriptPath, projectRoot)
 		}
 
-		err := engine.ParseAndExecute(scriptPath, vars)
+		// Change directory to project root before execution so relative paths work properly
+		originalDir, _ := os.Getwd()
+		os.Chdir(projectRoot)
+		defer os.Chdir(originalDir)
+
+		err = engine.ParseAndExecute(scriptPath, vars)
 		if err != nil {
 			return fmt.Errorf("script execution failed: %w", err)
 		}

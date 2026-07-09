@@ -81,23 +81,73 @@ func (s *Store) GetMeta() *Meta {
 }
 
 func (s *Store) AddSnippet(name, path string) error {
-	s.meta.Snippets[name] = path
+	if rel, err := filepath.Rel(filepath.Dir(s.metaPath), path); err == nil {
+		path = rel
+	}
+	s.meta.Snippets[name] = filepath.ToSlash(path)
 	return s.Save()
 }
 
 func (s *Store) AddStack(name, path string) error {
-	s.meta.Stacks[name] = path
+	if rel, err := filepath.Rel(filepath.Dir(s.metaPath), path); err == nil {
+		path = rel
+	}
+	s.meta.Stacks[name] = filepath.ToSlash(path)
 	return s.Save()
+}
+
+func (s *Store) resolvePath(p string) string {
+	if filepath.IsAbs(p) {
+		return p
+	}
+	return filepath.Join(filepath.Dir(s.metaPath), p)
+}
+
+func fileExists(path string) bool {
+	_, err := os.Stat(path)
+	return err == nil
 }
 
 func (s *Store) GetSnippet(name string) (string, bool) {
 	path, ok := s.meta.Snippets[name]
-	return path, ok
+	if ok {
+		resolved := s.resolvePath(path)
+		if fileExists(resolved) {
+			return resolved, true
+		}
+	}
+
+	// O(1) Fallback: Check the extension-based folder directly
+	ext := filepath.Ext(name)
+	if ext != "" {
+		langDir := strings.TrimPrefix(ext, ".")
+		snippetsDir := filepath.Join(filepath.Dir(s.metaPath), constants.SnippetsDirName)
+		fallbackPath := filepath.Join(snippetsDir, langDir, name)
+		if fileExists(fallbackPath) {
+			return fallbackPath, true
+		}
+	}
+
+	return "", false
 }
 
 func (s *Store) GetStack(name string) (string, bool) {
 	path, ok := s.meta.Stacks[name]
-	return path, ok
+	if ok {
+		resolved := s.resolvePath(path)
+		if fileExists(resolved) {
+			return resolved, true
+		}
+	}
+
+	// O(1) Fallback: Check the stacks folder directly
+	stacksDir := filepath.Join(filepath.Dir(s.metaPath), constants.StacksDirName)
+	fallbackPath := filepath.Join(stacksDir, name)
+	if fileExists(fallbackPath) {
+		return fallbackPath, true
+	}
+
+	return "", false
 }
 
 func (s *Store) RemoveSnippet(name string) error {

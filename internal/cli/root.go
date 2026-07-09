@@ -2,6 +2,7 @@ package cli
 
 import (
 	"os"
+	"path/filepath"
 	"sync"
 
 	addcmd "github.com/rishiyaduwanshi/boiler/internal/cli/add"
@@ -23,6 +24,7 @@ import (
 	versioncmd "github.com/rishiyaduwanshi/boiler/internal/cli/version"
 
 	"github.com/rishiyaduwanshi/boiler/internal/config"
+	"github.com/rishiyaduwanshi/boiler/internal/constants"
 	"github.com/rishiyaduwanshi/boiler/internal/remote"
 	"github.com/rishiyaduwanshi/boiler/internal/utils"
 	"github.com/spf13/cobra"
@@ -78,10 +80,28 @@ variations of the same snippet or stack.`,
 		}
 		remote.SetVerbose(verbose)
 
+		scope := config.ResolveScope(manager, isGlobal, isLocal)
+
 		// Create the BoilerContext by resolving the current Scope
 		config.Ctx = &config.BoilerContext{
 			Manager: manager,
-			Scope:   config.ResolveScope(manager, isGlobal, isLocal),
+			Scope:   scope,
+		}
+
+		// Dynamically override paths to point to the local project store if scope is Local
+		if scope == config.ScopeLocal {
+			cwd, _ := os.Getwd()
+			nearestConfig, err := config.FindNearestConfig(cwd)
+			if err == nil && nearestConfig != "" {
+				projectRoot := filepath.Dir(nearestConfig)
+				localBoilerDir := filepath.Join(projectRoot, constants.BoilerDirName) // <ProjectRoot>/bl
+
+				// Update runtime paths for this command execution
+				manager.Runtime.Paths.Root = localBoilerDir
+				manager.Runtime.Paths.Store = filepath.Join(localBoilerDir, constants.StoreDirName)
+				manager.Runtime.Paths.Snippets = filepath.Join(manager.Runtime.Paths.Store, constants.SnippetsDirName)
+				manager.Runtime.Paths.Stacks = filepath.Join(manager.Runtime.Paths.Store, constants.StacksDirName)
+			}
 		}
 	},
 }
