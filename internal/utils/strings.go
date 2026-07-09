@@ -32,7 +32,14 @@ func Uppercase(s string) string {
 
 // Title converts the string to Title Case (Every Word Capitalized).
 func Title(s string) string {
-	return strings.Title(strings.ToLower(s))
+	words := strings.Fields(strings.ToLower(s))
+	for i, word := range words {
+		if len(word) > 0 {
+			runes := []rune(word)
+			words[i] = string(unicode.ToUpper(runes[0])) + string(runes[1:])
+		}
+	}
+	return strings.Join(words, " ")
 }
 
 // CamelCase converts snake_case, kebab-case, or space separated words to camelCase.
