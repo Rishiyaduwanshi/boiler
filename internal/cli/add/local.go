@@ -20,6 +20,31 @@ func AddSnippet(st *store.Store, name, destPath string, opts Options, cfg *confi
 		return fmt.Errorf(utils.ErrResourceNotFound, "snippet file", snippetPath)
 	}
 
+	// Extract base name without version: errorHandler@1.js -> errorHandler.js
+	baseName, _, ext := store.ParseResourceName(name)
+	destFileName := baseName + ext
+	if opts.Name != "" {
+		destFileName = opts.Name
+	}
+	destFile := filepath.Join(destPath, destFileName)
+
+	if utils.FileExists(destFile) && !opts.Force {
+		return fmt.Errorf(utils.ErrFileAlreadyExists, destFile)
+	}
+
+	if err := ProcessSnippetFile(snippetPath, destFile, cfg); err != nil {
+		return err
+	}
+
+	fmt.Printf(utils.MsgSnippetAdded, name, destFile)
+	if logger != nil {
+		logger.Info(fmt.Sprintf("Snippet added: %s -> %s", name, destFile))
+	}
+	return nil
+}
+
+// ProcessSnippetFile parses metadata, prompts for variables, and copies the content to destFile.
+func ProcessSnippetFile(snippetPath, destFile string, cfg *config.Config) error {
 	// Parse snippet metadata to check for variables
 	meta, err := utils.ParseSnippetMetadata(snippetPath)
 	if err != nil {
@@ -47,27 +72,11 @@ func AddSnippet(st *store.Store, name, destPath string, opts Options, cfg *confi
 		}
 	}
 
-	// Extract base name without version: errorHandler@1.js -> errorHandler.js
-	baseName, _, ext := store.ParseResourceName(name)
-	destFileName := baseName + ext
-	if opts.Name != "" {
-		destFileName = opts.Name
-	}
-	destFile := filepath.Join(destPath, destFileName)
-
-	if utils.FileExists(destFile) && !opts.Force {
-		return fmt.Errorf(utils.ErrFileAlreadyExists, destFile)
-	}
-
 	// Copy file with variable replacement
 	if err := utils.CopyFileWithVariables(snippetPath, destFile, varReplacements); err != nil {
 		return fmt.Errorf("failed to copy snippet: %w", err)
 	}
 
-	fmt.Printf(utils.MsgSnippetAdded, name, destFile)
-	if logger != nil {
-		logger.Info(fmt.Sprintf("Snippet added: %s -> %s", name, destFile))
-	}
 	return nil
 }
 

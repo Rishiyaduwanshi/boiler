@@ -62,7 +62,19 @@ func ResourceFromRemote(resource, destPath string, resourceType ResourceType, no
 				return fmt.Errorf(utils.ErrFileAlreadyExists, destFile)
 			}
 
-			if err := remote.FetchSnippet(remotePath, destFile); err != nil {
+			tmpFile, err := os.CreateTemp("", "boiler-snippet-*")
+			if err != nil {
+				return fmt.Errorf("failed to create temp file: %w", err)
+			}
+			tmpPath := tmpFile.Name()
+			tmpFile.Close()
+			defer os.Remove(tmpPath)
+
+			if err := remote.FetchSnippet(remotePath, tmpPath); err != nil {
+				return err
+			}
+
+			if err := ProcessSnippetFile(tmpPath, destFile, cfg); err != nil {
 				return err
 			}
 
