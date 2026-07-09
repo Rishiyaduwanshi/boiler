@@ -13,7 +13,9 @@ func TestParseAndExecute(t *testing.T) {
 
 	dummyJsPath := filepath.Join(tempDir, "file.js")
 	// Create dummy file for injection
-	os.WriteFile(dummyJsPath, []byte("// bl__DETECTOR_START_test\n// bl__DETECTOR_END_test\n"), 0644)
+	if err := os.WriteFile(dummyJsPath, []byte("// bl__DETECTOR_START_test\n// bl__DETECTOR_END_test\n"), 0644); err != nil {
+		t.Fatalf("Failed to write dummy JS file: %v", err)
+	}
 
 	scriptContent := `
 __desc = "Test Script"
@@ -21,12 +23,12 @@ __var bl__name = bl__1.capitalize()
 __var bl__is_ts = true
 
 #if bl__is_ts
-	run echo "using TS for bl__name"
+	run go env GOPATH
 	#if bl__name == "Abhinav"
-		run echo "Hello Abhinav"
+		run go env GOOS
 	#endif
 #else
-	run echo "using JS"
+	run go env GOARCH
 #endif
 
 # Test backticks
@@ -43,9 +45,8 @@ console.log("bl__name");
 		"bl__1": "abhinav", // will be capitalized to "Abhinav"
 	}
 
-	// This should run without returning errors.
-	// Since ExecuteCommand is currently a stub that prints to stdout,
-	// we just test if the parser correctly evaluates the logic without crashing.
+	// ParseAndExecute should run without errors: variables resolved,
+	// conditionals evaluated, inject applied, and OS commands executed.
 	err = ParseAndExecute(scriptPath, initialVars)
 	if err != nil {
 		t.Fatalf("ParseAndExecute failed: %v", err)

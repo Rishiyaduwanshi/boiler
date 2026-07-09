@@ -56,21 +56,44 @@ func ExecuteCommand(state *ScriptState, commandLine string) error {
 	}
 }
 
-// parseArgs safely splits a command string by spaces, respecting double quotes.
+// parseArgs safely splits a command string by spaces, respecting both single
+// and double quotes, as well as backslash-escaped characters.
 func parseArgs(s string) []string {
 	var args []string
 	var current []rune
+	var quoteChar rune
 	inQuote := false
+	escaped := false
+
 	for _, r := range s {
-		if r == '"' {
-			inQuote = !inQuote
-		} else if r == ' ' && !inQuote {
-			if len(current) > 0 {
-				args = append(args, string(current))
-				current = []rune{}
+		if escaped {
+			current = append(current, r)
+			escaped = false
+			continue
+		}
+		if r == '\\' {
+			escaped = true
+			continue
+		}
+		if inQuote {
+			if r == quoteChar {
+				inQuote = false
+			} else {
+				current = append(current, r)
 			}
 		} else {
-			current = append(current, r)
+			switch r {
+			case '"', '\'':
+				inQuote = true
+				quoteChar = r
+			case ' ', '\t':
+				if len(current) > 0 {
+					args = append(args, string(current))
+					current = current[:0]
+				}
+			default:
+				current = append(current, r)
+			}
 		}
 	}
 	if len(current) > 0 {
@@ -79,15 +102,24 @@ func parseArgs(s string) []string {
 	return args
 }
 
+// executeOSCommand runs an OS command without injecting user-supplied arguments
+// into a shell string. On Unix, the executable is invoked directly (no shell).
+// On Windows, cmd /c is used with arguments passed separately, which avoids
+// the single-string injection risk while still supporting shell built-ins.
 func executeOSCommand(cmdStr string) error {
+	args := parseArgs(cmdStr)
+	if len(args) == 0 {
+		return fmt.Errorf("run: empty command")
+	}
 	var cmd *exec.Cmd
 	if runtime.GOOS == "windows" {
-		cmd = exec.Command("cmd", "/c", cmdStr)
+		cmd = exec.Command("cmd", append([]string{"/c"}, args...)...)
 	} else {
-		cmd = exec.Command("sh", "-c", cmdStr)
+		cmd = exec.Command(args[0], args[1:]...)
 	}
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
+	cmd.Stdin = os.Stdin
 	return cmd.Run()
 }
 
