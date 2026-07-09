@@ -5,7 +5,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime"
 	"strings"
 )
 
@@ -102,21 +101,23 @@ func parseArgs(s string) []string {
 	return args
 }
 
-// executeOSCommand runs an OS command without injecting user-supplied arguments
-// into a shell string. On Unix, the executable is invoked directly (no shell).
-// On Windows, cmd /c is used with arguments passed separately, which avoids
-// the single-string injection risk while still supporting shell built-ins.
+// executeOSCommand invokes a real executable directly without involving any
+// shell interpreter. This prevents command injection on all platforms:
+// user-supplied template variables can never be interpreted as shell
+// metacharacters because no shell is involved in the execution.
+//
+// Note: shell built-ins (e.g. echo, dir, cd) are intentionally not supported.
+// .bl scripts should call real executables available in PATH (npm, git, go, etc.).
 func executeOSCommand(cmdStr string) error {
 	args := parseArgs(cmdStr)
 	if len(args) == 0 {
 		return fmt.Errorf("run: empty command")
 	}
-	var cmd *exec.Cmd
-	if runtime.GOOS == "windows" {
-		cmd = exec.Command("cmd", append([]string{"/c"}, args...)...)
-	} else {
-		cmd = exec.Command(args[0], args[1:]...)
+	exe, err := exec.LookPath(args[0])
+	if err != nil {
+		return fmt.Errorf("run: executable %q not found in PATH: %w", args[0], err)
 	}
+	cmd := exec.Command(exe, args[1:]...)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Stdin = os.Stdin
