@@ -1,386 +1,234 @@
 ---
 title: Use Cases
-description: Real-world scenarios and practical examples of using Boiler
+description: Real-world scenarios showing what you can actually do with Boiler
 ---
 
-Boiler is designed to eliminate repetitive coding tasks by storing and reusing code across projects. Here are practical use cases to get the most out of it.
-
----
-
-## 1. Avoid Installing Entire Packages for Small Utilities
-
-**Have you ever thought:** Sometimes we add a package even for a small use case?
-
-**The Problem:**
-```bash
-# Just need one function from lodash?
-npm install lodash  # 1.4MB for one function!
-
-# Need a date formatter?
-npm install moment  # 289KB for basic formatting!
-```
-
-**Boiler Solution:**
-```javascript
-// debounce.js
-// __author Your Name
-// __desc Debounce utility without lodash
-
-function debounce(func, wait) {
-  let timeout;
-  return function executedFunction(...args) {
-    const later = () => {
-      clearTimeout(timeout);
-      func(...args);
-    };
-    clearTimeout(timeout);
-    timeout = setTimeout(later, wait);
-  };
-}
-
-module.exports = debounce;
-```
-
-```bash
-# Store once
-bl store debounce.js
-
-# Reuse everywhere - no package needed!
-bl add debounce
-```
-
-**Benefits:**
-- **Zero dependencies** - No node_modules bloat
-- **Lightweight** - Only the code you need
-- **Custom tailored** - Modify to your exact needs
-- **Bundle size** - Smaller production builds
-
-**Perfect for:** Small utilities like debounce, throttle, formatters, validators, parsers, etc.
+Boiler is a **code automation engine** - not just a snippet manager. Here's what developers actually do with it.
 
 ---
 
-## 2. Store & Reuse API Middleware
+## 1. Instant `.gitignore` for Any Language or Framework
 
-**Scenario:** You use the same authentication middleware in every Express project.
+Boiler ships with a built-in `gi` alias wired to the official [github/gitignore](https://github.com/github/gitignore) repository - **225+ popular templates** and **300+ community templates** (version-specific, specialized tools, editors, OS).
 
 ```bash
-# Store it once
-cd my-express-project
-bl store middleware/auth.js
+# Node.js
+bl gi Node
 
-# Use in any new project
-cd new-project
-bl add auth
+# Python
+bl gi Python
+
+# Go
+bl gi Go
+
+# macOS (global)
+bl gi Global/macOS
+
+# JetBrains IDEs (community)
+bl gi community/JetBrains+all
 ```
 
-**Result:** Never write `verifyToken()` or `requireAuth()` again.
+**That's it.** No copying from gitignore.io, no searching GitHub manually. The `.gitignore` appears instantly in your current directory.
+
+> The `gi` alias works by combining **Alias + Variable** power under the hood:
+> ```
+> add github/gitignore:bl__1.gitignore . -m .gitignore -r
+> ```
+> `bl__1` is replaced with your argument - that's the entire magic.
 
 ---
 
-## 3. Database Connection Configs
+## 2. Pull Any File or Repo Without `git clone`
 
-**Scenario:** MongoDB/PostgreSQL connection setup is identical across microservices.
+Boiler can fetch **individual files**, **specific folders**, or **entire repositories** from GitHub, GitLab, or Bitbucket - without ever running `git clone` or downloading a ZIP manually.
 
 ```bash
-# Store your database config
-bl store config/db.js
+# Grab a single file from a GitHub repo
+bl use alice/snippets:js/errorHandler.js ./src/utils
 
-# Add to any service instantly
-cd user-service
-bl add db
+# Grab a specific subfolder as a template
+bl use vercel/next.js:examples/blog ./new-blog
+
+# Grab an entire repo
+bl use rishiyaduwanshi/express-starter ./my-api
+
+# From GitLab
+bl use https://gitlab.com/myorg/templates:docker/node.Dockerfile .
+
+# From any direct URL
+bl use https://raw.githubusercontent.com/user/repo/main/Dockerfile .
 ```
 
-**Perfect for:** Microservice architectures where consistency matters.
+The resource lands exactly where you point it, fully processed. No extra cleanup needed.
 
 ---
 
-## 4. Error Handlers & Logging Utilities
+## 3. Full Feature Scaffolding in One Command
 
-**Scenario:** You have a custom error handler and logger you always use.
+Using `.bl` scripts with the `bl new` command, you can scaffold an entire feature - route, controller, model - and automatically wire them into your existing files, all in a single command.
+
+**Example:** `bl new feat user`
+
+This runs a script (`bl/commands/feat.bl`) that:
+1. Creates `src/routes/user.route.js` (from a template)
+2. Creates `src/controllers/user.controller.js` (from a template)
+3. **Injects** `import userRouter from './routes/user.route.js'` into `src/api.js`
+4. **Injects** `app.use('/user', userRouter)` into `src/api.js`
 
 ```bash
-# Store utilities
-bl store utils/errorHandler.js
-bl store utils/appLogger.js
+# feat.bl script
+__desc = "Scaffold a new API feature"
+__var bl__feature = bl__1.lowercase()
+__var bl__Feature = bl__1.capitalize()
 
-# Add both to new project
-bl add errorHandler
-bl add appLogger
+add route.js ./src/routes/bl__feature.route.js --local
+add controller.js ./src/controllers/bl__feature.controller.js --local
+
+inject ./src/api.js -d imports -a -c `
+import bl__featureRouter from './routes/bl__feature.route.js';
+`
+
+inject ./src/api.js -d routes -a -c `
+app.use('/bl__feature', bl__featureRouter);
+`
 ```
 
-**Why it matters:** Consistent error handling across all projects.
+**Result:** Your feature is fully scaffolded and connected - zero manual wiring.
 
 ---
 
-## 5. Project Boilerplates (Stacks)
+## 4. Team-Wide Standards via Shared Registry
 
-**Scenario:** You repeatedly scaffold Express APIs with the same structure.
-
-```bash
-# Create your perfect Express template once
-cd my-express-template
-bl init  # Creates boiler.stack.json
-
-# Customize boiler.stack.json to exclude node_modules, .env
-# Then store the entire structure
-bl store
-
-# Start new projects in seconds
-mkdir new-api && cd new-api
-bl add express-api@1
-npm install
-```
-
-**Use for:**
-- Express/Fastify APIs
-- Next.js starters
-- Django REST templates
-- Microservice scaffolds
-
----
-
-## 6. Team Snippet Library
-
-**Scenario:** Your team needs standardized code patterns shared across machines.
+Your team's approved patterns - auth middleware, error handlers, configs - stored once in a shared GitHub repo, accessible by every developer on every machine.
 
 ```bash
-# Store team-approved patterns in a shared GitHub/GitLab repo
-# Then any team member can fetch them:
-
-# One-time registry setup per machine
+# One-time setup (per developer)
 bl conf --set-registry https://github.com/myteam/boiler-snippets
 
-# Fetch and save to local store (reusable offline after)
-bl add jwtHelper -r
-bl add validation -r
+# Any developer pulls approved patterns
+bl add jwtAuth -r          # Saves to local store, reusable offline
 bl add rateLimiter -r
+bl add mongoConfig -r
 
-# Or one-shot without saving to local store
-bl use https://github.com/myteam/boiler-snippets:js/jwtHelper.js
+# Or one-shot (no local caching)
+bl use myteam/boiler-snippets:middleware/auth.js ./src/middleware
 ```
 
-**Benefit:** Code consistency across the entire team, across machines - no manual file sharing needed.
+**Benefit:** Every service uses the *exact same* battle-tested code. No more copy-paste drift between microservices.
 
 ---
 
-## 7. Versioned Code Evolution
+## 5. Local Project Snippets & Automation
 
-**Scenario:** You improve a utility and want to keep both versions.
+For project-specific templates you don't want in your global store, use **Local Scoped Stores**.
 
 ```bash
-# Store version 1
+# Initialize local config (sets scope: local)
+bl init -c
+```
+
+This creates a `boiler.local.json` at your project root with `"scope": "local"`. Now Boiler uses `bl/` directory instead of `~/.boiler/`:
+
+```
+my-project/
+├── boiler.local.json      ← scope: local
+└── bl/
+    ├── commands/
+    │   └── cmp.bl         ← bl new cmp <name>
+    └── snippets/
+        └── component.jsx  ← local template
+```
+
+```bash
+# All commands automatically use local store
+bl new cmp Button
+# → Scaffolds src/components/Button.jsx using bl/snippets/component.jsx
+```
+
+---
+
+## 6. Reuse Without Reinstalling Packages
+
+Before adding a 1.4MB package for one utility function, check your store:
+
+```bash
+# Store once (anywhere you write it)
+bl store utils/debounce.js
+bl store utils/deepClone.js
+bl store utils/formatDate.js
+
+# Reuse in any project, no npm needed
+bl add debounce ./src/utils
+bl add deepClone ./src/utils
+```
+
+```javascript
+// debounce.js - your template
+// __var bl__WAIT = 300
+function debounce(fn, wait = bl__WAIT) {
+  let t;
+  return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), wait); };
+}
+export default debounce;
+```
+
+---
+
+## 7. Config Files - Same Setup Every Project
+
+```bash
+# Store your preferred configs
+bl store .eslintrc.json
+bl store .prettierrc
+bl store tsconfig.json
+bl store Dockerfile
+
+# New project setup in seconds
+bl add eslintrc .
+bl add prettierrc .
+bl add tsconfig .
+bl add Dockerfile .
+```
+
+---
+
+## 8. Versioned Code Evolution
+
+Store multiple versions, use the right one per project:
+
+```bash
+# Store v1
 bl store utils/emailService.js
 # → Saved as emailService@1.js
 
-# Later, improve it and store v2
-# Update __version to 2 in file comments
+# Improve it later, update __version to 2
 bl store utils/emailService.js
 # → Saved as emailService@2.js
 
-# Use specific versions
-bl add emailService@1  # Old projects
-bl add emailService@2  # New projects
+bl add emailService@1    # Legacy projects
+bl add emailService@2    # New projects
 ```
-
-**When to use:** Gradual migration without breaking old projects.
 
 ---
 
-## 8. Cross-Language Snippets
-
-**Scenario:** You work in multiple languages and want to store patterns for all.
+## 9. DevOps Scripts & CI Templates
 
 ```bash
-# Python async wrapper
-bl init -n
-# → Create asyncWrapper.py with __author and __version
-bl store asyncWrapper.py
-
-# JavaScript promise handler
-bl init -n
-# → Create promiseHandler.js
-bl store promiseHandler.js
-
-# Go error wrapper
-bl init -n
-# → Create errorWrapper.go
-bl store errorWrapper.go
-```
-
-**Perfect for:** Polyglot developers managing multiple tech stacks.
-
----
-
-## 9. Configuration Files
-
-**Scenario:** You use the same ESLint, Prettier, or Docker configs everywhere.
-
-```bash
-# Store configs
-bl store .eslintrc.json
-bl store .prettierrc
-bl store Dockerfile
-
-# Add to new projects
-bl add eslintrc
-bl add prettierrc
-bl add Dockerfile
-```
-
-**Saves time on:** Project setup and maintaining consistency.
-
----
-
-## 10. Testing Utilities
-
-**Scenario:** You have custom test helpers and fixtures.
-
-```bash
-# Store test utilities
-bl store tests/helpers/mockData.js
-bl store tests/helpers/testSetup.js
-
-# Add to new test suites
-bl add mockData
-bl add testSetup
-```
-
-**Why:** Faster test setup with proven patterns.
-
----
-
-## 11. Quick Script Deployment
-
-**Scenario:** You have shell scripts for deployment, backups, or automation.
-
-```bash
-# Store scripts
+# Store your deployment scripts
 bl store scripts/deploy.sh
-bl store scripts/db-backup.sh
+bl store scripts/backup.sh
+bl store .github/workflows/ci.yml
 
-# Use in CI/CD or other projects
-bl add deploy
-bl add db-backup
+# Reuse across services
+bl add deploy ./scripts
+bl add ci .github/workflows
 ```
-
-**Use for:** DevOps automation and deployment pipelines.
-
----
-
-## Best Practices
-
-### 1. **Initialize Before Storing**
-Always run `bl init` to add metadata (author, version, description) before storing.
-
-### 2. **Use Descriptive Names**
-```bash
-# Bad
-bl store helper.js
-
-# Good
-bl store jwtTokenHelper.js
-```
-
-### 3. **Version Strategically**
-- Increment version for breaking changes
-- Keep old versions for legacy projects
-
-### 4. **Store Stacks with Proper Ignore Patterns**
-Edit `boiler.stack.json` to exclude:
-```json
-{
-  "ignore": [
-    "node_modules",
-    ".env",
-    "dist",
-    ".git"
-  ]
-}
-```
-
-### 5. **Search Before Creating**
-```bash
-bl search jwt
-# Check if similar utility already exists
-```
-
----
-
-## Common Workflows
-
-### New Project Setup
-```bash
-# Add stack template
-bl add express-api
-
-# Add common utilities
-bl add errorHandler
-bl add logger
-bl add dbConfig
-
-# Start coding
-npm install
-npm start
-```
-
-### Microservice Development
-```bash
-# Store shared middleware once
-bl store auth.middleware.js
-bl store cors.middleware.js
-
-# Use across all services
-cd user-service && bl add auth && bl add cors
-cd order-service && bl add auth && bl add cors
-cd payment-service && bl add auth && bl add cors
-```
-
----
-
-### Personal Code Library
-```bash
-# Store everything you frequently use
-bl store utils/*
-
-# List your library
-bl ls
-
-# Add what you need
-bl add <snippet-name>
-```
-
----
-
-## Tips & Tricks
-
-1. **Alias frequently used snippets:**
-   ```bash
-   bl config  # Edit config
-   # Add aliases for quick access
-   ```
-
-2. **Search with keywords:**
-   ```bash
-   bl search middleware
-   bl search validation
-   ```
-
-3. **Check info before adding:**
-   ```bash
-   bl info auth@2
-   # See author, version, description
-   ```
-
-4. **Clean unused resources:**
-   ```bash
-   bl clean --snippets
-   bl clean --stacks
-   ```
 
 ---
 
 ## Next Steps
 
-- [Quick Start Guide](/guides/quickstart/) - Get started in 5 minutes
-- [Commands Reference](/commands/bl/) - Complete command documentation
-- [Installation](/guides/installation/) - Setup instructions
+- [Project Structure](/guides/project-structure/) - How `bl/` and `boiler/` work together
+- [Boiler Scripts (.bl)](/guides/bl-scripts/) - Write full automation pipelines
+- [Remote Fetching](/guides/remote-fetching/) - Fetch from anywhere
+- [Commands Reference](/commands/bl/) - Complete reference

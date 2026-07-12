@@ -297,7 +297,7 @@ func interactiveClean() error {
 		fmt.Println(utils.MsgCancelled)
 		return nil
 	default:
-		fmt.Fprintf(os.Stderr, "invalid choice %q — valid options: k (stacks), n (snippets), a (all), q (quit)\n", choice)
+		fmt.Fprintf(os.Stderr, "invalid choice %q - valid options: k (stacks), n (snippets), a (all), q (quit)\n", choice)
 		return fmt.Errorf("invalid choice %q", choice)
 	}
 }

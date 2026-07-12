@@ -2,8 +2,10 @@ package config
 
 import (
 	"encoding/json"
+	"fmt"
 	"maps"
 	"os"
+	"strings"
 
 	"github.com/rishiyaduwanshi/boiler/internal/utils"
 )
@@ -22,10 +24,11 @@ func Load() (*Manager, error) {
 		manager.Global.Path = globalPath
 		if data, err := os.ReadFile(globalPath); err == nil {
 			var globalCfg Config
-			if err := json.Unmarshal(data, &globalCfg); err == nil {
-				manager.Global.Config = &globalCfg
-				manager.Global.Exists = true
+			if err := json.Unmarshal(data, &globalCfg); err != nil {
+				return nil, fmt.Errorf("failed to parse global config at %s: %w", globalPath, err)
 			}
+			manager.Global.Config = &globalCfg
+			manager.Global.Exists = true
 		}
 	}
 
@@ -37,10 +40,11 @@ func Load() (*Manager, error) {
 			manager.Local.Path = localPath
 			if data, err := os.ReadFile(localPath); err == nil {
 				var localCfg Config
-				if err := json.Unmarshal(data, &localCfg); err == nil {
-					manager.Local.Config = &localCfg
-					manager.Local.Exists = true
+				if err := json.Unmarshal(data, &localCfg); err != nil {
+					return nil, fmt.Errorf("failed to parse local config at %s: %w", localPath, err)
 				}
+				manager.Local.Config = &localCfg
+				manager.Local.Exists = true
 			}
 		} else {
 			// Initialize empty local config path for default saving
@@ -97,6 +101,21 @@ func mergeIntoRuntime(m *Manager) {
 				m.Runtime.Artifacts = make(map[string]string)
 			}
 			maps.Copy(m.Runtime.Artifacts, m.Local.Config.Artifacts)
+		}
+	}
+
+	// 4. Inject Environment Variables passed by scripts (e.g. BOILER_VAR_bl__name)
+	// We do this after loading from files so env vars take highest precedence
+	for _, envStr := range os.Environ() {
+		if strings.HasPrefix(envStr, "BOILER_VAR_") {
+			parts := strings.SplitN(envStr, "=", 2)
+			if len(parts) == 2 {
+				varName := strings.TrimPrefix(parts[0], "BOILER_VAR_")
+				if m.Runtime.Vars == nil {
+					m.Runtime.Vars = make(map[string]string)
+				}
+				m.Runtime.Vars[varName] = parts[1]
+			}
 		}
 	}
 }

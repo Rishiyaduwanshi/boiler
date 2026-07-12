@@ -46,9 +46,9 @@ func defaultEditor() string {
 func getRootPath() string {
 	home, err := os.UserHomeDir()
 	if err != nil {
-		return constants.BoilerDirName
+		return constants.GlobalBoilerDirName
 	}
-	return filepath.Join(home, constants.BoilerDirName)
+	return filepath.Join(home, constants.GlobalBoilerDirName)
 }
 
 func DefaultConfig() *Config {

@@ -1,0 +1,137 @@
+---
+title: Boiler Scripts (.bl)
+description: Learn how to write powerful, AST-less automation scripts using .bl files.
+---
+
+Boiler allows you to create powerful automation workflows using `.bl` script files. These files live in your project's `bl/commands/` directory and can be executed using the `bl new` command.
+
+> [!TIP]
+> **Dynamic Project Root:** You can run `bl new` from *any* subdirectory inside your project. Boiler automatically discovers your `boiler.local.json` file and executes the script relative to your project root. Path references like `./src/` will always point to the correct location!
+
+`.bl` scripts are designed to be extremely fast and lightweight. They use a **Pure Command-Driven** syntax that is executed line-by-line, without the overhead of a complex Abstract Syntax Tree (AST).
+
+---
+
+## Basic Structure
+
+A `.bl` file consists of metadata variables, Boiler CLI commands, and code injection statements.
+
+```bash
+# Define metadata and variables using __ (Double Underscore)
+__desc = "Generates a new API Route"
+__var bl__route_name = bl__1.lowercase()    # bl__1 is the first argument passed to the command
+
+# Run standard Boiler commands (like adding a snippet)
+add route.ts ./src/routes/bl__route_name.ts --local
+
+# Inject code into existing files using CLI flags (-d for detect, -a for append, -p for prepend, -c for content)
+inject ./src/routes.ts -d api_routes -a -c `
+import { bl__route_name } from './routes/bl__route_name';
+app.use('/api/bl__route_name', bl__route_name);
+`
+```
+
+---
+
+## 1. Variables and Metadata
+All metadata and variables must start with a double underscore `__`. 
+Variables can access CLI arguments using `bl__1`, `bl__2`, etc. You can also use built-in transformers like `.lowercase()`, `.capitalize()`, etc. using dot-notation.
+
+```bash
+__desc = "This text shows up in the CLI help menu"
+__var bl__component = bl__1.capitalize()
+```
+
+**Supported Modifiers:**
+- `.lowercase()` / `.lower()`
+- `.uppercase()` / `.upper()`
+- `.capitalize()`
+- `.titleCase()`
+- `.camelCase()`
+- `.pascalCase()`
+- `.snake_case()`
+- `.kebab_case()` / `.kebabCase()`
+
+> [!IMPORTANT]
+> **Silent Scaffolding Pipeline:** When your script defines variables, they are automatically injected into the Boiler engine's runtime environment (`BOILER_VAR_`). If a subsequent command (like `bl add`) needs those variables to scaffold a file, **it will automatically consume the environment variables and skip the interactive prompts!**.
+
+---
+
+## 2. Multi-line Injection (Backticks)
+When you need to inject complex or multi-line code blocks, always use backticks (`` ` ``).
+
+> [!TIP]
+> **No Escaping Needed:** Code inside backticks is protected. You can freely use double quotes (`"`), single quotes (`'`), or any special characters without needing to escape them.
+
+```bash
+inject ./src/index.js -d imports -a -c `
+const express = require('express');
+const app = express();
+console.log("Server initialized");
+`
+```
+
+**Injection Flags:**
+- `-d` or `--detect`: The name of the detector (e.g. `imports` targets `// bl__DETECTOR_START_imports`).
+- `-a` or `--append`: Inserts the content right *above* the `END` marker. Ideal for adding items to the end of a list.
+- `-p` or `--prepend`: Inserts the content right *below* the `START` marker. Ideal for adding imports at the top of a block.
+- `-c` or `--content`: Followed by backticks containing the multiline code.
+
+---
+
+## 3. Control Flow (If / Else)
+Boiler scripts support conditional execution using C-style preprocessor directives (`#if`, `#else`, `#endif`). This keeps the engine blazing fast while giving you full logic control.
+
+### Basic Conditionals
+```bash
+__var bl__is_ts = has_flag("--ts")
+
+#if bl__is_ts
+  use github.com/org/repo:types.ts ./src/types.ts
+#else
+  use github.com/org/repo:types.js ./src/types.js
+#endif
+```
+
+### Logical Operators
+You can combine multiple conditions using `&&` (AND) and `||` (OR). You can also use `!` (NOT), `==` (Equals), and `!=` (Not Equals).
+
+> [!WARNING]
+> **No Brackets Allowed:** To keep the parser AST-less and fast, parentheses `()` for grouping logic are **not supported**. Conditions are evaluated linearly.
+
+```bash
+# Run if both are true
+#if bl__db_type == "mongodb" && bl__is_ts
+  use github.com/repo:mongo.ts ./src/db.ts
+#endif
+
+# Run if either is true
+#if bl__db_type == "postgres" || bl__db_type == "mysql"
+  run npm install pg sequelize
+#endif
+
+# Run if NOT true
+#if !bl__is_ts
+  run echo "Using JavaScript"
+#endif
+```
+
+---
+
+## 4. Handling Dependencies
+Boiler scripts are evaluated strictly from top to bottom. If your script depends on external NPM packages or other Boiler scripts, simply `run` them at the top of your file.
+
+```bash
+__desc = "Scaffolds an Auth module"
+
+# 1. Install NPM dependencies first
+run npm install jsonwebtoken bcryptjs
+
+# 2. Run another Boiler command (Script Dependency)
+run bl new database
+
+# 3. Proceed with file scaffolding
+use github.com/org/repo:auth.ts ./src/auth.ts
+```
+
+By keeping dependencies procedural, the script's behavior remains 100% predictable.

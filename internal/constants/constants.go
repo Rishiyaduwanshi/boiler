@@ -2,12 +2,13 @@ package constants
 
 const (
 	// Boiler Directories
-	BoilerDirName   = ".boiler"
-	StoreDirName    = "store"
-	SnippetsDirName = "snippets"
-	StacksDirName   = "stacks"
-	LogsDirName     = "logs"
-	BinDirName      = "bin"
+	GlobalBoilerDirName = ".boiler"
+	LocalBoilerDirName  = "bl"
+	StoreDirName        = "store"
+	SnippetsDirName     = "snippets"
+	StacksDirName       = "stacks"
+	LogsDirName         = "logs"
+	BinDirName          = "bin"
 
 	// Config Files
 	GlobalConfigFileName = "boiler.conf.json"

@@ -1,10 +1,10 @@
 ---
 title: Welcome to Boiler
-description: A modern CLI for managing code snippets and project templates with automatic versioning
+description: The code automation engine for developers - fetch, scaffold, and reuse code across every project
 template: splash
 hero:
   title: <span class="hero-gradient-title">Code Once. Reuse Forever.</span>
-  tagline: Store, version, and reuse code snippets across all your projects. Stop copy-pasting, start organizing.
+  tagline: Fetch code from anywhere. Scaffold full features in one command. Reuse everything across every project.
   image:
     file: ../../../public/hero-illustration.svg
     alt: Boiler CLI terminal animation
@@ -26,39 +26,63 @@ import InstallTabs from '../../components/InstallTabs.astro';
 
 <InstallTabs />
 
-## Why Boiler?
-
-Stop copy-pasting code between projects. Stop maintaining scattered snippets in random files. **Boiler is your centralized code library** - store once, use everywhere.
-
-<CardGrid stagger>
-	<Card title="Smart Versioning" icon="puzzle">
-		Automatic version management with intelligent prompts. Overwrite or create new versions - you choose.
-	</Card>
-	<Card title="Blazing Fast" icon="rocket">
-		Written in Go for maximum performance. Store and retrieve in milliseconds.
-	</Card>
-	<Card title="Template Variables" icon="pencil">
-		Dynamic snippets with customizable variables. One template, infinite configurations.
-	</Card>
-	<Card title="Universal" icon="translate">
-		Works with any language or file type.configs, Docker - everything.
-	</Card>
-	<Card title="Full Stacks" icon="open-book">
-		Store entire project templates. Express apps, React boilerplates, anything.
-	</Card>
-	<Card title="Zero Clutter" icon="approve-check">
-		Metadata stripped automatically. Get clean, production-ready code.
-	</Card>
-</CardGrid>
-
 ## See It in Action
 
-### Store a Snippet with Variables
+<div class="terminal-showcase">
+
+```bash
+# Instant .gitignore for any language
+bl gi Node
+bl gi Python
+bl gi Go
+
+# Pull any file from GitHub - no git clone
+bl use alice/snippets:js/errorHandler.js ./src/utils
+
+# Scaffold a full feature (route + controller + api wiring)
+bl new feat user
+
+# Store once, reuse forever
+bl add debounce ./src/utils
+```
+
+</div>
+
+### Instant `.gitignore` -  500+ Templates, One Command
+
+```bash
+bl gi Node        # Node.js gitignore
+bl gi Python      # Python gitignore
+bl gi Go          # Go gitignore
+bl gi Global/macOS  # macOS global gitignore
+```
+No copy-paste from gitignore.io. No browser. Just run and done.
+
+### Pull Any File from GitHub - Without `git clone`
+
+```bash
+# Grab a file from any repo
+bl use alice/snippets:js/errorHandler.js ./src/utils
+
+# Grab an entire folder as a template
+bl use vercel/next.js:examples/blog ./my-blog
+
+# From GitLab or any direct URL
+bl use https://gitlab.com/myorg/templates:Dockerfile .
+```
+
+### Scaffold an Entire Feature in One Command
+
+```bash
+bl new feat user
+```
+
+Creates `user.route.js`, `user.controller.js` and automatically injects the imports and routes into your `api.js` - all from a single `.bl` script.
+
+### Store Once. Reuse Forever.
 
 ```javascript
-// errorHandler.js
-// __author John Doe
-// __desc Custom error handler with logging
+// errorHandler.js - your template
 // __var bl__LOG_LEVEL = error
 // __var bl__NOTIFY_EMAIL = admin@example.com
 
@@ -69,49 +93,54 @@ function handleError(err) {
 ```
 
 ```bash
-# Store it
-bl store errorHandler.js
-# ✓ Stored snippet 'errorHandler@1.js'
-```
-
-### Use It Anywhere
-
-```bash
+bl store errorHandler.js        # Store it once
+# ---
 cd ~/new-project
-bl add errorHandler
-
-# Template variables found:
+bl add errorHandler ./src/utils
 #   bl__LOG_LEVEL [error]: warn
 #   bl__NOTIFY_EMAIL [admin@example.com]: dev@myapp.com
-# ✓ Added snippet 'errorHandler' to ./errorHandler.js
+# ✓ Added snippet → ./src/utils/errorHandler.js
 ```
 
-**Result:** Clean code with your custom values, no metadata comments!
+Clean code, variables replaced, metadata stripped automatically.
 
-### Store Entire Projects
+---
 
-```bash
-# Prepare your project template
-cd ./express-api
-bl init          # creates boiler.stack.json (fills in name, version, ignore)
-bl store         # stores it
+## Why Boiler?
 
-# Use it for new projects
-mkdir my-new-api && cd my-new-api
-bl add express-api
-# ✓ Added stack 'express-api' to .
-```
+<CardGrid stagger>
+	<Card title="Fetch From Anywhere" icon="rocket">
+		Pull files, folders, or entire repos from GitHub, GitLab, Bitbucket, or any URL - no `git clone`, no zip downloads.
+	</Card>
+	<Card title="Automation Pipelines" icon="puzzle">
+		Write `.bl` scripts that scaffold multiple files, inject code into existing files, and run commands - all from one `bl new` command.
+	</Card>
+	<Card title="Template Variables" icon="pencil">
+		Dynamic snippets with `bl__VAR_NAME` placeholders. Prompted interactively or injected automatically from scripts.
+	</Card>
+	<Card title="Built-in Aliases" icon="approve-check">
+		The `gi` alias gives you 500+ gitignore templates instantly. Build your own aliases with `bl alias` for any repetitive command.
+	</Card>
+	<Card title="Language & Framework Agnostic" icon="translate">
+		JS, Python, Go, Rust, Java, Docker, Kubernetes - any file type, any language, any framework. Even works with config files.
+	</Card>
+	<Card title="Local & Global Stores" icon="open-book">
+		Use a global `~/.boiler` store for shared utilities or a project-local `bl/` store with `boiler.local.json` for project-specific templates.
+	</Card>
+</CardGrid>
+
+---
 
 ## Built for Developers
 
 <CardGrid>
 	<Card title="For Solo Developers" icon="star">
-		Build your personal snippet library. Never rewrite the same code twice.
+		Your personal code library. Never rewrite the same utility, config, or component twice.
 	</Card>
 	<Card title="For Teams" icon="github">
-		Share standardized code templates. Keep team code consistent.
+		Host a shared registry on GitHub. Every developer pulls the same battle-tested templates with one command.
 	</Card>
-	<Card title="For Learners" icon="laptop">
-		Store useful patterns and examples. Build your reference collection.
+	<Card title="For Every Stack" icon="laptop">
+		Node, Python, Go, Rust, Java, C++, Docker - Boiler works wherever you write code.
 	</Card>
 </CardGrid>

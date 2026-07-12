@@ -1,7 +1,9 @@
 package cli
 
 import (
+	"fmt"
 	"os"
+	"path/filepath"
 	"sync"
 
 	addcmd "github.com/rishiyaduwanshi/boiler/internal/cli/add"
@@ -11,6 +13,7 @@ import (
 	infocmd "github.com/rishiyaduwanshi/boiler/internal/cli/info"
 	initcmd "github.com/rishiyaduwanshi/boiler/internal/cli/init"
 	listcmd "github.com/rishiyaduwanshi/boiler/internal/cli/list"
+	newcmd "github.com/rishiyaduwanshi/boiler/internal/cli/new"
 	pathcmd "github.com/rishiyaduwanshi/boiler/internal/cli/path"
 	searchcmd "github.com/rishiyaduwanshi/boiler/internal/cli/search"
 	selfcmd "github.com/rishiyaduwanshi/boiler/internal/cli/self"
@@ -22,6 +25,7 @@ import (
 	versioncmd "github.com/rishiyaduwanshi/boiler/internal/cli/version"
 
 	"github.com/rishiyaduwanshi/boiler/internal/config"
+	"github.com/rishiyaduwanshi/boiler/internal/constants"
 	"github.com/rishiyaduwanshi/boiler/internal/remote"
 	"github.com/rishiyaduwanshi/boiler/internal/utils"
 	"github.com/spf13/cobra"
@@ -71,17 +75,45 @@ variations of the same snippet or stack.`,
 		utils.ShowBanner()
 		utils.ShowQuickHelp()
 	},
-	PersistentPreRun: func(cmd *cobra.Command, args []string) {
+	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 		if logger != nil {
 			logger.SetVerbose(verbose)
 		}
 		remote.SetVerbose(verbose)
 
+		scope := config.ResolveScope(manager, isGlobal, isLocal)
+
 		// Create the BoilerContext by resolving the current Scope
 		config.Ctx = &config.BoilerContext{
 			Manager: manager,
-			Scope:   config.ResolveScope(manager, isGlobal, isLocal),
+			Scope:   scope,
 		}
+
+		// Dynamically override paths to point to the local project store if scope is Local.
+		// If a boiler.local.json is found, use its directory as the project root.
+		// Otherwise fall back to cwd/bl/ so that --local works even in projects without
+		// a local config file — but never silently reuse the global ~/.boiler paths.
+		if scope == config.ScopeLocal {
+			cwd, err := os.Getwd()
+			if err != nil {
+				return fmt.Errorf("cannot resolve local scope: failed to determine working directory: %w", err)
+			}
+
+			projectRoot := cwd // default: treat cwd as project root
+			nearestConfig, cfgErr := config.FindNearestConfig(cwd)
+			if cfgErr == nil && nearestConfig != "" {
+				projectRoot = filepath.Dir(nearestConfig)
+			}
+
+			localBoilerDir := filepath.Join(projectRoot, constants.LocalBoilerDirName) // <ProjectRoot>/bl
+
+			// Update runtime paths for this command execution
+			manager.Runtime.Paths.Root = localBoilerDir
+			manager.Runtime.Paths.Store = filepath.Join(localBoilerDir, constants.StoreDirName)
+			manager.Runtime.Paths.Snippets = filepath.Join(manager.Runtime.Paths.Store, constants.SnippetsDirName)
+			manager.Runtime.Paths.Stacks = filepath.Join(manager.Runtime.Paths.Store, constants.StacksDirName)
+		}
+		return nil
 	},
 }
 
@@ -98,6 +130,7 @@ func Execute(m *config.Manager, log *utils.Logger) error {
 	infocmd.Setup(cfg, logger)
 	initcmd.Setup(cfg, logger)
 	listcmd.Setup(cfg, logger)
+	newcmd.Setup(cfg, logger)
 	pathcmd.Setup(cfg, logger)
 	searchcmd.Setup(cfg, logger)
 	selfcmd.Setup(cfg, logger)
@@ -149,6 +182,7 @@ func init() {
 	rootCmd.AddCommand(infocmd.Cmd)
 	rootCmd.AddCommand(searchcmd.Cmd)
 	rootCmd.AddCommand(initcmd.Cmd)
+	rootCmd.AddCommand(newcmd.Cmd)
 	rootCmd.AddCommand(pathcmd.Cmd)
 	rootCmd.AddCommand(selfcmd.Cmd)
 	rootCmd.AddCommand(usecmd.Cmd)

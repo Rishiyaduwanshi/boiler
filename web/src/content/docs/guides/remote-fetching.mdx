@@ -11,10 +11,27 @@ Boiler can fetch resources from **anywhere** - GitHub, GitLab, Bitbucket, your o
 
 ## Two Commands for Remote Fetching
 
-| Command | Saves to local store? | Use case |
-|---|---|---|
-| `bl add ... -r` | ✅ Yes - reusable later with `bl add <name>` | Team/personal registry, frequently reused resources |
-| `bl use ...` | ❌ No - one-shot fetch | Grab something once, no clutter |
+<table>
+  <thead>
+    <tr>
+      <th>Command</th>
+      <th>Saves to local store?</th>
+      <th>Use case</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>bl add ... -r</code></td>
+      <td>✅ Yes - reusable later with <code>bl add &lt;name&gt;</code></td>
+      <td>Team/personal registry, frequently reused resources</td>
+    </tr>
+    <tr>
+      <td><code>bl use ...</code></td>
+      <td>❌ No - one-shot fetch</td>
+      <td>Grab something once, no clutter</td>
+    </tr>
+  </tbody>
+</table>
 
 ---
 
@@ -22,13 +39,42 @@ Boiler can fetch resources from **anywhere** - GitHub, GitLab, Bitbucket, your o
 
 Boiler auto-detects the right provider from the URL:
 
-| Platform | Format | Archive |
-|---|---|---|
-| **GitHub** | `owner/repo` or `https://github.com/owner/repo` | tar.gz |
-| **GitLab** | `https://gitlab.com/owner/repo` | tar.gz |
-| **Bitbucket** | `https://bitbucket.org/owner/repo` | zip |
-| **Custom registry** | `https://yoursite.com/boiler-store` | zip |
-| **Direct archive** | `https://anysite.com/stack.zip` or `.tar.gz` | auto-detected |
+<table>
+  <thead>
+    <tr>
+      <th>Platform</th>
+      <th>Format</th>
+      <th>Archive</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>GitHub</strong></td>
+      <td><code>owner/repo</code> or <code>https://github.com/owner/repo</code></td>
+      <td>tar.gz</td>
+    </tr>
+    <tr>
+      <td><strong>GitLab</strong></td>
+      <td><code>https://gitlab.com/owner/repo</code></td>
+      <td>tar.gz</td>
+    </tr>
+    <tr>
+      <td><strong>Bitbucket</strong></td>
+      <td><code>https://bitbucket.org/owner/repo</code></td>
+      <td>zip</td>
+    </tr>
+    <tr>
+      <td><strong>Custom registry</strong></td>
+      <td><code>https://yoursite.com/boiler-store</code></td>
+      <td>zip</td>
+    </tr>
+    <tr>
+      <td><strong>Direct archive</strong></td>
+      <td><code>https://anysite.com/stack.zip</code> or <code>.tar.gz</code></td>
+      <td>auto-detected</td>
+    </tr>
+  </tbody>
+</table>
 
 ---
 
@@ -36,13 +82,42 @@ Boiler auto-detects the right provider from the URL:
 
 The colon (`:`) separates the **source** from the **path inside it**.
 
-| What You Want | Format | Example |
-|---|---|---|
-| Whole GitHub/GitLab/Bitbucket repo | `owner/repo` or full URL | `alice/my-stack` |
-| File inside a GitHub repo | `owner/repo:path/to/file.js` | `alice/snippets:js/logger.js` |
-| Custom domain file | `domain.com:path/file` | `mysite.com:snippets/util.js` |
-| Direct file URL | `https://full-url` | `https://mysite.com/file.js` |
-| Direct archive URL | `https://full-url.zip` | `https://mysite.com/stack.zip` |
+<table>
+  <thead>
+    <tr>
+      <th>What You Want</th>
+      <th>Format</th>
+      <th>Example</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Whole GitHub/GitLab/Bitbucket repo</td>
+      <td><code>owner/repo</code> or full URL</td>
+      <td><code>alice/my-stack</code></td>
+    </tr>
+    <tr>
+      <td>File inside a GitHub repo</td>
+      <td><code>owner/repo:path/to/file.js</code></td>
+      <td><code>alice/snippets:js/logger.js</code></td>
+    </tr>
+    <tr>
+      <td>Custom domain file</td>
+      <td><code>domain.com:path/file</code></td>
+      <td><code>mysite.com:snippets/util.js</code></td>
+    </tr>
+    <tr>
+      <td>Direct file URL</td>
+      <td><code>https://full-url</code></td>
+      <td><code>https://mysite.com/file.js</code></td>
+    </tr>
+    <tr>
+      <td>Direct archive URL</td>
+      <td><code>https://full-url.zip</code></td>
+      <td><code>https://mysite.com/stack.zip</code></td>
+    </tr>
+  </tbody>
+</table>
 
 ---
 

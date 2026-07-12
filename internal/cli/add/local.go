@@ -20,27 +20,6 @@ func AddSnippet(st *store.Store, name, destPath string, opts Options, cfg *confi
 		return fmt.Errorf(utils.ErrResourceNotFound, "snippet file", snippetPath)
 	}
 
-	// Parse snippet metadata to check for variables
-	meta, err := utils.ParseSnippetMetadata(snippetPath)
-	if err != nil {
-		return fmt.Errorf("failed to parse snippet metadata: %w", err)
-	}
-
-	// Prompt user for variable values if variables exist
-	varReplacements := make(map[string]string)
-	if len(meta.Variables) > 0 {
-		fmt.Println("Template variables found:")
-		for varName, defaultValue := range meta.Variables {
-			defaultValue = utils.ResolveSnippetVarDefault(varName, defaultValue, cfg.Vars)
-			prompt := fmt.Sprintf("  %s", varName)
-			value, err := utils.PromptWithDefault(prompt, defaultValue)
-			if err != nil {
-				return fmt.Errorf("failed to read variable input: %w", err)
-			}
-			varReplacements[varName] = value
-		}
-	}
-
 	// Extract base name without version: errorHandler@1.js -> errorHandler.js
 	baseName, _, ext := store.ParseResourceName(name)
 	destFileName := baseName + ext
@@ -53,15 +32,51 @@ func AddSnippet(st *store.Store, name, destPath string, opts Options, cfg *confi
 		return fmt.Errorf(utils.ErrFileAlreadyExists, destFile)
 	}
 
-	// Copy file with variable replacement
-	if err := utils.CopyFileWithVariables(snippetPath, destFile, varReplacements); err != nil {
-		return fmt.Errorf("failed to copy snippet: %w", err)
+	if err := ProcessSnippetFile(snippetPath, destFile, cfg); err != nil {
+		return err
 	}
 
 	fmt.Printf(utils.MsgSnippetAdded, name, destFile)
 	if logger != nil {
 		logger.Info(fmt.Sprintf("Snippet added: %s -> %s", name, destFile))
 	}
+	return nil
+}
+
+// ProcessSnippetFile parses metadata, prompts for variables, and copies the content to destFile.
+func ProcessSnippetFile(snippetPath, destFile string, cfg *config.Config) error {
+	// Parse snippet metadata to check for variables
+	meta, err := utils.ParseSnippetMetadata(snippetPath)
+	if err != nil {
+		return fmt.Errorf("failed to parse snippet metadata: %w", err)
+	}
+
+	// Prompt user for variable values if variables exist
+	varReplacements := make(map[string]string)
+	if len(meta.Variables) > 0 {
+		fmt.Println("Template variables found:")
+		for varName, defaultValue := range meta.Variables {
+			// If value is provided via Env or Config, skip the prompt and use it silently
+			if val, ok, _ := utils.LookupVar(cfg.Vars, varName); ok && val != "" {
+				varReplacements[varName] = val
+				continue
+			}
+
+			defaultValue = utils.ResolveSnippetVarDefault(varName, defaultValue, cfg.Vars)
+			prompt := fmt.Sprintf("  %s", varName)
+			value, err := utils.PromptWithDefault(prompt, defaultValue)
+			if err != nil {
+				return fmt.Errorf("failed to read variable input: %w", err)
+			}
+			varReplacements[varName] = value
+		}
+	}
+
+	// Copy file with variable replacement
+	if err := utils.CopyFileWithVariables(snippetPath, destFile, varReplacements); err != nil {
+		return fmt.Errorf("failed to copy snippet: %w", err)
+	}
+
 	return nil
 }
 

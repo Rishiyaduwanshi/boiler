@@ -37,7 +37,7 @@ func TestDefaultConfig(t *testing.T) {
 		t.Error("Version should not be empty")
 	}
 
-	expectedRoot := filepath.Join(home, constants.BoilerDirName)
+	expectedRoot := filepath.Join(home, constants.GlobalBoilerDirName)
 	if cfg.Paths.Root != expectedRoot {
 		t.Errorf("Paths.Root = %q, want %q", cfg.Paths.Root, expectedRoot)
 	}
