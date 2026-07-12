@@ -73,6 +73,19 @@ It looks for the script in the './bl/' folder of your current project.`,
 		vars := make(map[string]string)
 		positionalIndex := 1
 
+		// Seed vars from BOILER_VAR_* environment variables so that env-prefilled
+		// values are available during direct .bl script execution (create, inject, etc.)
+		// CLI args added below will override these if the same key is provided.
+		for _, env := range os.Environ() {
+			if strings.HasPrefix(env, "BOILER_VAR_") {
+				kv := strings.SplitN(env, "=", 2)
+				if len(kv) == 2 {
+					key := strings.ToLower(strings.TrimPrefix(kv[0], "BOILER_VAR_"))
+					vars[key] = kv[1]
+				}
+			}
+		}
+
 		for i := 1; i < len(args); i++ {
 			arg := args[i]
 

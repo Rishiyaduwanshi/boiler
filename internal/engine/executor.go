@@ -31,8 +31,17 @@ func ExecuteCommand(state *ScriptState, commandLine string) error {
 
 		fmt.Printf("[ENGINE] Running Boiler command: %s %s\n", filepath.Base(exePath), commandLine)
 
-		// Bypass OS shell entirely for native commands to avoid quoting issues
-		args := parseArgs(commandLine)
+		// Tokenize the template FIRST, then interpolate each token individually.
+		// This keeps variable values (e.g. paths with spaces) as atomic arguments.
+		templateArgs := parseArgs(commandLine)
+		args := make([]string, len(templateArgs))
+		for i, arg := range templateArgs {
+			if state != nil {
+				args[i] = state.InterpolateVariables(arg)
+			} else {
+				args[i] = arg
+			}
+		}
 		cmd := exec.Command(exePath, args...)
 
 		// Attach standard streams so prompts and outputs work normally

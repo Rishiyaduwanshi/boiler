@@ -185,10 +185,14 @@ func executeLine(state *ScriptState, line string, lineNumber int) error {
 		return nil
 	}
 
-	// For 'run' commands, skip pre-interpolation so each token is interpolated
-	// individually inside executeOSCommand. This prevents user-supplied variable
-	// values from being re-tokenized and injecting extra flags.
-	if strings.HasPrefix(line, "run ") {
+	// For 'run' and native Boiler commands, skip pre-interpolation so each
+	// token is interpolated individually inside ExecuteCommand.
+	// 'create' and 'inject' still use string interpolation because their
+	// multi-line backtick content also requires variable substitution.
+	isNative := !strings.HasPrefix(line, "create ") &&
+		!strings.HasPrefix(line, "inject ") &&
+		!strings.HasPrefix(line, "__")
+	if isNative {
 		if err := ExecuteCommand(state, line); err != nil {
 			return fmt.Errorf("error at line %d: %w", lineNumber, err)
 		}
