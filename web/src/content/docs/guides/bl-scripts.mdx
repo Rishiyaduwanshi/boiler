@@ -35,7 +35,7 @@ app.use('/api/bl__route_name', bl__route_name);
 
 ## 1. Variables and Metadata
 All metadata and variables must start with a double underscore `__`. 
-Variables can access CLI arguments using `bl__1`, `bl__2`, etc. You can also use built-in transformers like `.lowercase()`, `.capitalize()`, etc. using dot-notation.
+Variables can access CLI arguments using `bl__1`, `bl__2`, etc. You can also use built-in transformers like `.lower()`, `.capitalize()`, etc. using dot-notation.
 
 ```bash
 __desc = "This text shows up in the CLI help menu"
@@ -43,14 +43,14 @@ __var bl__component = bl__1.capitalize()
 ```
 
 **Supported Modifiers:**
-- `.lowercase()` / `.lower()`
-- `.uppercase()` / `.upper()`
+- `.lower()` / `.lowerCase()`
+- `.upper()` / `.upperCase()`
 - `.capitalize()`
-- `.titleCase()`
+- `.title()` / `.titleCase()`
 - `.camelCase()`
 - `.pascalCase()`
-- `.snake_case()`
-- `.kebab_case()` / `.kebabCase()`
+- `.snake_case()` / `.snakeCase()`
+- `.kebabCase()` / `.kebab_case()`
 
 > [!IMPORTANT]
 > **Silent Scaffolding Pipeline:** When your script defines variables, they are automatically injected into the Boiler engine's runtime environment (`BOILER_VAR_`). If a subsequent command (like `bl add`) needs those variables to scaffold a file, **it will automatically consume the environment variables and skip the interactive prompts!**.
@@ -84,14 +84,16 @@ Boiler scripts support conditional execution using C-style preprocessor directiv
 
 ### Basic Conditionals
 ```bash
-__var bl__is_ts = has_flag("--ts")
+__var bl__db = bl__1
 
-#if bl__is_ts
+#if bl__ts
   use github.com/org/repo:types.ts ./src/types.ts
 #else
   use github.com/org/repo:types.js ./src/types.js
 #endif
 ```
+
+> **Tip:** Pass flags like `--ts` when running `bl new myscript --ts`. Boiler sets `bl__ts = true` automatically so you can check it with `#if bl__ts`.
 
 ### Logical Operators
 You can combine multiple conditions using `&&` (AND) and `||` (OR). You can also use `!` (NOT), `==` (Equals), and `!=` (Not Equals).
