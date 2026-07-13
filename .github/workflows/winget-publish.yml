@@ -1,0 +1,25 @@
+name: Publish to winget
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version/Tag to publish (e.g. v0.5.0)'
+        required: true
+        default: 'v0.5.0'
+
+jobs:
+  publish:
+    runs-on: windows-latest
+    environment: production
+    steps:
+      - name: Submit to winget-pkgs
+        uses: vedantmgoyal2009/winget-releaser@v2
+        with:
+          identifier: rishiyaduwanshi.boiler
+          max-retry: 2
+          token: ${{ secrets.WINGET_TOKEN }}
+          release-tag: ${{ github.event.release.tag_name || github.event.inputs.version }}
+          installers-regex: '_Windows_.*\.zip$'
