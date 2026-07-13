@@ -15,10 +15,33 @@ jobs:
     runs-on: windows-latest
     environment: production
     steps:
-      - name: Submit to winget-pkgs
-        uses: vedantmgoyal9/winget-releaser@v2
-        with:
-          identifier: rishiyaduwanshi.boiler
-          token: ${{ secrets.WINGET_TOKEN }}
-          release-tag: ${{ github.event.release.tag_name || github.event.inputs.version }}
-          installers-regex: '_Windows_.*\.zip$'
+      - uses: actions/checkout@v4
+
+      # Download Komac directly to workspace
+      - name: Download Komac CLI
+        run: |
+          $val = Invoke-RestMethod -Uri "https://api.github.com/repos/russellbanks/Komac/releases/latest"
+          $tag = $val.tag_name
+          $versionClean = $tag.TrimStart('v')
+          $downloadUrl = "https://github.com/russellbanks/Komac/releases/download/$tag/komac-$versionClean-x86_64-pc-windows-msvc.exe"
+          write-host "Downloading Komac version $tag from $downloadUrl..."
+          Invoke-WebRequest -Uri $downloadUrl -OutFile komac.exe
+        shell: powershell
+
+      # Run Komac update & submit manually using the local executable
+      - name: Submit to WinGet
+        env:
+          GITHUB_TOKEN: ${{ secrets.WINGET_TOKEN }}
+        run: |
+          # Get clean version (remove 'v' prefix if present)
+          $tag = "${{ github.event.release.tag_name || github.event.inputs.version }}"
+          $version = $tag.TrimStart('v')
+
+          # Define installer URLs
+          $url_x64 = "https://github.com/rishiyaduwanshi/boiler/releases/download/$tag/boiler_Windows_x86_64.zip"
+          $url_arm64 = "https://github.com/rishiyaduwanshi/boiler/releases/download/$tag/boiler_Windows_arm64.zip"
+
+          write-host "Publishing Boiler v$version to WinGet..."
+          # Call local komac.exe executable
+          ./komac.exe update rishiyaduwanshi.boiler --version $version --urls $url_arm64 $url_x64 --submit
+        shell: powershell
