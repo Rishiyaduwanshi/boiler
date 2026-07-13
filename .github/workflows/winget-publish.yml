@@ -16,10 +16,9 @@ jobs:
     environment: production
     steps:
       - name: Submit to winget-pkgs
-        uses: vedantmgoyal2009/winget-releaser@v2
+        uses: vedantmgoyal9/winget-releaser@v2
         with:
           identifier: rishiyaduwanshi.boiler
-          max-retry: 2
           token: ${{ secrets.WINGET_TOKEN }}
           release-tag: ${{ github.event.release.tag_name || github.event.inputs.version }}
           installers-regex: '_Windows_.*\.zip$'
