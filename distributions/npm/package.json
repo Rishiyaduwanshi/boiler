@@ -54,7 +54,7 @@
         "access": "public"
     },
     "dependencies": {
-        "adm-zip": "^0.5.18",
+        "adm-zip": "^0.6.0",
         "tar": "^7.5.20"
     }
 }
