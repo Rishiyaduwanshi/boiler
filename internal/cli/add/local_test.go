@@ -84,13 +84,14 @@ func TestValidateStackDestination_ExistsWithoutForce(t *testing.T) {
 	t.Parallel()
 
 	destRoot := t.TempDir()
-	// Non-spread places the stack in destRoot/<stackDir>
+	// Non-spread places the stack in destRoot/<stackDir>.
+	// stackDirectoryName strips versions but keeps plain stack names as-is.
 	conflict := filepath.Join(destRoot, "my-stack")
 	if err := os.Mkdir(conflict, 0755); err != nil {
 		t.Fatal(err)
 	}
 
-	err := validateStackDestination("alice/my-stack", destRoot, Options{Force: false})
+	err := validateStackDestination("my-stack", destRoot, Options{Force: false})
 	if err == nil {
 		t.Fatal("expected destination-exists error, got nil")
 	}
@@ -108,7 +109,7 @@ func TestValidateStackDestination_ForceSkipsCheck(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err := validateStackDestination("alice/my-stack", destRoot, Options{Force: true}); err != nil {
+	if err := validateStackDestination("my-stack", destRoot, Options{Force: true}); err != nil {
 		t.Fatalf("force should skip existence check, got: %v", err)
 	}
 }
@@ -117,7 +118,7 @@ func TestValidateStackDestination_Available(t *testing.T) {
 	t.Parallel()
 
 	destRoot := t.TempDir()
-	if err := validateStackDestination("alice/my-stack", destRoot, Options{}); err != nil {
+	if err := validateStackDestination("my-stack", destRoot, Options{}); err != nil {
 		t.Fatalf("empty dest should be available, got: %v", err)
 	}
 }
@@ -129,7 +130,7 @@ func TestValidateStackDestination_CustomName(t *testing.T) {
 	if err := os.Mkdir(filepath.Join(destRoot, "custom"), 0755); err != nil {
 		t.Fatal(err)
 	}
-	err := validateStackDestination("alice/my-stack", destRoot, Options{Name: "custom"})
+	err := validateStackDestination("my-stack", destRoot, Options{Name: "custom"})
 	if err == nil {
 		t.Fatal("expected conflict on custom name")
 	}
