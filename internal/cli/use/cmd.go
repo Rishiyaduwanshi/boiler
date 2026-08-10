@@ -78,6 +78,9 @@ Stack placement:
 			AsSnippet: useAsSnippet,
 		}
 
+		// Destination conflict checks for remote stacks run inside AddResource
+		// (validateStackDestination) before any download, so --force is not
+		// required to discover an existing path. See issue #61.
 		if err := addcmd.AddResource(resource, addcmd.ResolveDestination(positionalDest), true, true, opts, cfg, logger); err != nil {
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 			os.Exit(1)
