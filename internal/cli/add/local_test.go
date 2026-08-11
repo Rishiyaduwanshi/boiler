@@ -3,6 +3,7 @@ package add
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/rishiyaduwanshi/boiler/internal/utils"
@@ -76,6 +77,62 @@ func TestCopyStackToDestination_Spread(t *testing.T) {
 
 	if _, err := os.Stat(filepath.Join(dest, "server.js")); err != nil {
 		t.Fatalf("expected file copied into destination root: %v", err)
+	}
+}
+
+func TestValidateStackDestination_ExistsWithoutForce(t *testing.T) {
+	t.Parallel()
+
+	destRoot := t.TempDir()
+	// Non-spread places the stack in destRoot/<stackDir>.
+	// stackDirectoryName strips versions but keeps plain stack names as-is.
+	conflict := filepath.Join(destRoot, "my-stack")
+	if err := os.Mkdir(conflict, 0755); err != nil {
+		t.Fatal(err)
+	}
+
+	err := validateStackDestination("my-stack", destRoot, Options{Force: false})
+	if err == nil {
+		t.Fatal("expected destination-exists error, got nil")
+	}
+	if !strings.Contains(err.Error(), "already exists") {
+		t.Fatalf("error %q should mention already exists", err)
+	}
+}
+
+func TestValidateStackDestination_ForceSkipsCheck(t *testing.T) {
+	t.Parallel()
+
+	destRoot := t.TempDir()
+	conflict := filepath.Join(destRoot, "my-stack")
+	if err := os.Mkdir(conflict, 0755); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := validateStackDestination("my-stack", destRoot, Options{Force: true}); err != nil {
+		t.Fatalf("force should skip existence check, got: %v", err)
+	}
+}
+
+func TestValidateStackDestination_Available(t *testing.T) {
+	t.Parallel()
+
+	destRoot := t.TempDir()
+	if err := validateStackDestination("my-stack", destRoot, Options{}); err != nil {
+		t.Fatalf("empty dest should be available, got: %v", err)
+	}
+}
+
+func TestValidateStackDestination_CustomName(t *testing.T) {
+	t.Parallel()
+
+	destRoot := t.TempDir()
+	if err := os.Mkdir(filepath.Join(destRoot, "custom"), 0755); err != nil {
+		t.Fatal(err)
+	}
+	err := validateStackDestination("my-stack", destRoot, Options{Name: "custom"})
+	if err == nil {
+		t.Fatal("expected conflict on custom name")
 	}
 }
 

@@ -102,6 +102,36 @@ func AddStack(st *store.Store, name, destPath string, opts Options, logger *util
 	return nil
 }
 
+// validateStackDestination reports whether a non-spread stack placement would
+// conflict with an existing path. Call this before any remote download so
+// boiler use / bl add --remote fail fast without network I/O (issue #61).
+//
+// Spread mode still needs stack contents for per-file conflict checks, so this
+// only guards the non-spread dest/stackDir path (and a non-directory dest when
+// --spread is set).
+func validateStackDestination(stackName, destPath string, opts Options) error {
+	if opts.Force {
+		return nil
+	}
+
+	if opts.Spread {
+		if utils.FileExists(destPath) && !utils.IsDirectory(destPath) {
+			return fmt.Errorf("destination '%s' must be a directory", destPath)
+		}
+		return nil
+	}
+
+	stackDir := stackDirectoryName(stackName)
+	if opts.Name != "" {
+		stackDir = opts.Name
+	}
+	finalDestPath := filepath.Join(destPath, stackDir)
+	if utils.FileExists(finalDestPath) {
+		return fmt.Errorf(utils.ErrDestAlreadyExists, finalDestPath)
+	}
+	return nil
+}
+
 func copyStackToDestination(stackPath, stackName, destPath string, opts Options) (string, error) {
 	ignorePatterns := utils.DefaultIgnorePatterns
 
@@ -115,14 +145,15 @@ func copyStackToDestination(stackPath, stackName, destPath string, opts Options)
 		return destPath, nil
 	}
 
+	if err := validateStackDestination(stackName, destPath, opts); err != nil {
+		return "", err
+	}
+
 	stackDir := stackDirectoryName(stackName)
 	if opts.Name != "" {
 		stackDir = opts.Name
 	}
 	finalDestPath := filepath.Join(destPath, stackDir)
-	if utils.FileExists(finalDestPath) && !opts.Force {
-		return "", fmt.Errorf(utils.ErrDestAlreadyExists, finalDestPath)
-	}
 
 	if err := utils.CopyDir(stackPath, finalDestPath, ignorePatterns); err != nil {
 		return "", fmt.Errorf("failed to copy stack: %w", err)

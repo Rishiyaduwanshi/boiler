@@ -119,6 +119,11 @@ func ResourceFromRemote(resource, destPath string, resourceType ResourceType, no
 		return fmt.Errorf("stack '%s' does not have a valid remote location", resource)
 	}
 
+	// Fail before any network call when the destination already exists.
+	if err := validateStackDestination(resource, destPath, opts); err != nil {
+		return err
+	}
+
 	if noStore {
 		tempStackPath, err := os.MkdirTemp("", "boiler-remote-stack-*")
 		if err != nil {
@@ -277,6 +282,12 @@ func directRemoteResource(remotePath, destPath string, resourceType ResourceType
 		return AddSnippet(st, resourceName, destPath, opts, cfg, logger)
 	}
 
+	resourceName := repo
+	// Fail before any network call when the destination already exists.
+	if err := validateStackDestination(resourceName, destPath, opts); err != nil {
+		return err
+	}
+
 	if noStore {
 		tempStackPath, err := os.MkdirTemp("", "boiler-direct-stack-*")
 		if err != nil {
@@ -288,7 +299,6 @@ func directRemoteResource(remotePath, destPath string, resourceType ResourceType
 			return err
 		}
 
-		resourceName := repo
 		finalDestPath, err := copyStackToDestination(tempStackPath, resourceName, destPath, opts)
 		if err != nil {
 			return err
@@ -311,9 +321,6 @@ func directRemoteResource(remotePath, destPath string, resourceType ResourceType
 	if err := remote.FetchStack(remotePath, localStackPath); err != nil {
 		return err
 	}
-
-	// Generate resource name: repo name
-	resourceName := repo
 
 	// Add to local store metadata
 	st, err := utils.LoadStore(cfg.Paths.Store)
@@ -389,6 +396,11 @@ func directRemoteURLResource(remotePath, destPath string, resourceType ResourceT
 	}
 
 	resourceName := utils.StackNameFromRemoteURL(remotePath)
+	// Fail before any network call when the destination already exists.
+	if err := validateStackDestination(resourceName, destPath, opts); err != nil {
+		return err
+	}
+
 	if noStore {
 		tempStackPath, err := os.MkdirTemp("", "boiler-url-stack-*")
 		if err != nil {
