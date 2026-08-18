@@ -40,6 +40,12 @@ func unsetAlias(rawName string) error {
 	}
 
 	delete(cfg.Aliases, name)
+
+	// Remove alias from the scope-owned config object before saving to disk
+	if err := aliascmd.DeleteScopedAlias(name); err != nil {
+		return err
+	}
+
 	if err := aliascmd.PersistConfigAliases(); err != nil {
 		return err
 	}
