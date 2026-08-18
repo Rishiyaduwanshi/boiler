@@ -93,10 +93,20 @@ func EnsureConfigAliases() {
 
 func PersistConfigAliases() error {
 	if config.Ctx.Scope == config.ScopeLocal {
+		// Sync Runtime aliases into the Local config object before writing to disk
+		if config.Ctx.Manager.Local.Config == nil {
+			config.Ctx.Manager.Local.Config = &config.Config{}
+		}
+		config.Ctx.Manager.Local.Config.Aliases = cfg.Aliases
 		if err := config.Ctx.Manager.SaveLocal(); err != nil {
 			return fmt.Errorf("failed to save local config: %w", err)
 		}
 	} else {
+		// Sync Runtime aliases into the Global config object before writing to disk
+		if config.Ctx.Manager.Global.Config == nil {
+			config.Ctx.Manager.Global.Config = &config.Config{}
+		}
+		config.Ctx.Manager.Global.Config.Aliases = cfg.Aliases
 		if err := config.Ctx.Manager.SaveGlobal(); err != nil {
 			return fmt.Errorf("failed to save global config: %w", err)
 		}
