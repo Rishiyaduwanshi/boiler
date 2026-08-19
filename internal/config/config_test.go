@@ -202,18 +202,21 @@ func TestConfigJSONRoundtrip(t *testing.T) {
 	}
 }
 
-func TestLoad_InvalidConfigRejectsUppercaseAlias(t *testing.T) {
+func TestLoad_UppercaseAliasAutoNormalized(t *testing.T) {
 	tmp := redirectHome(t)
 
-	// Create invalid global config file with uppercase alias key "LL"
 	globalDir := filepath.Join(tmp, ".boiler")
 	os.MkdirAll(globalDir, 0755)
 	globalPath := filepath.Join(globalDir, "boiler.conf.json")
-	invalidJSON := `{"aliases": {"LL": "ls"}}`
-	os.WriteFile(globalPath, []byte(invalidJSON), 0644)
+	mixedCaseJSON := `{"aliases": {"LL": "ls"}}`
+	os.WriteFile(globalPath, []byte(mixedCaseJSON), 0644)
 
-	_, err := Load()
-	if err == nil {
-		t.Error("expected Load() to fail for invalid uppercase alias 'LL' in config file, got nil")
+	mgr, err := Load()
+	if err != nil {
+		t.Fatalf("Load() should not fail for mixed-case alias 'LL': %v", err)
+	}
+
+	if v, ok := mgr.Global.Config.Aliases["ll"]; !ok || v != "ls" {
+		t.Errorf("expected 'LL' to be auto-normalized to 'll', got map: %v", mgr.Global.Config.Aliases)
 	}
 }
