@@ -1,6 +1,9 @@
 package config
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 // ScopedAliasMap returns aliases owned by the active scope's config file, not the merged runtime.
 func ScopedAliasMap() map[string]string {
@@ -17,6 +20,25 @@ func ScopedAliasMap() map[string]string {
 		return nil
 	}
 	return Ctx.Manager.Global.Config.Aliases
+}
+
+// ScopedAliasKey returns the actual stored key for a normalized alias name, using case-insensitive
+// matching to handle config files edited via `bl conf` that may contain mixed-case keys.
+// Returns ("", false) if not found in the active scope.
+func ScopedAliasKey(normalizedName string) (string, bool) {
+	m := ScopedAliasMap()
+	if m == nil {
+		return "", false
+	}
+	if _, ok := m[normalizedName]; ok {
+		return normalizedName, true
+	}
+	for k := range m {
+		if strings.ToLower(k) == normalizedName {
+			return k, true
+		}
+	}
+	return "", false
 }
 
 // SetScopedAlias writes name→target into the active scope's config object only.
