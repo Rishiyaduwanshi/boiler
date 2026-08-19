@@ -244,7 +244,7 @@ func TestSetAliasFromAssignment_LocalScopeDoesNotPollutGlobalConfig(t *testing.T
 func TestDeleteScopedAlias_RemovesOnlyFromActiveScope(t *testing.T) {
 	setupScopedAliasTest(t, config.ScopeLocal)
 
-	if err := DeleteScopedAlias("df"); err != nil {
+	if err := config.DeleteScopedAlias("df"); err != nil {
 		t.Fatalf("DeleteScopedAlias: %v", err)
 	}
 
@@ -265,7 +265,48 @@ func TestPersistConfigAliases_NilManagerReturnsError(t *testing.T) {
 	config.Ctx = &config.BoilerContext{Manager: nil, Scope: config.ScopeGlobal}
 	t.Cleanup(func() { config.Ctx = prev })
 
-	if err := PersistConfigAliases(); err == nil {
+	if err := config.PersistScopedAliases(); err == nil {
 		t.Error("expected error for nil Manager, got nil")
+	}
+}
+
+// TestScopedAliasMap_GlobalScopeReturnsOnlyGlobalAliases verifies that
+// ScopedAliasMap returns global-owned aliases only, not local ones.
+func TestScopedAliasMap_GlobalScopeReturnsOnlyGlobalAliases(t *testing.T) {
+	setupScopedAliasTest(t, config.ScopeGlobal)
+
+	got := config.ScopedAliasMap()
+
+	if _, ok := got["gi"]; !ok {
+		t.Error("ScopedAliasMap should contain gi (global alias)")
+	}
+	if _, ok := got["df"]; ok {
+		t.Error("ScopedAliasMap must NOT contain df (local-only alias)")
+	}
+}
+
+// TestScopedAliasMap_LocalScopeReturnsOnlyLocalAliases verifies that
+// ScopedAliasMap returns local-owned aliases only, not global ones.
+func TestScopedAliasMap_LocalScopeReturnsOnlyLocalAliases(t *testing.T) {
+	setupScopedAliasTest(t, config.ScopeLocal)
+
+	got := config.ScopedAliasMap()
+
+	if _, ok := got["df"]; !ok {
+		t.Error("ScopedAliasMap should contain df (local alias)")
+	}
+	if _, ok := got["gi"]; ok {
+		t.Error("ScopedAliasMap must NOT contain gi (global-only alias)")
+	}
+}
+
+// TestScopedAliasMap_NilManagerReturnsNil verifies nil-safety.
+func TestScopedAliasMap_NilManagerReturnsNil(t *testing.T) {
+	prev := config.Ctx
+	config.Ctx = &config.BoilerContext{Manager: nil, Scope: config.ScopeGlobal}
+	t.Cleanup(func() { config.Ctx = prev })
+
+	if got := config.ScopedAliasMap(); got != nil {
+		t.Errorf("expected nil for nil Manager, got %v", got)
 	}
 }
