@@ -10,10 +10,11 @@ Manage reusable command and snippet variables
 Manage reusable variables stored in boiler.conf.json.
 
 Usage patterns:
-- bl var                  List all variables
-- bl var name=value       Set or update a variable
-- bl var name             Get one variable value
-- bl unvar name           Remove a variable (use 'unvar' command)
+- bl var                       List all variables
+- bl var name=value            Set a new variable
+- bl var name=value --force    Overwrite an existing variable
+- bl var name                  Get one variable value
+- bl unvar name                Remove a variable (use 'unvar' command)
 
 Variables can be used inline in ANY command using the bl__VAR_NAME syntax:
 - When Boiler encounters bl__VAR_NAME in an argument, it replaces it with the variable's value.
@@ -34,7 +35,8 @@ bl var [name|name=value] [flags]
 ### Options
 
 ```
-  -h, --help   help for var
+  -f, --force   Overwrite if already exists
+  -h, --help    help for var
 ```
 
 ### Options inherited from parent commands

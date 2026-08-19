@@ -24,10 +24,11 @@ var Cmd = &cobra.Command{
 
 Usage patterns:
 
-  bl alias              List all aliases
-  bl alias name=cmd     Set or update an alias
-  bl alias name         Get one alias value
-  bl unalias name       Remove an alias (use 'unalias' command)
+  bl alias                     List all aliases
+  bl alias name=cmd            Set a new alias
+  bl alias name=cmd --force    Overwrite an existing alias
+  bl alias name                Get one alias value
+  bl unalias name              Remove an alias (use 'unalias' command)
 
 Positional Arguments & Variables:
 - Aliases support dynamic positional arguments (bl__1, bl__2, ...) and inline variables (bl__VAR_NAME).
@@ -69,6 +70,11 @@ bl alias templates='search --registry https://github.com/bl__org/boiler'
 		}
 	},
 }
+var forceOverwrite bool
+
+func init() {
+	Cmd.Flags().BoolVarP(&forceOverwrite, "force", "f", false, "Overwrite if already exists")
+}
 
 func EnsureConfigAliases() {
 	if cfg.Aliases == nil {
@@ -89,19 +95,6 @@ func EnsureConfigAliases() {
 		normalized[name] = target
 	}
 	cfg.Aliases = normalized
-}
-
-func PersistConfigAliases() error {
-	if config.Ctx.Scope == config.ScopeLocal {
-		if err := config.Ctx.Manager.SaveLocal(); err != nil {
-			return fmt.Errorf("failed to save local config: %w", err)
-		}
-	} else {
-		if err := config.Ctx.Manager.SaveGlobal(); err != nil {
-			return fmt.Errorf("failed to save global config: %w", err)
-		}
-	}
-	return nil
 }
 
 func NormalizeAliasName(raw string) (string, error) {
@@ -161,9 +154,18 @@ func setAliasFromAssignment(assignment string) error {
 	target = strings.Join(targetTokens, " ")
 
 	EnsureConfigAliases()
+
+	if _, ok := config.ScopedAliasMap()[name]; ok && !forceOverwrite {
+		return fmt.Errorf("'%s' already exists. Use --force to overwrite", name)
+	}
+
 	cfg.Aliases[name] = target
 
-	if err := PersistConfigAliases(); err != nil {
+	if err := config.SetScopedAlias(name, target); err != nil {
+		return err
+	}
+
+	if err := config.PersistScopedAliases(); err != nil {
 		return err
 	}
 

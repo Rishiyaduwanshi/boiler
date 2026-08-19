@@ -136,3 +136,44 @@ func equal(a, b []string) bool {
 	}
 	return true
 }
+
+func TestIsValidAliasKey(t *testing.T) {
+	valid := []string{"ll", "gi", "my_alias", "my-alias", "a1"}
+	for _, name := range valid {
+		if !IsValidAliasKey(name) {
+			t.Errorf("expected %q to be valid alias key", name)
+		}
+	}
+
+	invalid := []string{"LL", "MyAlias", "1alias", "_alias", "alias space", ""}
+	for _, name := range invalid {
+		if IsValidAliasKey(name) {
+			t.Errorf("expected %q to be invalid alias key", name)
+		}
+	}
+}
+
+func TestIsValidVarKey(t *testing.T) {
+	valid := []string{"api_url", "bl__api_url", "org", "repo_1"}
+	for _, key := range valid {
+		if !IsValidVarKey(key) {
+			t.Errorf("expected %q to be valid var key", key)
+		}
+	}
+
+	invalid := []string{"API_URL", "bl__API_URL", "var-dash", ""}
+	for _, key := range invalid {
+		if IsValidVarKey(key) {
+			t.Errorf("expected %q to be invalid var key", key)
+		}
+	}
+}
+
+func TestIsValidScope(t *testing.T) {
+	if !IsValidScope("global") || !IsValidScope("local") || !IsValidScope("") {
+		t.Error("global, local, and empty should be valid scopes")
+	}
+	if IsValidScope("invalid_scope") {
+		t.Error("invalid_scope should be invalid")
+	}
+}

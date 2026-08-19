@@ -27,6 +27,9 @@ func Load() (*Manager, error) {
 			if err := json.Unmarshal(data, &globalCfg); err != nil {
 				return nil, fmt.Errorf("failed to parse global config at %s: %w", globalPath, err)
 			}
+			if err := globalCfg.SanitizeAndWarn(globalPath); err != nil {
+				return nil, fmt.Errorf("invalid global config at %s: %w", globalPath, err)
+			}
 			manager.Global.Config = &globalCfg
 			manager.Global.Exists = true
 		}
@@ -42,6 +45,9 @@ func Load() (*Manager, error) {
 				var localCfg Config
 				if err := json.Unmarshal(data, &localCfg); err != nil {
 					return nil, fmt.Errorf("failed to parse local config at %s: %w", localPath, err)
+				}
+				if err := localCfg.SanitizeAndWarn(localPath); err != nil {
+					return nil, fmt.Errorf("invalid local config at %s: %w", localPath, err)
 				}
 				manager.Local.Config = &localCfg
 				manager.Local.Exists = true

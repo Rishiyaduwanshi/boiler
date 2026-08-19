@@ -1,6 +1,8 @@
 package alias
 
 import (
+	"os"
+	"path/filepath"
 	"reflect"
 	"testing"
 
@@ -132,5 +134,212 @@ func TestExpandFirstCommandAlias_IgnoresNonAliasTokens(t *testing.T) {
 		if !reflect.DeepEqual(got, input) {
 			t.Fatalf("ExpandFirstCommandAlias(%v) = %v, want %v", input, got, input)
 		}
+	}
+}
+
+// setupScopedAliasTest builds a test environment where Global.Config, Local.Config, and Runtime
+// are SEPARATE objects — the real-world scenario that the existing setupAliasCommandTest misses
+// by reusing the same pointer for all three.
+func setupScopedAliasTest(t *testing.T, scope config.Scope) {
+	t.Helper()
+
+	tmp := t.TempDir()
+	t.Setenv("HOME", tmp)
+	t.Setenv("USERPROFILE", tmp)
+
+	previousCfg := cfg
+	previousLogger := logger
+	previousCtx := config.Ctx
+	t.Cleanup(func() {
+		cfg = previousCfg
+		logger = previousLogger
+		config.Ctx = previousCtx
+	})
+
+	// Separate objects — global-only and local-only aliases must not bleed between files.
+	globalCfg := &config.Config{
+		Aliases: map[string]string{"gi": "add github/gitignore:bl__1.gitignore . -m .gitignore -r"},
+	}
+	localCfg := &config.Config{
+		Aliases: map[string]string{"df": "add bl__1 . -m Dockerfile"},
+		Scope:   string(config.ScopeLocal),
+	}
+	runtimeCfg := config.DefaultConfig()
+	runtimeCfg.Aliases = map[string]string{
+		"gi": "add github/gitignore:bl__1.gitignore . -m .gitignore -r",
+		"df": "add bl__1 . -m Dockerfile",
+	}
+
+	globalPath := filepath.Join(tmp, ".boiler", "boiler.conf.json")
+	localPath := filepath.Join(tmp, "project", "boiler.local.json")
+	os.MkdirAll(filepath.Dir(globalPath), 0755)
+	os.MkdirAll(filepath.Dir(localPath), 0755)
+	os.MkdirAll(filepath.Join(tmp, "logs"), 0755)
+
+	cfg = runtimeCfg
+	config.Ctx = &config.BoilerContext{
+		Manager: &config.Manager{
+			Global:  &config.ConfigFile{Path: globalPath, Config: globalCfg, Exists: true},
+			Local:   &config.ConfigFile{Path: localPath, Config: localCfg, Exists: true},
+			Runtime: runtimeCfg,
+		},
+		Scope: scope,
+	}
+
+	log, err := utils.NewLogger(filepath.Join(tmp, "logs"), false)
+	if err != nil {
+		t.Fatalf("NewLogger: %v", err)
+	}
+	logger = log
+}
+
+// TestSetAliasFromAssignment_GlobalScopeDoesNotPollutLocalConfig verifies that setting
+// an alias in global scope does not write it (or any global alias) into boiler.local.json.
+func TestSetAliasFromAssignment_GlobalScopeDoesNotPollutLocalConfig(t *testing.T) {
+	setupScopedAliasTest(t, config.ScopeGlobal)
+
+	if err := setAliasFromAssignment("newcmd=search --all"); err != nil {
+		t.Fatalf("setAliasFromAssignment: %v", err)
+	}
+
+	// New alias must be in global config.
+	if _, ok := config.Ctx.Manager.Global.Config.Aliases["newcmd"]; !ok {
+		t.Error("global config should contain newcmd alias")
+	}
+	// Local config must NOT gain the new alias.
+	if _, ok := config.Ctx.Manager.Local.Config.Aliases["newcmd"]; ok {
+		t.Error("local config must NOT contain newcmd — scope isolation broken")
+	}
+	// Global config must NOT absorb df (the local-only alias from the merged Runtime).
+	if _, ok := config.Ctx.Manager.Global.Config.Aliases["df"]; ok {
+		t.Error("global config must NOT contain df — local alias leaked into global file")
+	}
+}
+
+// TestSetAliasFromAssignment_LocalScopeDoesNotPollutGlobalConfig verifies that setting
+// an alias in local scope does not write it (or any local alias) into boiler.conf.json.
+func TestSetAliasFromAssignment_LocalScopeDoesNotPollutGlobalConfig(t *testing.T) {
+	setupScopedAliasTest(t, config.ScopeLocal)
+
+	if err := setAliasFromAssignment("localcmd=add bl__1 ./src"); err != nil {
+		t.Fatalf("setAliasFromAssignment: %v", err)
+	}
+
+	// New alias must be in local config.
+	if _, ok := config.Ctx.Manager.Local.Config.Aliases["localcmd"]; !ok {
+		t.Error("local config should contain localcmd alias")
+	}
+	// Global config must NOT gain the new alias.
+	if _, ok := config.Ctx.Manager.Global.Config.Aliases["localcmd"]; ok {
+		t.Error("global config must NOT contain localcmd — scope isolation broken")
+	}
+	// Local config must NOT absorb gi (the global-only alias from the merged Runtime).
+	if _, ok := config.Ctx.Manager.Local.Config.Aliases["gi"]; ok {
+		t.Error("local config must NOT contain gi — global alias leaked into local file")
+	}
+}
+
+// TestDeleteScopedAlias_RemovesOnlyFromActiveScope verifies that unaliasing in local scope
+// does not touch the global config file.
+func TestDeleteScopedAlias_RemovesOnlyFromActiveScope(t *testing.T) {
+	setupScopedAliasTest(t, config.ScopeLocal)
+
+	if err := config.DeleteScopedAlias("df"); err != nil {
+		t.Fatalf("DeleteScopedAlias: %v", err)
+	}
+
+	// df must be gone from local config.
+	if _, ok := config.Ctx.Manager.Local.Config.Aliases["df"]; ok {
+		t.Error("local config should no longer contain df after delete")
+	}
+	// gi must remain untouched in global config.
+	if _, ok := config.Ctx.Manager.Global.Config.Aliases["gi"]; !ok {
+		t.Error("global config should still contain gi — unrelated alias deleted")
+	}
+}
+
+// TestPersistConfigAliases_NilManagerReturnsError ensures a nil Manager produces
+// a clean error instead of a nil-pointer panic.
+func TestPersistConfigAliases_NilManagerReturnsError(t *testing.T) {
+	prev := config.Ctx
+	config.Ctx = &config.BoilerContext{Manager: nil, Scope: config.ScopeGlobal}
+	t.Cleanup(func() { config.Ctx = prev })
+
+	if err := config.PersistScopedAliases(); err == nil {
+		t.Error("expected error for nil Manager, got nil")
+	}
+}
+
+// TestScopedAliasMap_GlobalScopeReturnsOnlyGlobalAliases verifies that
+// ScopedAliasMap returns global-owned aliases only, not local ones.
+func TestScopedAliasMap_GlobalScopeReturnsOnlyGlobalAliases(t *testing.T) {
+	setupScopedAliasTest(t, config.ScopeGlobal)
+
+	got := config.ScopedAliasMap()
+
+	if _, ok := got["gi"]; !ok {
+		t.Error("ScopedAliasMap should contain gi (global alias)")
+	}
+	if _, ok := got["df"]; ok {
+		t.Error("ScopedAliasMap must NOT contain df (local-only alias)")
+	}
+}
+
+// TestScopedAliasMap_LocalScopeReturnsOnlyLocalAliases verifies that
+// ScopedAliasMap returns local-owned aliases only, not global ones.
+func TestScopedAliasMap_LocalScopeReturnsOnlyLocalAliases(t *testing.T) {
+	setupScopedAliasTest(t, config.ScopeLocal)
+
+	got := config.ScopedAliasMap()
+
+	if _, ok := got["df"]; !ok {
+		t.Error("ScopedAliasMap should contain df (local alias)")
+	}
+	if _, ok := got["gi"]; ok {
+		t.Error("ScopedAliasMap must NOT contain gi (global-only alias)")
+	}
+}
+
+// TestScopedAliasMap_NilManagerReturnsNil verifies nil-safety.
+func TestScopedAliasMap_NilManagerReturnsNil(t *testing.T) {
+	prev := config.Ctx
+	config.Ctx = &config.BoilerContext{Manager: nil, Scope: config.ScopeGlobal}
+	t.Cleanup(func() { config.Ctx = prev })
+
+	if got := config.ScopedAliasMap(); got != nil {
+		t.Errorf("expected nil for nil Manager, got %v", got)
+	}
+}
+
+// TestSetAliasFromAssignment_ExistsWithoutForce verifies that setting an already-existing
+// alias without --force returns an error and leaves the original value intact.
+func TestSetAliasFromAssignment_ExistsWithoutForce(t *testing.T) {
+	setupScopedAliasTest(t, config.ScopeGlobal)
+	forceOverwrite = false
+
+	// "gi" already exists from setupScopedAliasTest
+	err := setAliasFromAssignment("gi=new-command")
+	if err == nil {
+		t.Fatal("expected error when overwriting existing alias without --force, got nil")
+	}
+
+	if v := config.Ctx.Manager.Global.Config.Aliases["gi"]; v != "add github/gitignore:bl__1.gitignore . -m .gitignore -r" {
+		t.Errorf("original value should be unchanged, got %q", v)
+	}
+}
+
+// TestSetAliasFromAssignment_ExistsWithForce verifies that --force successfully overwrites
+// an existing alias and cleans up any old key.
+func TestSetAliasFromAssignment_ExistsWithForce(t *testing.T) {
+	setupScopedAliasTest(t, config.ScopeGlobal)
+	forceOverwrite = true
+	t.Cleanup(func() { forceOverwrite = false })
+
+	if err := setAliasFromAssignment("gi=new-command"); err != nil {
+		t.Fatalf("setAliasFromAssignment with --force: %v", err)
+	}
+
+	if v := config.Ctx.Manager.Global.Config.Aliases["gi"]; v != "new-command" {
+		t.Errorf("expected 'gi' to be 'new-command', got %q", v)
 	}
 }

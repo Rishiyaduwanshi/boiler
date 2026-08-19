@@ -11,10 +11,11 @@ Manage command aliases stored in boiler.conf.json.
 
 Usage patterns:
 
-  bl alias              List all aliases
-  bl alias name=cmd     Set or update an alias
-  bl alias name         Get one alias value
-  bl unalias name       Remove an alias (use 'unalias' command)
+  bl alias                     List all aliases
+  bl alias name=cmd            Set a new alias
+  bl alias name=cmd --force    Overwrite an existing alias
+  bl alias name                Get one alias value
+  bl unalias name              Remove an alias (use 'unalias' command)
 
 Positional Arguments & Variables:
 - Aliases support dynamic positional arguments (bl__1, bl__2, ...) and inline variables (bl__VAR_NAME).
@@ -42,7 +43,8 @@ bl alias [name|name=command [args...]] [flags]
 ### Options
 
 ```
-  -h, --help   help for alias
+  -f, --force   Overwrite if already exists
+  -h, --help    help for alias
 ```
 
 ### Options inherited from parent commands

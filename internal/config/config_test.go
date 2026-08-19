@@ -201,3 +201,22 @@ func TestConfigJSONRoundtrip(t *testing.T) {
 		t.Error("Paths.Snippets not preserved across JSON roundtrip")
 	}
 }
+
+func TestLoad_UppercaseAliasAutoNormalized(t *testing.T) {
+	tmp := redirectHome(t)
+
+	globalDir := filepath.Join(tmp, ".boiler")
+	os.MkdirAll(globalDir, 0755)
+	globalPath := filepath.Join(globalDir, "boiler.conf.json")
+	mixedCaseJSON := `{"aliases": {"LL": "ls"}}`
+	os.WriteFile(globalPath, []byte(mixedCaseJSON), 0644)
+
+	mgr, err := Load()
+	if err != nil {
+		t.Fatalf("Load() should not fail for mixed-case alias 'LL': %v", err)
+	}
+
+	if v, ok := mgr.Global.Config.Aliases["ll"]; !ok || v != "ls" {
+		t.Errorf("expected 'LL' to be auto-normalized to 'll', got map: %v", mgr.Global.Config.Aliases)
+	}
+}

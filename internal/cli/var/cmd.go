@@ -17,10 +17,11 @@ var Cmd = &cobra.Command{
 	Long: `Manage reusable variables stored in boiler.conf.json.
 
 Usage patterns:
-  bl var                  List all variables
-  bl var name=value       Set or update a variable
-  bl var name             Get one variable value
-  bl unvar name           Remove a variable (use 'unvar' command)
+  bl var                       List all variables
+  bl var name=value            Set a new variable
+  bl var name=value --force    Overwrite an existing variable
+  bl var name                  Get one variable value
+  bl unvar name                Remove a variable (use 'unvar' command)
 
 Variables can be used inline in ANY command using the bl__VAR_NAME syntax:
   - When Boiler encounters bl__VAR_NAME in an argument, it replaces it with the variable's value.
@@ -54,6 +55,11 @@ Examples:
 			os.Exit(1)
 		}
 	},
+}
+var forceOverwrite bool
+
+func init() {
+	Cmd.Flags().BoolVarP(&forceOverwrite, "force", "f", false, "Overwrite if already exists")
 }
 
 func EnsureConfigVars() {
@@ -89,9 +95,18 @@ func setVarFromAssignment(assignment string) error {
 	}
 
 	EnsureConfigVars()
+
+	if _, ok := config.ScopedVarMap()[key]; ok && !forceOverwrite {
+		return fmt.Errorf("'%s' already exists. Use --force to overwrite", key)
+	}
+
 	cfg.Vars[key] = rawValue
 
-	if err := PersistConfigVars(); err != nil {
+	if err := config.SetScopedVar(key, rawValue); err != nil {
+		return err
+	}
+
+	if err := config.PersistScopedVars(); err != nil {
 		return err
 	}
 
