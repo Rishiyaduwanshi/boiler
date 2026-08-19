@@ -69,6 +69,11 @@ bl alias templates='search --registry https://github.com/bl__org/boiler'
 		}
 	},
 }
+var forceOverwrite bool
+
+func init() {
+	Cmd.Flags().BoolVarP(&forceOverwrite, "force", "f", false, "Overwrite if already exists")
+}
 
 func EnsureConfigAliases() {
 	if cfg.Aliases == nil {
@@ -148,6 +153,11 @@ func setAliasFromAssignment(assignment string) error {
 	target = strings.Join(targetTokens, " ")
 
 	EnsureConfigAliases()
+
+	if _, ok := config.ScopedAliasKey(name); ok && !forceOverwrite {
+		return fmt.Errorf("'%s' already exists. Use --force to overwrite", name)
+	}
+
 	cfg.Aliases[name] = target
 
 	if err := config.SetScopedAlias(name, target); err != nil {

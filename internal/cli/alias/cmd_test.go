@@ -310,3 +310,59 @@ func TestScopedAliasMap_NilManagerReturnsNil(t *testing.T) {
 		t.Errorf("expected nil for nil Manager, got %v", got)
 	}
 }
+
+// TestSetAliasFromAssignment_ReplacesMixedCaseKey verifies that setting a new alias with --force
+// correctly replaces a legacy uppercase/mixed-case key instead of creating a duplicate.
+func TestSetAliasFromAssignment_ReplacesMixedCaseKey(t *testing.T) {
+	setupScopedAliasTest(t, config.ScopeGlobal)
+	forceOverwrite = true
+	t.Cleanup(func() { forceOverwrite = false })
+
+	config.Ctx.Manager.Global.Config.Aliases["LL"] = "old-command"
+
+	if err := setAliasFromAssignment("ll=new-command"); err != nil {
+		t.Fatalf("setAliasFromAssignment: %v", err)
+	}
+
+	aliases := config.Ctx.Manager.Global.Config.Aliases
+
+	if _, ok := aliases["LL"]; ok {
+		t.Error("legacy 'LL' key should have been removed")
+	}
+	if v, ok := aliases["ll"]; !ok || v != "new-command" {
+		t.Errorf("expected 'll' to be 'new-command', got %v (exists: %v)", v, ok)
+	}
+}
+
+// TestSetAliasFromAssignment_ExistsWithoutForce verifies that setting an already-existing
+// alias without --force returns an error and leaves the original value intact.
+func TestSetAliasFromAssignment_ExistsWithoutForce(t *testing.T) {
+	setupScopedAliasTest(t, config.ScopeGlobal)
+	forceOverwrite = false
+
+	// "gi" already exists from setupScopedAliasTest
+	err := setAliasFromAssignment("gi=new-command")
+	if err == nil {
+		t.Fatal("expected error when overwriting existing alias without --force, got nil")
+	}
+
+	if v := config.Ctx.Manager.Global.Config.Aliases["gi"]; v != "add github/gitignore:bl__1.gitignore . -m .gitignore -r" {
+		t.Errorf("original value should be unchanged, got %q", v)
+	}
+}
+
+// TestSetAliasFromAssignment_ExistsWithForce verifies that --force successfully overwrites
+// an existing alias and cleans up any old key.
+func TestSetAliasFromAssignment_ExistsWithForce(t *testing.T) {
+	setupScopedAliasTest(t, config.ScopeGlobal)
+	forceOverwrite = true
+	t.Cleanup(func() { forceOverwrite = false })
+
+	if err := setAliasFromAssignment("gi=new-command"); err != nil {
+		t.Fatalf("setAliasFromAssignment with --force: %v", err)
+	}
+
+	if v := config.Ctx.Manager.Global.Config.Aliases["gi"]; v != "new-command" {
+		t.Errorf("expected 'gi' to be 'new-command', got %q", v)
+	}
+}

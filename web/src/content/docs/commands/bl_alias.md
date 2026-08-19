@@ -42,7 +42,8 @@ bl alias [name|name=command [args...]] [flags]
 ### Options
 
 ```
-  -h, --help   help for alias
+  -f, --force   Overwrite if already exists
+  -h, --help    help for alias
 ```
 
 ### Options inherited from parent commands

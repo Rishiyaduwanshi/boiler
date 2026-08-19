@@ -55,6 +55,11 @@ Examples:
 		}
 	},
 }
+var forceOverwrite bool
+
+func init() {
+	Cmd.Flags().BoolVarP(&forceOverwrite, "force", "f", false, "Overwrite if already exists")
+}
 
 func EnsureConfigVars() {
 	if cfg.Vars == nil {
@@ -89,9 +94,18 @@ func setVarFromAssignment(assignment string) error {
 	}
 
 	EnsureConfigVars()
+
+	if _, ok := config.ScopedVarKey(key); ok && !forceOverwrite {
+		return fmt.Errorf("'%s' already exists. Use --force to overwrite", key)
+	}
+
 	cfg.Vars[key] = rawValue
 
-	if err := PersistConfigVars(); err != nil {
+	if err := config.SetScopedVar(key, rawValue); err != nil {
+		return err
+	}
+
+	if err := config.PersistScopedVars(); err != nil {
 		return err
 	}
 

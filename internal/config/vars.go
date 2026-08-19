@@ -5,8 +5,8 @@ import (
 	"strings"
 )
 
-// ScopedAliasMap returns aliases owned by the active scope's config file, not the merged runtime.
-func ScopedAliasMap() map[string]string {
+// ScopedVarMap returns vars owned by the active scope's config file, not the merged runtime.
+func ScopedVarMap() map[string]string {
 	if Ctx.Manager == nil {
 		return nil
 	}
@@ -14,41 +14,42 @@ func ScopedAliasMap() map[string]string {
 		if Ctx.Manager.Local == nil || Ctx.Manager.Local.Config == nil {
 			return nil
 		}
-		return Ctx.Manager.Local.Config.Aliases
+		return Ctx.Manager.Local.Config.Vars
 	}
 	if Ctx.Manager.Global == nil || Ctx.Manager.Global.Config == nil {
 		return nil
 	}
-	return Ctx.Manager.Global.Config.Aliases
+	return Ctx.Manager.Global.Config.Vars
 }
 
-// ScopedAliasKey returns the actual stored key for a normalized alias name, using case-insensitive
-// matching to handle config files edited via `bl conf` that may contain mixed-case keys.
-// Returns ("", false) if not found in the active scope.
-func ScopedAliasKey(normalizedName string) (string, bool) {
-	m := ScopedAliasMap()
+// ScopedVarKey returns the actual stored key in the active scope for a normalized var name.
+// Uses case-insensitive matching to handle config files edited via bl conf.
+// Returns ("", false) if not found.
+func ScopedVarKey(normalizedKey string) (string, bool) {
+	m := ScopedVarMap()
 	if m == nil {
 		return "", false
 	}
-	if _, ok := m[normalizedName]; ok {
-		return normalizedName, true
+	if _, ok := m[normalizedKey]; ok {
+		return normalizedKey, true
 	}
 	for k := range m {
-		if strings.ToLower(k) == normalizedName {
+		if strings.ToLower(k) == normalizedKey {
 			return k, true
 		}
 	}
 	return "", false
 }
 
-// SetScopedAlias writes name→target into the active scope's config object only.
-func SetScopedAlias(name, target string) error {
+// SetScopedVar writes key→value into the active scope's config object only.
+func SetScopedVar(key, value string) error {
 	if Ctx.Manager == nil {
 		return fmt.Errorf("config manager not initialized")
 	}
 
-	if storedKey, ok := ScopedAliasKey(name); ok {
-		_ = DeleteScopedAlias(storedKey)
+	// Remove any existing case-insensitive match before writing the normalized key.
+	if storedKey, ok := ScopedVarKey(key); ok {
+		_ = DeleteScopedVar(storedKey)
 	}
 
 	if Ctx.Scope == ScopeLocal {
@@ -58,10 +59,10 @@ func SetScopedAlias(name, target string) error {
 		if Ctx.Manager.Local.Config == nil {
 			Ctx.Manager.Local.Config = &Config{}
 		}
-		if Ctx.Manager.Local.Config.Aliases == nil {
-			Ctx.Manager.Local.Config.Aliases = make(map[string]string)
+		if Ctx.Manager.Local.Config.Vars == nil {
+			Ctx.Manager.Local.Config.Vars = make(map[string]string)
 		}
-		Ctx.Manager.Local.Config.Aliases[name] = target
+		Ctx.Manager.Local.Config.Vars[key] = value
 		return nil
 	}
 	if Ctx.Manager.Global == nil {
@@ -70,32 +71,32 @@ func SetScopedAlias(name, target string) error {
 	if Ctx.Manager.Global.Config == nil {
 		Ctx.Manager.Global.Config = &Config{}
 	}
-	if Ctx.Manager.Global.Config.Aliases == nil {
-		Ctx.Manager.Global.Config.Aliases = make(map[string]string)
+	if Ctx.Manager.Global.Config.Vars == nil {
+		Ctx.Manager.Global.Config.Vars = make(map[string]string)
 	}
-	Ctx.Manager.Global.Config.Aliases[name] = target
+	Ctx.Manager.Global.Config.Vars[key] = value
 	return nil
 }
 
-// DeleteScopedAlias removes name from the active scope's config object only.
-func DeleteScopedAlias(name string) error {
+// DeleteScopedVar removes key from the active scope's config object only.
+func DeleteScopedVar(key string) error {
 	if Ctx.Manager == nil {
 		return fmt.Errorf("config manager not initialized")
 	}
 	if Ctx.Scope == ScopeLocal {
 		if Ctx.Manager.Local != nil && Ctx.Manager.Local.Config != nil {
-			delete(Ctx.Manager.Local.Config.Aliases, name)
+			delete(Ctx.Manager.Local.Config.Vars, key)
 		}
 		return nil
 	}
 	if Ctx.Manager.Global != nil && Ctx.Manager.Global.Config != nil {
-		delete(Ctx.Manager.Global.Config.Aliases, name)
+		delete(Ctx.Manager.Global.Config.Vars, key)
 	}
 	return nil
 }
 
-// PersistScopedAliases saves the active scope's config file to disk.
-func PersistScopedAliases() error {
+// PersistScopedVars saves the active scope's config file to disk.
+func PersistScopedVars() error {
 	if Ctx.Manager == nil {
 		return fmt.Errorf("config manager not initialized")
 	}

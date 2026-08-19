@@ -36,12 +36,18 @@ func unsetVar(rawKey string) error {
 		return err
 	}
 
-	if _, ok := cfg.Vars[key]; !ok {
-		return fmt.Errorf("variable '%s' not found", key)
+	storedKey, ok := config.ScopedVarKey(key)
+	if !ok {
+		return fmt.Errorf("'%s' not found in %s scope", key, config.Ctx.Scope)
 	}
 
 	delete(cfg.Vars, key)
-	if err := varcmd.PersistConfigVars(); err != nil {
+
+	if err := config.DeleteScopedVar(storedKey); err != nil {
+		return err
+	}
+
+	if err := config.PersistScopedVars(); err != nil {
 		return err
 	}
 

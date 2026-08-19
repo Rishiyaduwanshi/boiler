@@ -34,7 +34,8 @@ bl var [name|name=value] [flags]
 ### Options
 
 ```
-  -h, --help   help for var
+  -f, --force   Overwrite if already exists
+  -h, --help    help for var
 ```
 
 ### Options inherited from parent commands
