@@ -1,9 +1,6 @@
 package config
 
-import (
-	"fmt"
-	"strings"
-)
+import "fmt"
 
 // ScopedVarMap returns vars owned by the active scope's config file, not the merged runtime.
 func ScopedVarMap() map[string]string {
@@ -22,34 +19,10 @@ func ScopedVarMap() map[string]string {
 	return Ctx.Manager.Global.Config.Vars
 }
 
-// ScopedVarKey returns the actual stored key in the active scope for a normalized var name.
-// Uses case-insensitive matching to handle config files edited via bl conf.
-// Returns ("", false) if not found.
-func ScopedVarKey(normalizedKey string) (string, bool) {
-	m := ScopedVarMap()
-	if m == nil {
-		return "", false
-	}
-	if _, ok := m[normalizedKey]; ok {
-		return normalizedKey, true
-	}
-	for k := range m {
-		if strings.ToLower(k) == normalizedKey {
-			return k, true
-		}
-	}
-	return "", false
-}
-
 // SetScopedVar writes key→value into the active scope's config object only.
 func SetScopedVar(key, value string) error {
 	if Ctx.Manager == nil {
 		return fmt.Errorf("config manager not initialized")
-	}
-
-	// Remove any existing case-insensitive match before writing the normalized key.
-	if storedKey, ok := ScopedVarKey(key); ok {
-		_ = DeleteScopedVar(storedKey)
 	}
 
 	if Ctx.Scope == ScopeLocal {

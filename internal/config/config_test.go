@@ -201,3 +201,19 @@ func TestConfigJSONRoundtrip(t *testing.T) {
 		t.Error("Paths.Snippets not preserved across JSON roundtrip")
 	}
 }
+
+func TestLoad_InvalidConfigRejectsUppercaseAlias(t *testing.T) {
+	tmp := redirectHome(t)
+
+	// Create invalid global config file with uppercase alias key "LL"
+	globalDir := filepath.Join(tmp, ".boiler")
+	os.MkdirAll(globalDir, 0755)
+	globalPath := filepath.Join(globalDir, "boiler.conf.json")
+	invalidJSON := `{"aliases": {"LL": "ls"}}`
+	os.WriteFile(globalPath, []byte(invalidJSON), 0644)
+
+	_, err := Load()
+	if err == nil {
+		t.Error("expected Load() to fail for invalid uppercase alias 'LL' in config file, got nil")
+	}
+}

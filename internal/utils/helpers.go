@@ -2,9 +2,11 @@ package utils
 
 import (
 	"fmt"
+	"regexp"
 	"strconv"
 	"strings"
 
+	"github.com/rishiyaduwanshi/boiler/internal/constants"
 	"github.com/rishiyaduwanshi/boiler/internal/store"
 )
 
@@ -79,4 +81,34 @@ func PickFromList(label string, items []string) (string, error) {
 		return "", fmt.Errorf("invalid choice '%s'", choice)
 	}
 	return items[idx-1], nil
+}
+
+var (
+	aliasKeyRegex = regexp.MustCompile(`^[a-z][a-z0-9_-]*$`)
+	varKeyRegex   = regexp.MustCompile(`^[a-z0-9_]+$`)
+)
+
+// IsValidAliasKey checks if an alias name is strictly valid (lowercase, starts with letter).
+func IsValidAliasKey(name string) bool {
+	if name == "" {
+		return false
+	}
+	return aliasKeyRegex.MatchString(name)
+}
+
+// IsValidVarKey checks if a variable key is strictly valid (lowercase, numbers, underscores).
+func IsValidVarKey(key string) bool {
+	key = strings.TrimPrefix(key, constants.VarPrefix)
+	if key == "" {
+		return false
+	}
+	return varKeyRegex.MatchString(key)
+}
+
+// IsValidScope checks if a scope string is either "global" or "local" or empty.
+func IsValidScope(scope string) bool {
+	if scope == "" {
+		return true
+	}
+	return scope == "global" || scope == "local"
 }
