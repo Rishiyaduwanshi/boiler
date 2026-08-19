@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"os"
+	"sort"
 	"strings"
 
 	"github.com/rishiyaduwanshi/boiler/internal/utils"
@@ -101,10 +102,17 @@ func (c *Config) SanitizeAndWarn(filePath string) error {
 		}
 	}
 
-	// Auto-normalize and warn for aliases
+	// Auto-normalize and warn for aliases with deterministic key resolution
 	if len(c.Aliases) > 0 {
+		keys := make([]string, 0, len(c.Aliases))
+		for k := range c.Aliases {
+			keys = append(keys, k)
+		}
+		sort.Strings(keys)
+
 		normalizedAliases := make(map[string]string, len(c.Aliases))
-		for key, target := range c.Aliases {
+		for _, key := range keys {
+			target := c.Aliases[key]
 			if strings.TrimSpace(target) == "" {
 				return fmt.Errorf("invalid alias target for %q: target cannot be empty", key)
 			}
@@ -115,15 +123,25 @@ func (c *Config) SanitizeAndWarn(filePath string) error {
 			if key != lowerKey {
 				fmt.Fprintf(os.Stderr, "Warning: invalid alias key %q in %s (must be lowercase). Auto-normalizing to %q. Run 'bl conf -e' to fix.\n", key, filePath, lowerKey)
 			}
-			normalizedAliases[lowerKey] = target
+			// If exact lowercase key is already set, exact match takes precedence over mixed-case collision
+			if _, exists := normalizedAliases[lowerKey]; !exists || key == lowerKey {
+				normalizedAliases[lowerKey] = target
+			}
 		}
 		c.Aliases = normalizedAliases
 	}
 
-	// Auto-normalize and warn for vars
+	// Auto-normalize and warn for vars with deterministic key resolution
 	if len(c.Vars) > 0 {
+		keys := make([]string, 0, len(c.Vars))
+		for k := range c.Vars {
+			keys = append(keys, k)
+		}
+		sort.Strings(keys)
+
 		normalizedVars := make(map[string]string, len(c.Vars))
-		for key, val := range c.Vars {
+		for _, key := range keys {
+			val := c.Vars[key]
 			lowerKey := strings.ToLower(strings.TrimSpace(key))
 			if !utils.IsValidVarKey(lowerKey) {
 				return fmt.Errorf("invalid variable key %q: must be lowercase (a-z, 0-9, _)", key)
@@ -131,7 +149,9 @@ func (c *Config) SanitizeAndWarn(filePath string) error {
 			if key != lowerKey {
 				fmt.Fprintf(os.Stderr, "Warning: invalid variable key %q in %s (must be lowercase). Auto-normalizing to %q. Run 'bl conf -e' to fix.\n", key, filePath, lowerKey)
 			}
-			normalizedVars[lowerKey] = val
+			if _, exists := normalizedVars[lowerKey]; !exists || key == lowerKey {
+				normalizedVars[lowerKey] = val
+			}
 		}
 		c.Vars = normalizedVars
 	}

@@ -84,3 +84,17 @@ func TestConfigValidate_InvalidArtifactFormat(t *testing.T) {
 		t.Error("expected error for artifact format without two-space separator, got nil")
 	}
 }
+
+func TestSanitizeAndWarn_DeterministicCaseCollisionResolution(t *testing.T) {
+	cfg := DefaultConfig()
+	cfg.Aliases["LL"] = "old-command"
+	cfg.Aliases["ll"] = "new-command"
+
+	if err := cfg.SanitizeAndWarn("test.json"); err != nil {
+		t.Fatalf("SanitizeAndWarn: %v", err)
+	}
+
+	if v, ok := cfg.Aliases["ll"]; !ok || v != "new-command" {
+		t.Errorf("expected exact match 'll' ('new-command') to take precedence over 'LL', got %q", v)
+	}
+}
