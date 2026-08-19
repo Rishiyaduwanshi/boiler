@@ -187,20 +187,3 @@ func TestUnsetAlias_PersistsToDisk(t *testing.T) {
 		t.Error("ll should not appear after reload — deletion was not persisted")
 	}
 }
-
-// TestUnsetAlias_MixedCaseKeyInConfig verifies that an alias stored with an uppercase key
-// via hand-editing (e.g. bl conf) can still be removed by the normalized name.
-func TestUnsetAlias_MixedCaseKeyInConfig(t *testing.T) {
-	setup(t, config.ScopeGlobal,
-		map[string]string{"LL": "ls"},
-		map[string]string{},
-	)
-
-	if err := unsetAlias("LL"); err != nil {
-		t.Fatalf("unsetAlias with mixed-case stored key: %v", err)
-	}
-
-	if _, ok := config.Ctx.Manager.Global.Config.Aliases["LL"]; ok {
-		t.Error("LL should be removed from global config")
-	}
-}

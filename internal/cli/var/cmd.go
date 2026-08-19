@@ -96,7 +96,7 @@ func setVarFromAssignment(assignment string) error {
 
 	EnsureConfigVars()
 
-	if _, ok := config.ScopedVarKey(key); ok && !forceOverwrite {
+	if _, ok := config.ScopedVarMap()[key]; ok && !forceOverwrite {
 		return fmt.Errorf("'%s' already exists. Use --force to overwrite", key)
 	}
 

@@ -36,14 +36,13 @@ func unsetVar(rawKey string) error {
 		return err
 	}
 
-	storedKey, ok := config.ScopedVarKey(key)
-	if !ok {
+	if _, ok := config.ScopedVarMap()[key]; !ok {
 		return fmt.Errorf("'%s' not found in %s scope", key, config.Ctx.Scope)
 	}
 
 	delete(cfg.Vars, key)
 
-	if err := config.DeleteScopedVar(storedKey); err != nil {
+	if err := config.DeleteScopedVar(key); err != nil {
 		return err
 	}
 

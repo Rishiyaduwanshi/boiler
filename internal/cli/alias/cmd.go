@@ -155,7 +155,7 @@ func setAliasFromAssignment(assignment string) error {
 
 	EnsureConfigAliases()
 
-	if _, ok := config.ScopedAliasKey(name); ok && !forceOverwrite {
+	if _, ok := config.ScopedAliasMap()[name]; ok && !forceOverwrite {
 		return fmt.Errorf("'%s' already exists. Use --force to overwrite", name)
 	}
 

@@ -311,29 +311,6 @@ func TestScopedAliasMap_NilManagerReturnsNil(t *testing.T) {
 	}
 }
 
-// TestSetAliasFromAssignment_ReplacesMixedCaseKey verifies that setting a new alias with --force
-// correctly replaces a legacy uppercase/mixed-case key instead of creating a duplicate.
-func TestSetAliasFromAssignment_ReplacesMixedCaseKey(t *testing.T) {
-	setupScopedAliasTest(t, config.ScopeGlobal)
-	forceOverwrite = true
-	t.Cleanup(func() { forceOverwrite = false })
-
-	config.Ctx.Manager.Global.Config.Aliases["LL"] = "old-command"
-
-	if err := setAliasFromAssignment("ll=new-command"); err != nil {
-		t.Fatalf("setAliasFromAssignment: %v", err)
-	}
-
-	aliases := config.Ctx.Manager.Global.Config.Aliases
-
-	if _, ok := aliases["LL"]; ok {
-		t.Error("legacy 'LL' key should have been removed")
-	}
-	if v, ok := aliases["ll"]; !ok || v != "new-command" {
-		t.Errorf("expected 'll' to be 'new-command', got %v (exists: %v)", v, ok)
-	}
-}
-
 // TestSetAliasFromAssignment_ExistsWithoutForce verifies that setting an already-existing
 // alias without --force returns an error and leaves the original value intact.
 func TestSetAliasFromAssignment_ExistsWithoutForce(t *testing.T) {

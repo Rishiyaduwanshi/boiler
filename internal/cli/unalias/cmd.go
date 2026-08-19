@@ -35,14 +35,13 @@ func unsetAlias(rawName string) error {
 		return err
 	}
 
-	storedKey, ok := config.ScopedAliasKey(name)
-	if !ok {
+	if _, ok := config.ScopedAliasMap()[name]; !ok {
 		return fmt.Errorf("alias '%s' not found in %s scope", name, config.Ctx.Scope)
 	}
 
 	delete(cfg.Aliases, name)
 
-	if err := config.DeleteScopedAlias(storedKey); err != nil {
+	if err := config.DeleteScopedAlias(name); err != nil {
 		return err
 	}
 
