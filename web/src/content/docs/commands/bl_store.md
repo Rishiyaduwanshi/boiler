@@ -26,6 +26,9 @@ Stacks require boiler.stack.json with:
 
 If a stack version already exists, you'll be prompted to overwrite.
 
+Use --command (or --cmd) to store a .bl script in the global commands directory
+(~/.boiler/commands/) so it can be run with 'bl new `<script_name>`'.
+
 ```
 bl store [path] [flags]
 ```
@@ -52,13 +55,18 @@ bl store [path] [flags]
 
   # Store with custom name
   bl store ./config.js --name dbConfig.js
+
+  # Store a .bl script as a runnable command
+  bl store ./route.bl --command
 ```
 
 ### Options
 
 ```
+      --cmd           Alias for --command
+      --command       Store .bl file in the global commands directory (~/.boiler/commands/)
   -h, --help          help for store
-      --name string   Name for the resource (auto-detected from path if not provided)
+  -m, --name string   Name for the resource (auto-detected from path if not provided)
   -n, --snippet       Force store as snippet
   -k, --stack         Force store as stack
 ```
