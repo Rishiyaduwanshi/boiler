@@ -112,6 +112,7 @@ variations of the same snippet or stack.`,
 			manager.Runtime.Paths.Store = filepath.Join(localBoilerDir, constants.StoreDirName)
 			manager.Runtime.Paths.Snippets = filepath.Join(manager.Runtime.Paths.Store, constants.SnippetsDirName)
 			manager.Runtime.Paths.Stacks = filepath.Join(manager.Runtime.Paths.Store, constants.StacksDirName)
+			manager.Runtime.Paths.Commands = filepath.Join(localBoilerDir, constants.CommandsDirName)
 		}
 		return nil
 	},

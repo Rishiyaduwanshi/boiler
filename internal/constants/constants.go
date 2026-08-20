@@ -9,6 +9,7 @@ const (
 	StacksDirName       = "stacks"
 	LogsDirName         = "logs"
 	BinDirName          = "bin"
+	CommandsDirName     = "commands"
 
 	// Config Files
 	GlobalConfigFileName = "boiler.conf.json"

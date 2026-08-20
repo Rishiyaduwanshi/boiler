@@ -32,6 +32,7 @@ type Paths struct {
 	Stacks   string `json:"stacks"`
 	Logs     string `json:"logs"`
 	Bin      string `json:"bin"`
+	Commands string `json:"commands"`
 }
 
 // defaultEditor returns the OS-appropriate default editor
@@ -74,6 +75,7 @@ func DefaultConfig() *Config {
 			Stacks:   filepath.Join(rootPath, constants.StoreDirName, constants.StacksDirName),
 			Logs:     filepath.Join(rootPath, constants.LogsDirName),
 			Bin:      filepath.Join(rootPath, constants.BinDirName),
+			Commands: filepath.Join(rootPath, constants.CommandsDirName),
 		},
 		Artifacts: map[string]string{
 			"default":    "//  ",

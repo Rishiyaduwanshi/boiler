@@ -3,14 +3,19 @@ title: bl new
 description: Command reference for bl new
 ---
 
-Generate code using a Boiler script (.bl)
+Run a Boiler command script (.bl)
 
 ### Synopsis
 
-Run a Boiler script (.bl) to generate, inject, or modify code in your project.
+Run a .bl command script to generate, inject, or modify code in your project.
 
 Boiler automatically parses any flags (like --ts or --port=3000) and maps them to script variables.
-It looks for the script in the './bl/' folder of your current project.
+
+Script resolution is scope-aware:
+- No boiler.local.json (or scope=global) : looks in ~/.boiler/commands/
+- scope=local in boiler.local.json        : looks in ./bl/commands/ first, falls back to ~/.boiler/commands/
+- --global flag                           : forces ~/.boiler/commands/ only
+- --local flag                            : forces ./bl/commands/ only
 
 ```
 bl new [script_name] [args...] [flags]
@@ -19,11 +24,17 @@ bl new [script_name] [args...] [flags]
 ### Examples
 
 ```
-  # Run the routes.bl script with positional arguments
+  # Run the routes.bl script
+  bl new routes
+
+  # Run with positional arguments
   bl new routes user auth
 
   # Run with flags
   bl new routes --ts --port=3000
+
+  # Force global commands directory
+  bl new routes --global
 ```
 
 ### Options

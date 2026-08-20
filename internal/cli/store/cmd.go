@@ -39,7 +39,10 @@ Stacks require boiler.stack.json with:
   - version: Version number
   - ignore: Patterns to exclude
 
-If a stack version already exists, you'll be prompted to overwrite.`,
+If a stack version already exists, you'll be prompted to overwrite.
+
+Use --command (or --cmd) to store a .bl script in the global commands directory
+(~/.boiler/commands/) so it can be run with 'bl new <script_name>'.`,
 	Example: `  # Store current directory as stack
   bl store
 
@@ -58,7 +61,10 @@ If a stack version already exists, you'll be prompted to overwrite.`,
   bl store ./my-template
 
   # Store with custom name
-  bl store ./config.js --name dbConfig.js`,
+  bl store ./config.js --name dbConfig.js
+
+  # Store a .bl script as a runnable command
+  bl store ./route.bl --command`,
 	Args: cobra.MaximumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		path := "."
@@ -66,6 +72,14 @@ If a stack version already exists, you'll be prompted to overwrite.`,
 			path = args[0]
 		}
 		logger.Info(fmt.Sprintf("Storing: %s", path))
+
+		if storeAsCommand {
+			if err := storeCommand(path); err != nil {
+				fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+				os.Exit(1)
+			}
+			return
+		}
 
 		if err := storeResource(path); err != nil {
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
@@ -280,12 +294,15 @@ var (
 	storeName      string
 	storeAsSnippet bool
 	storeAsStack   bool
+	storeAsCommand bool
 )
 
 func init() {
-	Cmd.Flags().StringVarP(&storeName, "name", "", "", "Name for the resource (auto-detected from path if not provided)")
+	Cmd.Flags().StringVarP(&storeName, "name", "m", "", "Name for the resource (auto-detected from path if not provided)")
 	Cmd.Flags().BoolVarP(&storeAsSnippet, "snippet", "n", false, "Force store as snippet")
 	Cmd.Flags().BoolVarP(&storeAsStack, "stack", "k", false, "Force store as stack")
+	Cmd.Flags().BoolVar(&storeAsCommand, "command", false, "Store .bl file in the global commands directory (~/.boiler/commands/)")
+	Cmd.Flags().BoolVar(&storeAsCommand, "cmd", false, "Alias for --command")
 }
 
 var (
@@ -296,4 +313,31 @@ var (
 func Setup(c *config.Config, l *utils.Logger) {
 	cfg = c
 	logger = l
+}
+
+// storeCommand copies a .bl script to ~/.boiler/commands/ so it can be run via 'bl new <name>'.
+// It always targets the global commands directory regardless of the current scope.
+func storeCommand(path string) error {
+	if !utils.FileExists(path) {
+		return fmt.Errorf("file '%s' does not exist", path)
+	}
+	if utils.IsDirectory(path) {
+		return fmt.Errorf("--command expects a file, not a directory")
+	}
+	if filepath.Ext(path) != ".bl" {
+		return fmt.Errorf("--command only accepts .bl files, got '%s'", filepath.Base(path))
+	}
+
+	if err := utils.EnsureDir(cfg.Paths.Commands); err != nil {
+		return fmt.Errorf("failed to create commands directory: %w", err)
+	}
+
+	destPath := filepath.Join(cfg.Paths.Commands, filepath.Base(path))
+	if err := utils.CopyFile(path, destPath); err != nil {
+		return fmt.Errorf("failed to copy command: %w", err)
+	}
+
+	fmt.Printf("✓ Stored command '%s' at %s\n", filepath.Base(path), destPath)
+	logger.Info(fmt.Sprintf("Command stored: %s -> %s", path, destPath))
+	return nil
 }

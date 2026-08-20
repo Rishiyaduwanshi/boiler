@@ -67,9 +67,15 @@ The resource lands exactly where you point it, fully processed. No extra cleanup
 
 Using `.bl` scripts with the `bl new` command, you can scaffold an entire feature - route, controller, model - and automatically wire them into your existing files, all in a single command.
 
+> [!TIP]
+> **Global vs Local Scripts:** Depending on the operational scope configured in `boiler.local.json` (or CLI flags):
+> - **Local Scope:** Boiler checks `./bl/commands/` first, then falls back to `~/.boiler/commands/`.
+> - **Global Scope:** Boiler checks the global `~/.boiler/commands/` directory directly.
+> You can store a script globally using: `bl store ./feat.bl --command`
+
 **Example:** `bl new feat user`
 
-This runs a script (`bl/commands/feat.bl`) that:
+This runs the `feat.bl` script that:
 1. Creates `src/routes/user.route.js` (from a template)
 2. Creates `src/controllers/user.controller.js` (from a template)
 3. **Injects** `import userRouter from './routes/user.route.js'` into `src/api.js`

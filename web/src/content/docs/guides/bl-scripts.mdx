@@ -3,7 +3,19 @@ title: Boiler Scripts (.bl)
 description: Learn how to write powerful, AST-less automation scripts using .bl files.
 ---
 
-Boiler allows you to create powerful automation workflows using `.bl` script files. These files live in your project's `bl/commands/` directory and can be executed using the `bl new` command.
+Boiler allows you to create powerful automation workflows using `.bl` script files. These scripts can live in two scopes:
+1. **Local Project Scope:** Inside your project's `bl/commands/` directory.
+2. **Global User Scope:** Inside the global `~/.boiler/commands/` directory.
+
+To store a local `.bl` script file to your global commands folder so it can be executed from anywhere, run:
+```bash
+bl store ./my-script.bl --command
+```
+
+When you execute a script using `bl new <script_name>`, resolution depends on the operational scope:
+- **Local Scope (default if in project):** Boiler checks `./bl/commands/` first. If not found, it falls back to `~/.boiler/commands/`.
+- **Global Scope (default if outside project):** Boiler checks `~/.boiler/commands/` directly.
+- **Explicit Override:** You can force a specific directory using `bl new <script_name> --local` or `bl new <script_name> --global`.
 
 > [!TIP]
 > **Dynamic Project Root:** You can run `bl new` from *any* subdirectory inside your project. Boiler automatically discovers your `boiler.local.json` file and executes the script relative to your project root. Path references like `./src/` will always point to the correct location!

@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/rishiyaduwanshi/boiler/internal/config"
+	"github.com/rishiyaduwanshi/boiler/internal/constants"
 	"github.com/rishiyaduwanshi/boiler/internal/engine"
 	"github.com/rishiyaduwanshi/boiler/internal/utils"
 	"github.com/spf13/cobra"
@@ -23,23 +24,59 @@ func Setup(c *config.Config, l *utils.Logger) {
 	logger = l
 }
 
+// resolveScriptPath returns the path of the .bl script to execute based on the current scope.
+func resolveScriptPath(scriptName, localCommandsDir, globalCommandsDir string, scope config.Scope) (string, error) {
+	local := filepath.Join(localCommandsDir, scriptName+".bl")
+	global := filepath.Join(globalCommandsDir, scriptName+".bl")
+
+	switch scope {
+	case config.ScopeLocal:
+		if _, err := os.Stat(local); err == nil {
+			return local, nil
+		}
+		// Fallback to global
+		if _, err := os.Stat(global); err == nil {
+			return global, nil
+		}
+		return "", fmt.Errorf(
+			"script '%s' not found. Looked in:\n  local:  %s\n  global: %s",
+			scriptName, local, global,
+		)
+
+	default: // ScopeGlobal
+		if _, err := os.Stat(global); err == nil {
+			return global, nil
+		}
+		return "", fmt.Errorf("script '%s' not found. Looked for it at: %s", scriptName, global)
+	}
+}
+
 // Cmd represents the 'new' command
 var Cmd = &cobra.Command{
 	Use:   "new [script_name] [args...]",
-	Short: "Generate code using a Boiler script (.bl)",
-	Long: `Run a Boiler script (.bl) to generate, inject, or modify code in your project.
-	
+	Short: "Run a Boiler command script (.bl)",
+	Long: `Run a .bl command script to generate, inject, or modify code in your project.
+
 Boiler automatically parses any flags (like --ts or --port=3000) and maps them to script variables.
-It looks for the script in the './bl/' folder of your current project.`,
-	Example: `  # Run the routes.bl script with positional arguments
+
+Script resolution is scope-aware:
+  - No boiler.local.json (or scope=global) : looks in ~/.boiler/commands/
+  - scope=local in boiler.local.json        : looks in ./bl/commands/ first, falls back to ~/.boiler/commands/
+  - --global flag                           : forces ~/.boiler/commands/ only
+  - --local flag                            : forces ./bl/commands/ only`,
+	Example: `  # Run the routes.bl script
+  bl new routes
+
+  # Run with positional arguments
   bl new routes user auth
 
   # Run with flags
-  bl new routes --ts --port=3000`,
-	DisableFlagParsing: true, // Crucial: allows dynamic user-defined flags like --ts
+  bl new routes --ts --port=3000
+
+  # Force global commands directory
+  bl new routes --global`,
+	DisableFlagParsing: true, // Allows dynamic user-defined flags like --ts
 	RunE: func(cmd *cobra.Command, args []string) error {
-		// Because DisableFlagParsing is true, the very first arg might be the global flag
-		// if passed after 'new' (e.g. bl new --help). We should handle it if needed.
 		if len(args) == 0 {
 			return fmt.Errorf("please provide a script name (e.g., 'bl new routes')")
 		}
@@ -50,32 +87,44 @@ It looks for the script in the './bl/' folder of your current project.`,
 
 		scriptName := args[0]
 
-		// Find project root automatically like npm/mise
+		// Derive project root (same walk-up logic as before)
 		cwd, err := os.Getwd()
 		if err != nil {
 			return fmt.Errorf("failed to get current directory: %w", err)
 		}
 
 		projectRoot := cwd
-		nearestConfig, err := config.FindNearestConfig(cwd)
-		if err == nil && nearestConfig != "" {
+		if nearestConfig, cfgErr := config.FindNearestConfig(cwd); cfgErr == nil && nearestConfig != "" {
 			projectRoot = filepath.Dir(nearestConfig)
 		}
 
-		// In Boiler, local scripts are in the `bl/commands/` directory of the project
-		scriptPath := filepath.Join(projectRoot, "bl", "commands", scriptName+".bl")
+		localCommandsDir := filepath.Join(projectRoot, constants.LocalBoilerDirName, constants.CommandsDirName)
 
-		if _, err := os.Stat(scriptPath); os.IsNotExist(err) {
-			return fmt.Errorf("script '%s' not found. Looked for it at: %s", scriptName, scriptPath)
+		// cfg.Paths.Commands is set to ~/.boiler/commands/ (global default) or
+		// ./bl/commands/ (when scope=local) by root.go PersistentPreRunE.
+		// We always use the raw global path for fallback, so derive it independently.
+		globalCommandsDir := cfg.Paths.Commands
+		if config.Ctx != nil && config.Ctx.Scope == config.ScopeLocal {
+			// Runtime path was overridden to local; recover the global path from defaults.
+			globalCommandsDir = filepath.Join(config.DefaultConfig().Paths.Commands)
 		}
 
-		// Parse dynamic arguments and flags
+		scope := config.ScopeGlobal
+		if config.Ctx != nil {
+			scope = config.Ctx.Scope
+		}
+
+		scriptPath, err := resolveScriptPath(scriptName, localCommandsDir, globalCommandsDir, scope)
+		if err != nil {
+			return err
+		}
+
+		// Build vars map from positional args and flags.
+		// --global / --local / --verbose are consumed but not forwarded to the script.
 		vars := make(map[string]string)
 		positionalIndex := 1
 
-		// Seed vars from BOILER_VAR_* environment variables so that env-prefilled
-		// values are available during direct .bl script execution (create, inject, etc.)
-		// CLI args added below will override these if the same key is provided.
+		// Seed from BOILER_VAR_* env vars; CLI args below will override.
 		for _, env := range os.Environ() {
 			if strings.HasPrefix(env, "BOILER_VAR_") {
 				kv := strings.SplitN(env, "=", 2)
@@ -89,17 +138,12 @@ It looks for the script in the './bl/' folder of your current project.`,
 		for i := 1; i < len(args); i++ {
 			arg := args[i]
 
-			// Global flags shouldn't be passed to the script variables ideally, but for now we consume all.
-			if arg == "--verbose" || arg == "-V" {
-				continue // skip global verbose flag
-			}
-
-			if arg == "--global" || arg == "--local" {
+			// Skip global flags; they were already consumed by PersistentPreRunE.
+			if arg == "--verbose" || arg == "-V" || arg == "--global" || arg == "--local" {
 				continue
 			}
 
 			if strings.HasPrefix(arg, "--") || strings.HasPrefix(arg, "-") {
-				// It's a flag
 				flagRaw := strings.TrimLeft(arg, "-")
 				if strings.Contains(flagRaw, "=") {
 					parts := strings.SplitN(flagRaw, "=", 2)
@@ -108,20 +152,16 @@ It looks for the script in the './bl/' folder of your current project.`,
 					vars["bl__"+flagRaw] = "true"
 				}
 			} else {
-				// It's a positional argument
 				vars[fmt.Sprintf("bl__%d", positionalIndex)] = arg
 				positionalIndex++
 			}
 		}
 
 		if logger != nil {
-			logger.Info(fmt.Sprintf("Executing Boiler script: %s from %s", scriptPath, projectRoot))
-		} else {
-			fmt.Printf("Executing Boiler script: %s from %s\n", scriptPath, projectRoot)
+			logger.Info(fmt.Sprintf("Executing command script: %s", scriptPath))
 		}
 
-		// Change directory to project root before execution so relative paths work properly.
-		// Both the switch and the restore must succeed to prevent files landing in the wrong tree.
+		// Switch to project root so relative paths inside the script resolve correctly.
 		originalDir, err := os.Getwd()
 		if err != nil {
 			return fmt.Errorf("failed to determine current directory: %w", err)
@@ -135,8 +175,7 @@ It looks for the script in the './bl/' folder of your current project.`,
 			}
 		}()
 
-		err = engine.ParseAndExecute(scriptPath, vars)
-		if err != nil {
+		if err := engine.ParseAndExecute(scriptPath, vars); err != nil {
 			return fmt.Errorf("script execution failed: %w", err)
 		}
 
