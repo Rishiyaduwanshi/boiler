@@ -57,3 +57,5 @@ const (
 	// Patterns
 	VarKeyPattern = `^[a-z_][a-z0-9_-]*$`
 )
+
+var GlobalFlags = []string{"--global", "--local", "--verbose", "-V"}

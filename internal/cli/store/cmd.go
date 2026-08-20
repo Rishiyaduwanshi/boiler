@@ -328,11 +328,12 @@ func storeCommand(path string) error {
 		return fmt.Errorf("--command only accepts .bl files, got '%s'", filepath.Base(path))
 	}
 
-	if err := utils.EnsureDir(cfg.Paths.Commands); err != nil {
+	globalCommandsDir := config.DefaultConfig().Paths.Commands
+	if err := utils.EnsureDir(globalCommandsDir); err != nil {
 		return fmt.Errorf("failed to create commands directory: %w", err)
 	}
 
-	destPath := filepath.Join(cfg.Paths.Commands, filepath.Base(path))
+	destPath := filepath.Join(globalCommandsDir, filepath.Base(path))
 	if err := utils.CopyFile(path, destPath); err != nil {
 		return fmt.Errorf("failed to copy command: %w", err)
 	}

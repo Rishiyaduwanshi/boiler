@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"github.com/rishiyaduwanshi/boiler/internal/config"
@@ -25,7 +26,7 @@ func Setup(c *config.Config, l *utils.Logger) {
 }
 
 // resolveScriptPath returns the path of the .bl script to execute based on the current scope.
-func resolveScriptPath(scriptName, localCommandsDir, globalCommandsDir string, scope config.Scope) (string, error) {
+func resolveScriptPath(scriptName, localCommandsDir, globalCommandsDir string, scope config.Scope, forceLocalOnly bool) (string, error) {
 	local := filepath.Join(localCommandsDir, scriptName+".bl")
 	global := filepath.Join(globalCommandsDir, scriptName+".bl")
 
@@ -33,6 +34,9 @@ func resolveScriptPath(scriptName, localCommandsDir, globalCommandsDir string, s
 	case config.ScopeLocal:
 		if _, err := os.Stat(local); err == nil {
 			return local, nil
+		}
+		if forceLocalOnly {
+			return "", fmt.Errorf("script '%s' not found in local commands directory: %s", scriptName, local)
 		}
 		// Fallback to global
 		if _, err := os.Stat(global); err == nil {
@@ -98,6 +102,34 @@ Script resolution is scope-aware:
 			projectRoot = filepath.Dir(nearestConfig)
 		}
 
+		hasGlobal := false
+		hasLocal := false
+		for _, arg := range os.Args {
+			if arg == "--global" {
+				hasGlobal = true
+			} else if arg == "--local" {
+				hasLocal = true
+			}
+		}
+		for _, arg := range args {
+			if arg == "--global" {
+				hasGlobal = true
+			} else if arg == "--local" {
+				hasLocal = true
+			}
+		}
+
+		scope := config.ScopeGlobal
+		if config.Ctx != nil {
+			scope = config.Ctx.Scope
+		}
+
+		if hasGlobal {
+			scope = config.ScopeGlobal
+		} else if hasLocal {
+			scope = config.ScopeLocal
+		}
+
 		localCommandsDir := filepath.Join(projectRoot, constants.LocalBoilerDirName, constants.CommandsDirName)
 
 		// cfg.Paths.Commands is set to ~/.boiler/commands/ (global default) or
@@ -109,12 +141,7 @@ Script resolution is scope-aware:
 			globalCommandsDir = filepath.Join(config.DefaultConfig().Paths.Commands)
 		}
 
-		scope := config.ScopeGlobal
-		if config.Ctx != nil {
-			scope = config.Ctx.Scope
-		}
-
-		scriptPath, err := resolveScriptPath(scriptName, localCommandsDir, globalCommandsDir, scope)
+		scriptPath, err := resolveScriptPath(scriptName, localCommandsDir, globalCommandsDir, scope, hasLocal)
 		if err != nil {
 			return err
 		}
@@ -138,8 +165,7 @@ Script resolution is scope-aware:
 		for i := 1; i < len(args); i++ {
 			arg := args[i]
 
-			// Skip global flags; they were already consumed by PersistentPreRunE.
-			if arg == "--verbose" || arg == "-V" || arg == "--global" || arg == "--local" {
+			if slices.Contains(constants.GlobalFlags, arg) {
 				continue
 			}
 
