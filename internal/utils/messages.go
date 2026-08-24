@@ -12,6 +12,7 @@ const (
 	// Warning messages
 	MsgWarningSnippetExists = "⚠ Warning: snippet '%s' already exists in store"
 	MsgWarningStackExists   = "⚠ Warning: stack '%s' already exists in store"
+	MsgGitLFSFallback       = "⚠️ Git LFS assets detected, falling back to git clone..."
 
 	// Prompt messages
 	MsgPromptVersionOrOverwrite = "Do you want to create a new version (v) or overwrite it (o)? "
