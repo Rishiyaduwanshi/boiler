@@ -174,6 +174,37 @@ func TestCloneGitRepositoryCommitSHA(t *testing.T) {
 	}
 }
 
+func TestCloneGitRepositoryPrefersHexBranch(t *testing.T) {
+	origin := t.TempDir()
+	runTestGit(t, "init", origin)
+	runTestGit(t, "-C", origin, "config", "user.name", "Boiler Test")
+	runTestGit(t, "-C", origin, "config", "user.email", "boiler@example.invalid")
+
+	contentPath := filepath.Join(origin, "content.txt")
+	if err := os.WriteFile(contentPath, []byte("branch"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	runTestGit(t, "-C", origin, "add", "content.txt")
+	runTestGit(t, "-C", origin, "commit", "-m", "branch")
+
+	branch := strings.Repeat("a", 40)
+	runTestGit(t, "-C", origin, "branch", branch)
+
+	originPath := filepath.ToSlash(origin)
+	if !strings.HasPrefix(originPath, "/") {
+		originPath = "/" + originPath
+	}
+	originURL := (&url.URL{Scheme: "file", Path: originPath}).String()
+	dest := filepath.Join(t.TempDir(), "clone")
+	if err := cloneGitRepository(originURL, branch, dest); err != nil {
+		t.Fatalf("cloneGitRepository() error = %v", err)
+	}
+
+	if got := strings.TrimSpace(runTestGit(t, "-C", dest, "branch", "--show-current")); got != branch {
+		t.Fatalf("current branch = %q, want %q", got, branch)
+	}
+}
+
 func TestProviderCloneURL(t *testing.T) {
 	t.Parallel()
 

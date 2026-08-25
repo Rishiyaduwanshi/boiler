@@ -85,26 +85,10 @@ func gitCloneArgs(cloneURL, ref, dest string) []string {
 }
 
 func cloneGitRepository(cloneURL, ref, dest string) error {
-	if isCommitSHA(ref) {
-		return cloneGitCommit(cloneURL, ref, dest)
+	if err := runGit(gitCloneArgs(cloneURL, ref, dest)...); err == nil {
+		return nil
 	}
-
-	if err := runGit(gitCloneArgs(cloneURL, ref, dest)...); err != nil {
-		return fmt.Errorf("git clone failed: %w", err)
-	}
-	return nil
-}
-
-func isCommitSHA(ref string) bool {
-	if len(ref) != 40 && len(ref) != 64 {
-		return false
-	}
-	for _, char := range ref {
-		if !((char >= '0' && char <= '9') || (char >= 'a' && char <= 'f') || (char >= 'A' && char <= 'F')) {
-			return false
-		}
-	}
-	return true
+	return cloneGitCommit(cloneURL, ref, dest)
 }
 
 func cloneGitCommit(cloneURL, ref, dest string) error {
