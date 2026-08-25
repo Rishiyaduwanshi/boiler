@@ -128,7 +128,7 @@ func FetchStack(remotePath string, destPath string) error {
 				}
 				defer os.RemoveAll(tempDir)
 
-				if cloneErr := fetchStackWithGitClone(p, owner, repo, ref, subPath, hasExplicitRef, tempDir, destPath); cloneErr != nil {
+				if cloneErr := fetchStackWithGitClone(p, owner, repo, ref, subPath, tempDir, destPath); cloneErr != nil {
 					return fmt.Errorf("failed to fetch Git LFS stack: %w", cloneErr)
 				}
 			}
@@ -222,7 +222,7 @@ func FetchStack(remotePath string, destPath string) error {
 	}
 	if hasPointers {
 		fmt.Println(utils.MsgGitLFSFallback)
-		if err := fetchStackWithGitClone(p, owner, repo, ref, subPath, hasExplicitRef, tempDir, destPath); err != nil {
+		if err := fetchStackWithGitClone(p, owner, repo, ref, subPath, tempDir, destPath); err != nil {
 			return fmt.Errorf("failed to fetch Git LFS stack: %w", err)
 		}
 		fmt.Printf("✓ Stack downloaded successfully\n")

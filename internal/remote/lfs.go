@@ -80,16 +80,12 @@ func providerCloneURL(p Provider, owner, repo string) (string, error) {
 	}
 }
 
-func gitCloneArgs(cloneURL, ref, dest string, explicitRef bool) []string {
-	args := []string{"clone", "--depth", "1"}
-	if explicitRef {
-		args = append(args, "--branch", ref, "--single-branch")
-	}
-	return append(args, cloneURL, dest)
+func gitCloneArgs(cloneURL, ref, dest string) []string {
+	return []string{"clone", "--depth", "1", "--branch", ref, "--single-branch", cloneURL, dest}
 }
 
-func cloneGitRepository(cloneURL, ref, dest string, explicitRef bool) error {
-	cmd := exec.Command("git", gitCloneArgs(cloneURL, ref, dest, explicitRef)...)
+func cloneGitRepository(cloneURL, ref, dest string) error {
+	cmd := exec.Command("git", gitCloneArgs(cloneURL, ref, dest)...)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
@@ -98,14 +94,14 @@ func cloneGitRepository(cloneURL, ref, dest string, explicitRef bool) error {
 	return nil
 }
 
-func fetchStackWithGitClone(p Provider, owner, repo, ref, subPath string, explicitRef bool, tempDir, destPath string) error {
+func fetchStackWithGitClone(p Provider, owner, repo, ref, subPath, tempDir, destPath string) error {
 	cloneURL, err := providerCloneURL(p, owner, repo)
 	if err != nil {
 		return err
 	}
 
 	cloneDir := filepath.Join(tempDir, "git-clone")
-	if err := runGitClone(cloneURL, ref, cloneDir, explicitRef); err != nil {
+	if err := runGitClone(cloneURL, ref, cloneDir); err != nil {
 		return err
 	}
 	if err := os.RemoveAll(filepath.Join(cloneDir, ".git")); err != nil {

@@ -97,18 +97,19 @@ func TestGitCloneArgs(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name        string
-		explicitRef bool
-		want        []string
+		name string
+		ref  string
+		want []string
 	}{
 		{
-			name: "default branch",
-			want: []string{"clone", "--depth", "1", "https://github.com/alice/repo.git", "dest"},
+			name: "implicitly resolved branch",
+			ref:  "main",
+			want: []string{"clone", "--depth", "1", "--branch", "main", "--single-branch", "https://github.com/alice/repo.git", "dest"},
 		},
 		{
-			name:        "explicit branch",
-			explicitRef: true,
-			want:        []string{"clone", "--depth", "1", "--branch", "release", "--single-branch", "https://github.com/alice/repo.git", "dest"},
+			name: "explicit branch",
+			ref:  "release",
+			want: []string{"clone", "--depth", "1", "--branch", "release", "--single-branch", "https://github.com/alice/repo.git", "dest"},
 		},
 	}
 
@@ -116,7 +117,7 @@ func TestGitCloneArgs(t *testing.T) {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got := gitCloneArgs("https://github.com/alice/repo.git", "release", "dest", tt.explicitRef)
+			got := gitCloneArgs("https://github.com/alice/repo.git", tt.ref, "dest")
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Fatalf("gitCloneArgs() = %q, want %q", got, tt.want)
 			}
@@ -170,10 +171,10 @@ func TestFetchStackFallsBackToShallowCloneForLFSPointer(t *testing.T) {
 	defer func() { runGitClone = previousRunGitClone }()
 
 	var gotURL string
-	var gotExplicitRef bool
-	runGitClone = func(cloneURL, ref, dest string, explicitRef bool) error {
+	var gotRef string
+	runGitClone = func(cloneURL, ref, dest string) error {
 		gotURL = cloneURL
-		gotExplicitRef = explicitRef
+		gotRef = ref
 		if err := os.MkdirAll(filepath.Join(dest, ".git"), 0755); err != nil {
 			return err
 		}
@@ -194,8 +195,8 @@ func TestFetchStackFallsBackToShallowCloneForLFSPointer(t *testing.T) {
 	if gotURL != "https://github.com/alice/repo.git" {
 		t.Fatalf("clone URL = %q", gotURL)
 	}
-	if gotExplicitRef {
-		t.Fatal("default branch fallback should not force an explicit ref")
+	if gotRef != "main" {
+		t.Fatalf("clone ref = %q, want main", gotRef)
 	}
 	data, err := os.ReadFile(filepath.Join(dest, "assets", "model.bin"))
 	if err != nil {
@@ -209,6 +210,33 @@ func TestFetchStackFallsBackToShallowCloneForLFSPointer(t *testing.T) {
 	}
 }
 
+func TestFetchStackPreservesExplicitBranchForLFSFallback(t *testing.T) {
+	archive := testTarGz(t, map[string]string{
+		"repo-release/asset.bin": gitLFSPointerHeader + "\noid sha256:0123456789abcdef\nsize 42\n",
+	})
+	useGitHubArchive(t, archive)
+
+	previousRunGitClone := runGitClone
+	defer func() { runGitClone = previousRunGitClone }()
+
+	var gotRef string
+	runGitClone = func(_, ref, dest string) error {
+		gotRef = ref
+		if err := os.MkdirAll(dest, 0755); err != nil {
+			return err
+		}
+		return os.WriteFile(filepath.Join(dest, "asset.bin"), []byte("resolved"), 0644)
+	}
+
+	dest := filepath.Join(t.TempDir(), "stack")
+	if err := FetchStack("https://github.com/alice/repo/tree/release", dest); err != nil {
+		t.Fatalf("FetchStack() error = %v", err)
+	}
+	if gotRef != "release" {
+		t.Fatalf("clone ref = %q, want release", gotRef)
+	}
+}
+
 func TestFetchStackKeepsArchivePathWithoutLFSPointers(t *testing.T) {
 	archive := testTarGz(t, map[string]string{
 		"repo-main/main.go": "package main\n",
@@ -218,7 +246,7 @@ func TestFetchStackKeepsArchivePathWithoutLFSPointers(t *testing.T) {
 	previousRunGitClone := runGitClone
 	defer func() { runGitClone = previousRunGitClone }()
 	cloneCalled := false
-	runGitClone = func(_, _, _ string, _ bool) error {
+	runGitClone = func(_, _, _ string) error {
 		cloneCalled = true
 		return fmt.Errorf("unexpected clone")
 	}
@@ -238,7 +266,7 @@ func TestFetchStackKeepsArchivePathWithoutLFSPointers(t *testing.T) {
 func TestGitCloneFallbackRejectsUnresolvedPointersWithoutChangingDestination(t *testing.T) {
 	previousRunGitClone := runGitClone
 	defer func() { runGitClone = previousRunGitClone }()
-	runGitClone = func(_, _, dest string, _ bool) error {
+	runGitClone = func(_, _, dest string) error {
 		if err := os.MkdirAll(dest, 0755); err != nil {
 			return err
 		}
@@ -251,7 +279,7 @@ func TestGitCloneFallbackRejectsUnresolvedPointersWithoutChangingDestination(t *
 		t.Fatal(err)
 	}
 
-	err := fetchStackWithGitClone(githubProvider{}, "alice", "repo", "main", ".", false, t.TempDir(), dest)
+	err := fetchStackWithGitClone(githubProvider{}, "alice", "repo", "main", ".", t.TempDir(), dest)
 	if err == nil || !strings.Contains(err.Error(), "unresolved Git LFS pointers") {
 		t.Fatalf("fetchStackWithGitClone() error = %v", err)
 	}
@@ -283,7 +311,7 @@ func useGitHubArchive(t *testing.T, archive []byte) {
 		switch r.URL.Path {
 		case "/repos/alice/repo":
 			fmt.Fprint(w, `{"default_branch":"main"}`)
-		case "/repos/alice/repo/tarball/main":
+		case "/repos/alice/repo/tarball/main", "/repos/alice/repo/tarball/release":
 			w.Header().Set("Content-Type", "application/gzip")
 			_, _ = w.Write(archive)
 		default:
