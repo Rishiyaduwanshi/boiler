@@ -85,13 +85,52 @@ func gitCloneArgs(cloneURL, ref, dest string) []string {
 }
 
 func cloneGitRepository(cloneURL, ref, dest string) error {
-	cmd := exec.Command("git", gitCloneArgs(cloneURL, ref, dest)...)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	if err := cmd.Run(); err != nil {
+	if isCommitSHA(ref) {
+		return cloneGitCommit(cloneURL, ref, dest)
+	}
+
+	if err := runGit(gitCloneArgs(cloneURL, ref, dest)...); err != nil {
 		return fmt.Errorf("git clone failed: %w", err)
 	}
 	return nil
+}
+
+func isCommitSHA(ref string) bool {
+	if len(ref) != 40 && len(ref) != 64 {
+		return false
+	}
+	for _, char := range ref {
+		if !((char >= '0' && char <= '9') || (char >= 'a' && char <= 'f') || (char >= 'A' && char <= 'F')) {
+			return false
+		}
+	}
+	return true
+}
+
+func cloneGitCommit(cloneURL, ref, dest string) error {
+	steps := []struct {
+		name string
+		args []string
+	}{
+		{name: "init", args: []string{"init", dest}},
+		{name: "remote add", args: []string{"-C", dest, "remote", "add", "origin", cloneURL}},
+		{name: "fetch", args: []string{"-C", dest, "fetch", "--depth", "1", "origin", ref}},
+		{name: "checkout", args: []string{"-C", dest, "checkout", "--detach", "FETCH_HEAD"}},
+	}
+
+	for _, step := range steps {
+		if err := runGit(step.args...); err != nil {
+			return fmt.Errorf("git %s failed: %w", step.name, err)
+		}
+	}
+	return nil
+}
+
+func runGit(args ...string) error {
+	cmd := exec.Command("git", args...)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	return cmd.Run()
 }
 
 func fetchStackWithGitClone(p Provider, owner, repo, ref, subPath, tempDir, destPath string) error {

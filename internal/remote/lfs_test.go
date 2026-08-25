@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"reflect"
 	"strings"
@@ -122,6 +123,54 @@ func TestGitCloneArgs(t *testing.T) {
 				t.Fatalf("gitCloneArgs() = %q, want %q", got, tt.want)
 			}
 		})
+	}
+}
+
+func TestCloneGitRepositoryCommitSHA(t *testing.T) {
+	origin := t.TempDir()
+	runTestGit(t, "init", origin)
+	runTestGit(t, "-C", origin, "config", "user.name", "Boiler Test")
+	runTestGit(t, "-C", origin, "config", "user.email", "boiler@example.invalid")
+
+	contentPath := filepath.Join(origin, "content.txt")
+	if err := os.WriteFile(contentPath, []byte("selected"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	runTestGit(t, "-C", origin, "add", "content.txt")
+	runTestGit(t, "-C", origin, "commit", "-m", "selected")
+	selectedSHA := strings.TrimSpace(runTestGit(t, "-C", origin, "rev-parse", "HEAD"))
+
+	if err := os.WriteFile(contentPath, []byte("latest"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	runTestGit(t, "-C", origin, "add", "content.txt")
+	runTestGit(t, "-C", origin, "commit", "-m", "latest")
+
+	originPath := filepath.ToSlash(origin)
+	if !strings.HasPrefix(originPath, "/") {
+		originPath = "/" + originPath
+	}
+	originURL := (&url.URL{Scheme: "file", Path: originPath}).String()
+	dest := filepath.Join(t.TempDir(), "clone")
+	if err := cloneGitRepository(originURL, selectedSHA, dest); err != nil {
+		t.Fatalf("cloneGitRepository() error = %v", err)
+	}
+
+	if got := strings.TrimSpace(runTestGit(t, "-C", dest, "rev-parse", "HEAD")); got != selectedSHA {
+		t.Fatalf("cloned SHA = %q, want %q", got, selectedSHA)
+	}
+	if got := strings.TrimSpace(runTestGit(t, "-C", dest, "branch", "--show-current")); got != "" {
+		t.Fatalf("current branch = %q, want detached HEAD", got)
+	}
+	if got := strings.TrimSpace(runTestGit(t, "-C", dest, "rev-parse", "--is-shallow-repository")); got != "true" {
+		t.Fatalf("is-shallow-repository = %q, want true", got)
+	}
+	data, err := os.ReadFile(filepath.Join(dest, "content.txt"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(data) != "selected" {
+		t.Fatalf("content = %q, want selected", data)
 	}
 }
 
@@ -356,4 +405,14 @@ func testTarGz(t *testing.T, files map[string]string) []byte {
 		t.Fatal(err)
 	}
 	return []byte(archive.String())
+}
+
+func runTestGit(t *testing.T, args ...string) string {
+	t.Helper()
+	cmd := exec.Command("git", args...)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("git %v failed: %v\n%s", args, err, output)
+	}
+	return string(output)
 }
