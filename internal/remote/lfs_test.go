@@ -4,6 +4,7 @@ import (
 	"archive/tar"
 	"compress/gzip"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -13,6 +14,8 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+
+	"github.com/rishiyaduwanshi/boiler/internal/constants"
 )
 
 type roundTripFunc func(*http.Request) (*http.Response, error)
@@ -152,7 +155,7 @@ func TestCloneGitRepositoryCommitSHA(t *testing.T) {
 	}
 	originURL := (&url.URL{Scheme: "file", Path: originPath}).String()
 	dest := filepath.Join(t.TempDir(), "clone")
-	if err := cloneGitRepository(originURL, selectedSHA, dest); err != nil {
+	if err := cloneGitRepository(githubProvider{}, "alice", "repo", originURL, selectedSHA, dest); err != nil {
 		t.Fatalf("cloneGitRepository() error = %v", err)
 	}
 
@@ -187,8 +190,86 @@ func TestCloneGitRepositoryPrefersHexBranch(t *testing.T) {
 	runTestGit(t, "-C", origin, "add", "content.txt")
 	runTestGit(t, "-C", origin, "commit", "-m", "branch")
 
-	branch := strings.Repeat("a", 40)
-	runTestGit(t, "-C", origin, "branch", branch)
+	originPath := filepath.ToSlash(origin)
+	if !strings.HasPrefix(originPath, "/") {
+		originPath = "/" + originPath
+	}
+	originURL := (&url.URL{Scheme: "file", Path: originPath}).String()
+
+	for _, branch := range []string{strings.Repeat("a", 12), strings.Repeat("b", 40)} {
+		branch := branch
+		t.Run(fmt.Sprintf("length-%d", len(branch)), func(t *testing.T) {
+			runTestGit(t, "-C", origin, "branch", branch)
+			dest := filepath.Join(t.TempDir(), "clone")
+			if err := cloneGitRepository(githubProvider{}, "alice", "repo", originURL, branch, dest); err != nil {
+				t.Fatalf("cloneGitRepository() error = %v", err)
+			}
+
+			if got := strings.TrimSpace(runTestGit(t, "-C", dest, "branch", "--show-current")); got != branch {
+				t.Fatalf("current branch = %q, want %q", got, branch)
+			}
+		})
+	}
+}
+
+func TestIsAbbreviatedCommitSHA(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		ref  string
+		want bool
+	}{
+		{ref: "abcdef", want: false},
+		{ref: "abcdef0", want: true},
+		{ref: strings.Repeat("a", 39), want: true},
+		{ref: strings.Repeat("a", 40), want: false},
+		{ref: strings.Repeat("a", 64), want: false},
+		{ref: "release1", want: false},
+	}
+
+	for _, tt := range tests {
+		caseData := tt
+		t.Run(caseData.ref, func(t *testing.T) {
+			t.Parallel()
+			if got := isAbbreviatedCommitSHA(caseData.ref); got != caseData.want {
+				t.Fatalf("isAbbreviatedCommitSHA(%q) = %v, want %v", caseData.ref, got, caseData.want)
+			}
+		})
+	}
+}
+
+func TestCloneGitRepositoryAbbreviatedCommitSHA(t *testing.T) {
+	origin := t.TempDir()
+	runTestGit(t, "init", origin)
+	runTestGit(t, "-C", origin, "config", "user.name", "Boiler Test")
+	runTestGit(t, "-C", origin, "config", "user.email", "boiler@example.invalid")
+
+	contentPath := filepath.Join(origin, "content.txt")
+	if err := os.WriteFile(contentPath, []byte("selected"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	runTestGit(t, "-C", origin, "add", "content.txt")
+	runTestGit(t, "-C", origin, "commit", "-m", "selected")
+	selectedSHA := strings.TrimSpace(runTestGit(t, "-C", origin, "rev-parse", "HEAD"))
+	selectedRef := selectedSHA[:12]
+
+	if err := os.WriteFile(contentPath, []byte("latest"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	runTestGit(t, "-C", origin, "add", "content.txt")
+	runTestGit(t, "-C", origin, "commit", "-m", "latest")
+
+	previousTransport := http.DefaultTransport
+	http.DefaultTransport = roundTripFunc(func(req *http.Request) (*http.Response, error) {
+		if req.Header.Get("Authorization") != "" {
+			t.Fatal("abbreviated commit lookup unexpectedly sent credentials")
+		}
+		if req.URL.Host != constants.ProviderGithubAPI || req.URL.Path != "/repos/alice/repo/commits/"+selectedRef {
+			t.Fatalf("unexpected commit lookup URL: %s", req.URL)
+		}
+		return testHTTPResponse(http.StatusOK, fmt.Sprintf(`{"sha":%q}`, selectedSHA)), nil
+	})
+	t.Cleanup(func() { http.DefaultTransport = previousTransport })
 
 	originPath := filepath.ToSlash(origin)
 	if !strings.HasPrefix(originPath, "/") {
@@ -196,12 +277,105 @@ func TestCloneGitRepositoryPrefersHexBranch(t *testing.T) {
 	}
 	originURL := (&url.URL{Scheme: "file", Path: originPath}).String()
 	dest := filepath.Join(t.TempDir(), "clone")
-	if err := cloneGitRepository(originURL, branch, dest); err != nil {
+	if err := cloneGitRepository(githubProvider{}, "alice", "repo", originURL, selectedRef, dest); err != nil {
 		t.Fatalf("cloneGitRepository() error = %v", err)
 	}
 
-	if got := strings.TrimSpace(runTestGit(t, "-C", dest, "branch", "--show-current")); got != branch {
-		t.Fatalf("current branch = %q, want %q", got, branch)
+	if got := strings.TrimSpace(runTestGit(t, "-C", dest, "rev-parse", "HEAD")); got != selectedSHA {
+		t.Fatalf("cloned SHA = %q, want %q", got, selectedSHA)
+	}
+	if got := strings.TrimSpace(runTestGit(t, "-C", dest, "branch", "--show-current")); got != "" {
+		t.Fatalf("current branch = %q, want detached HEAD", got)
+	}
+}
+
+func TestResolveAbbreviatedCommitProviders(t *testing.T) {
+	ref := "abcdef0"
+	fullSHA := ref + strings.Repeat("1", 33)
+	tests := []struct {
+		name     string
+		provider Provider
+		wantHost string
+		wantPath string
+		response string
+	}{
+		{name: "github", provider: githubProvider{}, wantHost: constants.ProviderGithubAPI, wantPath: "/repos/alice/repo/commits/" + ref, response: fmt.Sprintf(`{"sha":%q}`, fullSHA)},
+		{name: "gitlab", provider: gitlabProvider{host: constants.ProviderGitlabHost}, wantHost: constants.ProviderGitlabHost, wantPath: "/api/v4/projects/alice%2Frepo/repository/commits/" + ref, response: fmt.Sprintf(`{"id":%q}`, fullSHA)},
+		{name: "bitbucket", provider: bitbucketProvider{}, wantHost: "api.bitbucket.org", wantPath: "/2.0/repositories/alice/repo/commit/" + ref, response: fmt.Sprintf(`{"hash":%q}`, fullSHA)},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			previousTransport := http.DefaultTransport
+			http.DefaultTransport = roundTripFunc(func(req *http.Request) (*http.Response, error) {
+				if req.Header.Get("Authorization") != "" {
+					t.Fatal("abbreviated commit lookup unexpectedly sent credentials")
+				}
+				if req.URL.Host != tt.wantHost || req.URL.EscapedPath() != tt.wantPath {
+					t.Fatalf("commit lookup URL = %s, want https://%s%s", req.URL, tt.wantHost, tt.wantPath)
+				}
+				return testHTTPResponse(http.StatusOK, tt.response), nil
+			})
+			t.Cleanup(func() { http.DefaultTransport = previousTransport })
+
+			got, err := resolveAbbreviatedCommit(tt.provider, "alice", "repo.git", ref)
+			if err != nil {
+				t.Fatalf("resolveAbbreviatedCommit() error = %v", err)
+			}
+			if got != fullSHA {
+				t.Fatalf("resolveAbbreviatedCommit() = %q, want %q", got, fullSHA)
+			}
+		})
+	}
+}
+
+func TestResolveAbbreviatedCommitErrors(t *testing.T) {
+	ref := "abcdef0"
+	tests := []struct {
+		name       string
+		provider   Provider
+		statusCode int
+		response   string
+		transport  error
+		wantError  string
+	}{
+		{name: "rate limited", provider: githubProvider{}, statusCode: http.StatusTooManyRequests, wantError: "HTTP 429"},
+		{name: "ambiguous", provider: githubProvider{}, statusCode: http.StatusUnprocessableEntity, wantError: "HTTP 422"},
+		{name: "not found", provider: gitlabProvider{host: constants.ProviderGitlabHost}, statusCode: http.StatusNotFound, wantError: "HTTP 404"},
+		{name: "network failure", provider: bitbucketProvider{}, transport: fmt.Errorf("network unavailable"), wantError: "network unavailable"},
+		{name: "mismatched response", provider: githubProvider{}, statusCode: http.StatusOK, response: fmt.Sprintf(`{"sha":%q}`, "bbbbbbb"+strings.Repeat("1", 33)), wantError: "does not match abbreviated ref"},
+		{name: "invalid response", provider: githubProvider{}, statusCode: http.StatusOK, response: `{"sha":"abcdef0"}`, wantError: "invalid full commit SHA"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			previousTransport := http.DefaultTransport
+			http.DefaultTransport = roundTripFunc(func(*http.Request) (*http.Response, error) {
+				if tt.transport != nil {
+					return nil, tt.transport
+				}
+				return testHTTPResponse(tt.statusCode, tt.response), nil
+			})
+			t.Cleanup(func() { http.DefaultTransport = previousTransport })
+
+			_, err := resolveAbbreviatedCommit(tt.provider, "alice", "repo", ref)
+			if err == nil || !strings.Contains(err.Error(), tt.wantError) {
+				t.Fatalf("resolveAbbreviatedCommit() error = %v, want %q", err, tt.wantError)
+			}
+		})
+	}
+
+	if _, err := resolveAbbreviatedCommit(genericProvider{base: "https://example.com"}, "alice", "repo", ref); err == nil || !strings.Contains(err.Error(), "does not support abbreviated commit refs") {
+		t.Fatalf("resolveAbbreviatedCommit() generic error = %v", err)
+	}
+}
+
+func testHTTPResponse(statusCode int, body string) *http.Response {
+	return &http.Response{
+		StatusCode: statusCode,
+		Status:     fmt.Sprintf("%d %s", statusCode, http.StatusText(statusCode)),
+		Header:     make(http.Header),
+		Body:       io.NopCloser(strings.NewReader(body)),
 	}
 }
 
@@ -252,7 +426,7 @@ func TestFetchStackFallsBackToShallowCloneForLFSPointer(t *testing.T) {
 
 	var gotURL string
 	var gotRef string
-	runGitClone = func(cloneURL, ref, dest string) error {
+	runGitClone = func(_ Provider, _, _ string, cloneURL, ref, dest string) error {
 		gotURL = cloneURL
 		gotRef = ref
 		if err := os.MkdirAll(filepath.Join(dest, ".git"), 0755); err != nil {
@@ -300,7 +474,7 @@ func TestFetchStackPreservesExplicitBranchForLFSFallback(t *testing.T) {
 	defer func() { runGitClone = previousRunGitClone }()
 
 	var gotRef string
-	runGitClone = func(_, ref, dest string) error {
+	runGitClone = func(_ Provider, _, _, _, ref, dest string) error {
 		gotRef = ref
 		if err := os.MkdirAll(dest, 0755); err != nil {
 			return err
@@ -326,7 +500,7 @@ func TestFetchStackKeepsArchivePathWithoutLFSPointers(t *testing.T) {
 	previousRunGitClone := runGitClone
 	defer func() { runGitClone = previousRunGitClone }()
 	cloneCalled := false
-	runGitClone = func(_, _, _ string) error {
+	runGitClone = func(Provider, string, string, string, string, string) error {
 		cloneCalled = true
 		return fmt.Errorf("unexpected clone")
 	}
@@ -346,7 +520,7 @@ func TestFetchStackKeepsArchivePathWithoutLFSPointers(t *testing.T) {
 func TestGitCloneFallbackRejectsUnresolvedPointersWithoutChangingDestination(t *testing.T) {
 	previousRunGitClone := runGitClone
 	defer func() { runGitClone = previousRunGitClone }()
-	runGitClone = func(_, _, dest string) error {
+	runGitClone = func(_ Provider, _, _, _, _, dest string) error {
 		if err := os.MkdirAll(dest, 0755); err != nil {
 			return err
 		}
