@@ -1,0 +1,623 @@
+package remote
+
+import (
+	"archive/tar"
+	"compress/gzip"
+	"fmt"
+	"io"
+	"net/http"
+	"net/http/httptest"
+	"net/url"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"reflect"
+	"strings"
+	"testing"
+
+	"github.com/rishiyaduwanshi/boiler/internal/constants"
+)
+
+type roundTripFunc func(*http.Request) (*http.Response, error)
+
+func (f roundTripFunc) RoundTrip(req *http.Request) (*http.Response, error) {
+	return f(req)
+}
+
+func TestHasGitLFSPointers(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name    string
+		files   map[string]string
+		wantLFS bool
+	}{
+		{
+			name: "nested pointer",
+			files: map[string]string{
+				"assets/model.bin": "version https://git-lfs.github.com/spec/v1\noid sha256:0123456789abcdef\nsize 42\n",
+				"main.go":          "package main\n",
+			},
+			wantLFS: true,
+		},
+		{
+			name: "windows line ending",
+			files: map[string]string{
+				"video.mp4": "version https://git-lfs.github.com/spec/v1\r\noid sha256:0123456789abcdef\r\nsize 42\r\n",
+			},
+			wantLFS: true,
+		},
+		{
+			name: "normal files",
+			files: map[string]string{
+				"README.md": "# Example\n",
+				"large.bin": "ordinary content without a newline",
+			},
+		},
+		{
+			name: "header prefix is not a pointer",
+			files: map[string]string{
+				"notes.txt": "version https://git-lfs.github.com/spec/v1-extra\n",
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			root := t.TempDir()
+			for name, content := range tt.files {
+				path := filepath.Join(root, filepath.FromSlash(name))
+				if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
+					t.Fatal(err)
+				}
+				if err := os.WriteFile(path, []byte(content), 0644); err != nil {
+					t.Fatal(err)
+				}
+			}
+
+			got, err := hasGitLFSPointers(root)
+			if err != nil {
+				t.Fatalf("hasGitLFSPointers() error = %v", err)
+			}
+			if got != tt.wantLFS {
+				t.Fatalf("hasGitLFSPointers() = %v, want %v", got, tt.wantLFS)
+			}
+		})
+	}
+}
+
+func TestHasGitLFSPointersMissingDirectory(t *testing.T) {
+	t.Parallel()
+
+	if _, err := hasGitLFSPointers(filepath.Join(t.TempDir(), "missing")); err == nil {
+		t.Fatal("expected an error for a missing directory")
+	}
+}
+
+func TestGitCloneArgs(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		ref  string
+		want []string
+	}{
+		{
+			name: "implicitly resolved branch",
+			ref:  "main",
+			want: []string{"clone", "--depth", "1", "--branch", "main", "--single-branch", "https://github.com/alice/repo.git", "dest"},
+		},
+		{
+			name: "explicit branch",
+			ref:  "release",
+			want: []string{"clone", "--depth", "1", "--branch", "release", "--single-branch", "https://github.com/alice/repo.git", "dest"},
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			got := gitCloneArgs("https://github.com/alice/repo.git", tt.ref, "dest")
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Fatalf("gitCloneArgs() = %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestCloneGitRepositoryCommitSHA(t *testing.T) {
+	origin := t.TempDir()
+	runTestGit(t, "init", origin)
+	runTestGit(t, "-C", origin, "config", "user.name", "Boiler Test")
+	runTestGit(t, "-C", origin, "config", "user.email", "boiler@example.invalid")
+
+	contentPath := filepath.Join(origin, "content.txt")
+	if err := os.WriteFile(contentPath, []byte("selected"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	runTestGit(t, "-C", origin, "add", "content.txt")
+	runTestGit(t, "-C", origin, "commit", "-m", "selected")
+	selectedSHA := strings.TrimSpace(runTestGit(t, "-C", origin, "rev-parse", "HEAD"))
+
+	if err := os.WriteFile(contentPath, []byte("latest"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	runTestGit(t, "-C", origin, "add", "content.txt")
+	runTestGit(t, "-C", origin, "commit", "-m", "latest")
+
+	originPath := filepath.ToSlash(origin)
+	if !strings.HasPrefix(originPath, "/") {
+		originPath = "/" + originPath
+	}
+	originURL := (&url.URL{Scheme: "file", Path: originPath}).String()
+	dest := filepath.Join(t.TempDir(), "clone")
+	if err := cloneGitRepository(githubProvider{}, "alice", "repo", originURL, selectedSHA, dest); err != nil {
+		t.Fatalf("cloneGitRepository() error = %v", err)
+	}
+
+	if got := strings.TrimSpace(runTestGit(t, "-C", dest, "rev-parse", "HEAD")); got != selectedSHA {
+		t.Fatalf("cloned SHA = %q, want %q", got, selectedSHA)
+	}
+	if got := strings.TrimSpace(runTestGit(t, "-C", dest, "branch", "--show-current")); got != "" {
+		t.Fatalf("current branch = %q, want detached HEAD", got)
+	}
+	if got := strings.TrimSpace(runTestGit(t, "-C", dest, "rev-parse", "--is-shallow-repository")); got != "true" {
+		t.Fatalf("is-shallow-repository = %q, want true", got)
+	}
+	data, err := os.ReadFile(filepath.Join(dest, "content.txt"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(data) != "selected" {
+		t.Fatalf("content = %q, want selected", data)
+	}
+}
+
+func TestCloneGitRepositoryPrefersHexBranch(t *testing.T) {
+	origin := t.TempDir()
+	runTestGit(t, "init", origin)
+	runTestGit(t, "-C", origin, "config", "user.name", "Boiler Test")
+	runTestGit(t, "-C", origin, "config", "user.email", "boiler@example.invalid")
+
+	contentPath := filepath.Join(origin, "content.txt")
+	if err := os.WriteFile(contentPath, []byte("branch"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	runTestGit(t, "-C", origin, "add", "content.txt")
+	runTestGit(t, "-C", origin, "commit", "-m", "branch")
+
+	originPath := filepath.ToSlash(origin)
+	if !strings.HasPrefix(originPath, "/") {
+		originPath = "/" + originPath
+	}
+	originURL := (&url.URL{Scheme: "file", Path: originPath}).String()
+
+	for _, branch := range []string{strings.Repeat("a", 12), strings.Repeat("b", 40)} {
+		branch := branch
+		t.Run(fmt.Sprintf("length-%d", len(branch)), func(t *testing.T) {
+			runTestGit(t, "-C", origin, "branch", branch)
+			dest := filepath.Join(t.TempDir(), "clone")
+			if err := cloneGitRepository(githubProvider{}, "alice", "repo", originURL, branch, dest); err != nil {
+				t.Fatalf("cloneGitRepository() error = %v", err)
+			}
+
+			if got := strings.TrimSpace(runTestGit(t, "-C", dest, "branch", "--show-current")); got != branch {
+				t.Fatalf("current branch = %q, want %q", got, branch)
+			}
+		})
+	}
+}
+
+func TestIsAbbreviatedCommitSHA(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		ref  string
+		want bool
+	}{
+		{ref: "abcdef", want: false},
+		{ref: "abcdef0", want: true},
+		{ref: strings.Repeat("a", 39), want: true},
+		{ref: strings.Repeat("a", 40), want: false},
+		{ref: strings.Repeat("a", 64), want: false},
+		{ref: "release1", want: false},
+	}
+
+	for _, tt := range tests {
+		caseData := tt
+		t.Run(caseData.ref, func(t *testing.T) {
+			t.Parallel()
+			if got := isAbbreviatedCommitSHA(caseData.ref); got != caseData.want {
+				t.Fatalf("isAbbreviatedCommitSHA(%q) = %v, want %v", caseData.ref, got, caseData.want)
+			}
+		})
+	}
+}
+
+func TestCloneGitRepositoryAbbreviatedCommitSHA(t *testing.T) {
+	origin := t.TempDir()
+	runTestGit(t, "init", origin)
+	runTestGit(t, "-C", origin, "config", "user.name", "Boiler Test")
+	runTestGit(t, "-C", origin, "config", "user.email", "boiler@example.invalid")
+
+	contentPath := filepath.Join(origin, "content.txt")
+	if err := os.WriteFile(contentPath, []byte("selected"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	runTestGit(t, "-C", origin, "add", "content.txt")
+	runTestGit(t, "-C", origin, "commit", "-m", "selected")
+	selectedSHA := strings.TrimSpace(runTestGit(t, "-C", origin, "rev-parse", "HEAD"))
+	selectedRef := selectedSHA[:12]
+
+	if err := os.WriteFile(contentPath, []byte("latest"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	runTestGit(t, "-C", origin, "add", "content.txt")
+	runTestGit(t, "-C", origin, "commit", "-m", "latest")
+
+	previousTransport := http.DefaultTransport
+	http.DefaultTransport = roundTripFunc(func(req *http.Request) (*http.Response, error) {
+		if req.Header.Get("Authorization") != "" {
+			t.Fatal("abbreviated commit lookup unexpectedly sent credentials")
+		}
+		if req.URL.Host != constants.ProviderGithubAPI || req.URL.Path != "/repos/alice/repo/commits/"+selectedRef {
+			t.Fatalf("unexpected commit lookup URL: %s", req.URL)
+		}
+		return testHTTPResponse(http.StatusOK, fmt.Sprintf(`{"sha":%q}`, selectedSHA)), nil
+	})
+	t.Cleanup(func() { http.DefaultTransport = previousTransport })
+
+	originPath := filepath.ToSlash(origin)
+	if !strings.HasPrefix(originPath, "/") {
+		originPath = "/" + originPath
+	}
+	originURL := (&url.URL{Scheme: "file", Path: originPath}).String()
+	dest := filepath.Join(t.TempDir(), "clone")
+	if err := cloneGitRepository(githubProvider{}, "alice", "repo", originURL, selectedRef, dest); err != nil {
+		t.Fatalf("cloneGitRepository() error = %v", err)
+	}
+
+	if got := strings.TrimSpace(runTestGit(t, "-C", dest, "rev-parse", "HEAD")); got != selectedSHA {
+		t.Fatalf("cloned SHA = %q, want %q", got, selectedSHA)
+	}
+	if got := strings.TrimSpace(runTestGit(t, "-C", dest, "branch", "--show-current")); got != "" {
+		t.Fatalf("current branch = %q, want detached HEAD", got)
+	}
+}
+
+func TestResolveAbbreviatedCommitProviders(t *testing.T) {
+	ref := "abcdef0"
+	fullSHA := ref + strings.Repeat("1", 33)
+	tests := []struct {
+		name     string
+		provider Provider
+		wantHost string
+		wantPath string
+		response string
+	}{
+		{name: "github", provider: githubProvider{}, wantHost: constants.ProviderGithubAPI, wantPath: "/repos/alice/repo/commits/" + ref, response: fmt.Sprintf(`{"sha":%q}`, fullSHA)},
+		{name: "gitlab", provider: gitlabProvider{host: constants.ProviderGitlabHost}, wantHost: constants.ProviderGitlabHost, wantPath: "/api/v4/projects/alice%2Frepo/repository/commits/" + ref, response: fmt.Sprintf(`{"id":%q}`, fullSHA)},
+		{name: "bitbucket", provider: bitbucketProvider{}, wantHost: "api.bitbucket.org", wantPath: "/2.0/repositories/alice/repo/commit/" + ref, response: fmt.Sprintf(`{"hash":%q}`, fullSHA)},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			previousTransport := http.DefaultTransport
+			http.DefaultTransport = roundTripFunc(func(req *http.Request) (*http.Response, error) {
+				if req.Header.Get("Authorization") != "" {
+					t.Fatal("abbreviated commit lookup unexpectedly sent credentials")
+				}
+				if req.URL.Host != tt.wantHost || req.URL.EscapedPath() != tt.wantPath {
+					t.Fatalf("commit lookup URL = %s, want https://%s%s", req.URL, tt.wantHost, tt.wantPath)
+				}
+				return testHTTPResponse(http.StatusOK, tt.response), nil
+			})
+			t.Cleanup(func() { http.DefaultTransport = previousTransport })
+
+			got, err := resolveAbbreviatedCommit(tt.provider, "alice", "repo.git", ref)
+			if err != nil {
+				t.Fatalf("resolveAbbreviatedCommit() error = %v", err)
+			}
+			if got != fullSHA {
+				t.Fatalf("resolveAbbreviatedCommit() = %q, want %q", got, fullSHA)
+			}
+		})
+	}
+}
+
+func TestResolveAbbreviatedCommitErrors(t *testing.T) {
+	ref := "abcdef0"
+	tests := []struct {
+		name       string
+		provider   Provider
+		statusCode int
+		response   string
+		transport  error
+		wantError  string
+	}{
+		{name: "rate limited", provider: githubProvider{}, statusCode: http.StatusTooManyRequests, wantError: "HTTP 429"},
+		{name: "ambiguous", provider: githubProvider{}, statusCode: http.StatusUnprocessableEntity, wantError: "HTTP 422"},
+		{name: "not found", provider: gitlabProvider{host: constants.ProviderGitlabHost}, statusCode: http.StatusNotFound, wantError: "HTTP 404"},
+		{name: "network failure", provider: bitbucketProvider{}, transport: fmt.Errorf("network unavailable"), wantError: "network unavailable"},
+		{name: "mismatched response", provider: githubProvider{}, statusCode: http.StatusOK, response: fmt.Sprintf(`{"sha":%q}`, "bbbbbbb"+strings.Repeat("1", 33)), wantError: "does not match abbreviated ref"},
+		{name: "invalid response", provider: githubProvider{}, statusCode: http.StatusOK, response: `{"sha":"abcdef0"}`, wantError: "invalid full commit SHA"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			previousTransport := http.DefaultTransport
+			http.DefaultTransport = roundTripFunc(func(*http.Request) (*http.Response, error) {
+				if tt.transport != nil {
+					return nil, tt.transport
+				}
+				return testHTTPResponse(tt.statusCode, tt.response), nil
+			})
+			t.Cleanup(func() { http.DefaultTransport = previousTransport })
+
+			_, err := resolveAbbreviatedCommit(tt.provider, "alice", "repo", ref)
+			if err == nil || !strings.Contains(err.Error(), tt.wantError) {
+				t.Fatalf("resolveAbbreviatedCommit() error = %v, want %q", err, tt.wantError)
+			}
+		})
+	}
+
+	if _, err := resolveAbbreviatedCommit(genericProvider{base: "https://example.com"}, "alice", "repo", ref); err == nil || !strings.Contains(err.Error(), "does not support abbreviated commit refs") {
+		t.Fatalf("resolveAbbreviatedCommit() generic error = %v", err)
+	}
+}
+
+func testHTTPResponse(statusCode int, body string) *http.Response {
+	return &http.Response{
+		StatusCode: statusCode,
+		Status:     fmt.Sprintf("%d %s", statusCode, http.StatusText(statusCode)),
+		Header:     make(http.Header),
+		Body:       io.NopCloser(strings.NewReader(body)),
+	}
+}
+
+func TestProviderCloneURL(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name    string
+		p       Provider
+		want    string
+		wantErr bool
+	}{
+		{name: "github", p: githubProvider{}, want: "https://github.com/alice/repo.git"},
+		{name: "gitlab", p: gitlabProvider{host: "gitlab.example.com"}, want: "https://gitlab.example.com/alice/repo.git"},
+		{name: "bitbucket", p: bitbucketProvider{}, want: "https://bitbucket.org/alice/repo.git"},
+		{name: "generic archive", p: genericProvider{base: "https://example.com"}, wantErr: true},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			got, err := providerCloneURL(tt.p, "alice", "repo")
+			if tt.wantErr {
+				if err == nil {
+					t.Fatal("expected an error")
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("providerCloneURL() error = %v", err)
+			}
+			if got != tt.want {
+				t.Fatalf("providerCloneURL() = %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestFetchStackFallsBackToShallowCloneForLFSPointer(t *testing.T) {
+	archive := testTarGz(t, map[string]string{
+		"repo-main/assets/model.bin": "version https://git-lfs.github.com/spec/v1\noid sha256:0123456789abcdef\nsize 42\n",
+	})
+	useGitHubArchive(t, archive)
+
+	previousRunGitClone := runGitClone
+	defer func() { runGitClone = previousRunGitClone }()
+
+	var gotURL string
+	var gotRef string
+	runGitClone = func(_ Provider, _, _ string, cloneURL, ref, dest string) error {
+		gotURL = cloneURL
+		gotRef = ref
+		if err := os.MkdirAll(filepath.Join(dest, ".git"), 0755); err != nil {
+			return err
+		}
+		if err := os.MkdirAll(filepath.Join(dest, "assets"), 0755); err != nil {
+			return err
+		}
+		if err := os.WriteFile(filepath.Join(dest, ".git", "config"), []byte("metadata"), 0644); err != nil {
+			return err
+		}
+		return os.WriteFile(filepath.Join(dest, "assets", "model.bin"), []byte("resolved lfs content"), 0644)
+	}
+
+	dest := filepath.Join(t.TempDir(), "stack")
+	if err := FetchStack("alice/repo", dest); err != nil {
+		t.Fatalf("FetchStack() error = %v", err)
+	}
+
+	if gotURL != "https://github.com/alice/repo.git" {
+		t.Fatalf("clone URL = %q", gotURL)
+	}
+	if gotRef != "main" {
+		t.Fatalf("clone ref = %q, want main", gotRef)
+	}
+	data, err := os.ReadFile(filepath.Join(dest, "assets", "model.bin"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(data) != "resolved lfs content" {
+		t.Fatalf("model content = %q", data)
+	}
+	if _, err := os.Stat(filepath.Join(dest, ".git")); !os.IsNotExist(err) {
+		t.Fatalf(".git metadata was not removed: %v", err)
+	}
+}
+
+func TestFetchStackPreservesExplicitBranchForLFSFallback(t *testing.T) {
+	archive := testTarGz(t, map[string]string{
+		"repo-release/asset.bin": gitLFSPointerHeader + "\noid sha256:0123456789abcdef\nsize 42\n",
+	})
+	useGitHubArchive(t, archive)
+
+	previousRunGitClone := runGitClone
+	defer func() { runGitClone = previousRunGitClone }()
+
+	var gotRef string
+	runGitClone = func(_ Provider, _, _, _, ref, dest string) error {
+		gotRef = ref
+		if err := os.MkdirAll(dest, 0755); err != nil {
+			return err
+		}
+		return os.WriteFile(filepath.Join(dest, "asset.bin"), []byte("resolved"), 0644)
+	}
+
+	dest := filepath.Join(t.TempDir(), "stack")
+	if err := FetchStack("https://github.com/alice/repo/tree/release", dest); err != nil {
+		t.Fatalf("FetchStack() error = %v", err)
+	}
+	if gotRef != "release" {
+		t.Fatalf("clone ref = %q, want release", gotRef)
+	}
+}
+
+func TestFetchStackKeepsArchivePathWithoutLFSPointers(t *testing.T) {
+	archive := testTarGz(t, map[string]string{
+		"repo-main/main.go": "package main\n",
+	})
+	useGitHubArchive(t, archive)
+
+	previousRunGitClone := runGitClone
+	defer func() { runGitClone = previousRunGitClone }()
+	cloneCalled := false
+	runGitClone = func(Provider, string, string, string, string, string) error {
+		cloneCalled = true
+		return fmt.Errorf("unexpected clone")
+	}
+
+	dest := filepath.Join(t.TempDir(), "stack")
+	if err := FetchStack("alice/repo", dest); err != nil {
+		t.Fatalf("FetchStack() error = %v", err)
+	}
+	if cloneCalled {
+		t.Fatal("normal archive unexpectedly triggered git clone")
+	}
+	if _, err := os.Stat(filepath.Join(dest, "main.go")); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestGitCloneFallbackRejectsUnresolvedPointersWithoutChangingDestination(t *testing.T) {
+	previousRunGitClone := runGitClone
+	defer func() { runGitClone = previousRunGitClone }()
+	runGitClone = func(_ Provider, _, _, _, _, dest string) error {
+		if err := os.MkdirAll(dest, 0755); err != nil {
+			return err
+		}
+		return os.WriteFile(filepath.Join(dest, "asset.bin"), []byte(gitLFSPointerHeader+"\n"), 0644)
+	}
+
+	dest := t.TempDir()
+	sentinel := filepath.Join(dest, "sentinel.txt")
+	if err := os.WriteFile(sentinel, []byte("keep"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	err := fetchStackWithGitClone(githubProvider{}, "alice", "repo", "main", ".", t.TempDir(), dest)
+	if err == nil || !strings.Contains(err.Error(), "unresolved Git LFS pointers") {
+		t.Fatalf("fetchStackWithGitClone() error = %v", err)
+	}
+	if _, err := os.Stat(sentinel); err != nil {
+		t.Fatalf("destination changed after clone validation failed: %v", err)
+	}
+}
+
+func TestFetchStackRejectsLFSPointerFromGenericArchive(t *testing.T) {
+	archive := testTarGz(t, map[string]string{
+		"asset.bin": "version https://git-lfs.github.com/spec/v1\noid sha256:0123456789abcdef\nsize 42\n",
+	})
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/gzip")
+		_, _ = w.Write(archive)
+	}))
+	defer server.Close()
+
+	err := FetchStack(server.URL+"/stack.tar.gz", filepath.Join(t.TempDir(), "stack"))
+	if err == nil || !strings.Contains(err.Error(), "cannot fall back to git clone") {
+		t.Fatalf("FetchStack() error = %v, want clone fallback error", err)
+	}
+}
+
+func useGitHubArchive(t *testing.T, archive []byte) {
+	t.Helper()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/repos/alice/repo":
+			fmt.Fprint(w, `{"default_branch":"main"}`)
+		case "/repos/alice/repo/tarball/main", "/repos/alice/repo/tarball/release":
+			w.Header().Set("Content-Type", "application/gzip")
+			_, _ = w.Write(archive)
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	t.Cleanup(server.Close)
+
+	serverURL, err := url.Parse(server.URL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	previousTransport := http.DefaultTransport
+	http.DefaultTransport = roundTripFunc(func(req *http.Request) (*http.Response, error) {
+		redirected := req.Clone(req.Context())
+		redirected.URL.Scheme = serverURL.Scheme
+		redirected.URL.Host = serverURL.Host
+		return previousTransport.RoundTrip(redirected)
+	})
+	t.Cleanup(func() { http.DefaultTransport = previousTransport })
+}
+
+func testTarGz(t *testing.T, files map[string]string) []byte {
+	t.Helper()
+
+	var archive strings.Builder
+	gz := gzip.NewWriter(&archive)
+	tw := tar.NewWriter(gz)
+	for name, content := range files {
+		header := &tar.Header{Name: name, Mode: 0644, Size: int64(len(content))}
+		if err := tw.WriteHeader(header); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := tw.Write([]byte(content)); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := tw.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if err := gz.Close(); err != nil {
+		t.Fatal(err)
+	}
+	return []byte(archive.String())
+}
+
+func runTestGit(t *testing.T, args ...string) string {
+	t.Helper()
+	cmd := exec.Command("git", args...)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("git %v failed: %v\n%s", args, err, output)
+	}
+	return string(output)
+}

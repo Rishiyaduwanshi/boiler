@@ -253,6 +253,10 @@ sequenceDiagram
   Store-->>User: ✓ Resource ready
 ```
 
+If a hosted repository archive contains Git LFS pointers, Boiler automatically
+falls back to a shallow Git clone and removes the repository metadata before
+storing the stack. This fallback requires both Git and Git LFS to be available.
+
 ---
 
 ## Setting Up Your Own Registry

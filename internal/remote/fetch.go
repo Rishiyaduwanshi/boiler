@@ -116,6 +116,22 @@ func FetchStack(remotePath string, destPath string) error {
 
 	if owner != "" && repo != "" && subPath != "." {
 		if err := fetchProviderSubPath(p, owner, repo, ref, subPath, destPath); err == nil {
+			hasPointers, scanErr := hasGitLFSPointers(destPath)
+			if scanErr != nil {
+				return fmt.Errorf("failed to scan fetched stack for Git LFS pointers: %w", scanErr)
+			}
+			if hasPointers {
+				fmt.Println(utils.MsgGitLFSFallback)
+				tempDir, tempErr := os.MkdirTemp("", "boiler-stack-clone-*")
+				if tempErr != nil {
+					return fmt.Errorf("failed to create temp directory: %w", tempErr)
+				}
+				defer os.RemoveAll(tempDir)
+
+				if cloneErr := fetchStackWithGitClone(p, owner, repo, ref, subPath, tempDir, destPath); cloneErr != nil {
+					return fmt.Errorf("failed to fetch Git LFS stack: %w", cloneErr)
+				}
+			}
 			fmt.Printf("✓ Stack downloaded successfully\n")
 			return nil
 		} else {
@@ -198,6 +214,19 @@ func FetchStack(remotePath string, destPath string) error {
 		} else {
 			sourceDir = filepath.Join(extractDir, subPath)
 		}
+	}
+
+	hasPointers, err := hasGitLFSPointers(sourceDir)
+	if err != nil {
+		return fmt.Errorf("failed to scan extracted stack for Git LFS pointers: %w", err)
+	}
+	if hasPointers {
+		fmt.Println(utils.MsgGitLFSFallback)
+		if err := fetchStackWithGitClone(p, owner, repo, ref, subPath, tempDir, destPath); err != nil {
+			return fmt.Errorf("failed to fetch Git LFS stack: %w", err)
+		}
+		fmt.Printf("✓ Stack downloaded successfully\n")
+		return nil
 	}
 
 	if err := utils.CopyDir(sourceDir, destPath, nil); err != nil {
